@@ -120,14 +120,27 @@ def save_notes_to_midi(
     except Exception as e:
         print(f"Error saving MIDI file to '{output_path}': {e}")
 
+def printTypes():
+    message = """Types:
+    Use as type argument to specify the type
+    skyline_basic - basic skyline algorithm
+
+    """
+    return message
+
 # --- 封装的“工作函数” ---
 def process_single_file(input_path: str, args):
     """
     处理单个文件的完整逻辑，方便并行调用。
     """
     try:
-        original_score, right_hand_notes, left_hand_notes = extract_midi(input_path)
-
+        original_score, right_hand_notes, left_hand_notes = None
+        if args.type == "skyline_basic":
+            original_score, right_hand_notes, left_hand_notes = extract_midi_skyline(input_path)
+        else:
+            print(printTypes())
+            return
+        
         if original_score is None or (not right_hand_notes and not left_hand_notes):
             return f"Skipped (no data): {input_path}"
 
@@ -152,14 +165,28 @@ def process_single_file(input_path: str, args):
         return f"Failed: {input_path} with error: {e}"
 
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Extract right-hand (>=C4) and left-hand (<C4) notes from MIDI files concurrently.")
+    parser = argparse.ArgumentParser(
+        description="Extract right-hand (>=C4) and left-hand (<C4) notes from MIDI files concurrently."
+        )
     parser.add_argument("--input_dir", type=str, required=True, help="Path to the root directory containing input MIDI files.")
     parser.add_argument("--output_dir", type=str, required=True, help="Path to the directory where separated MIDI files will be saved.")
     # 添加一个控制进程数的参数
     parser.add_argument("--workers", type=int, default=None, help="Number of worker processes to use. Defaults to the number of CPU cores.")
+    parser.add_argument("--type", type=str, required=True, help="Type of algorithm used to extract melody and accompanement.")
     args = parser.parse_args()
 
+
+    VALID_TYPES = ["skyline_basic"] 
+    
+    if args.type not in VALID_TYPES:
+        print(f"Error: Invalid type '{args.type}'.")
+        print(printTypes()) # Now this prints in the main program
+        # Exit the script immediately
+        import sys
+        sys.exit(1) 
+        
     left_hand_dir = os.path.join(args.output_dir, "acc")
     right_hand_dir = os.path.join(args.output_dir, "mel")
 
