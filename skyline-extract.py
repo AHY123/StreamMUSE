@@ -6,21 +6,18 @@ import glob
 import concurrent.futures
 from tqdm import tqdm
 
-def extract_midi_skyline(midi_file_path: str, pitch_barrier: int = 12) -> Tuple[Score, List[Note], List[Note]]:
+def extract_midi_skyline(midi_file_path: str, max_skyline_drop: int = 12, max_rest_duration_sec: float = 2.0) -> Tuple[Score, List[Note], List[Note]]:
     """
-    Separates a MIDI file into a 'skyline' melody and a filtered 'accompaniment'.
+    Separates a MIDI file into a 'skyline' melody and the 'accompaniment' notes.
 
-    - The skyline is the highest active pitch at any moment in time.
-    - The accompaniment consists of all other notes playing concurrently that are
-      within a specified pitch range below the skyline note.
+    - The skyline is the highest active pitch, but avoids sudden large drops.
+    - The accompaniment consists of ALL other notes that are not part of the skyline.
 
     :param midi_file_path: Path to the MIDI file.
-    :param pitch_barrier: The maximum number of semitones below the skyline note
-                          that an accompaniment note can be. Defaults to 24 (2 octaves).
-    :return: A tuple containing:
-             - The original symusic.Score object.
-             - A list of symusic.Note objects for the skyline melody.
-             - A list of symusic.Note objects for the filtered accompaniment.
+    :param max_skyline_drop: Max semitones the skyline can drop between consecutive notes.
+    :param max_rest_duration_sec: Max duration of a rest in seconds before the skyline
+                                  pitch restriction is reset.
+    :return: A tuple of (original Score, skyline notes, accompaniment notes).
     """
     try:
         score = Score(midi_file_path)
@@ -32,13 +29,16 @@ def extract_midi_skyline(midi_file_path: str, pitch_barrier: int = 12) -> Tuple[
     if not all_notes:
         return score, [], []
 
-    # Create a sorted list of all unique note start and end times
+    # Convert max rest duration from seconds to MIDI ticks
+    # This uses the first tempo marking as a reference.
+    qpm = score.tempos[0].qpm if score.tempos else 120.0
+    ticks_per_second = score.ticks_per_quarter * (qpm / 60)
+    max_rest_duration_ticks = max_rest_duration_sec * ticks_per_second
+
     event_times = sorted(list(set(t for note in all_notes for t in (note.start, note.end))))
 
     skyline_notes: List[Note] = []
     accompaniment_notes: List[Note] = []
-    
-    # This dictionary tracks the last added accompaniment note for each pitch to merge them correctly
     last_accomp_note_for_pitch = {}
 
     for i in range(len(event_times) - 1):
@@ -48,7 +48,6 @@ def extract_midi_skyline(midi_file_path: str, pitch_barrier: int = 12) -> Tuple[
         if start_time >= end_time:
             continue
 
-        # Find all notes that are active during this time slice
         active_notes_in_interval = [
             note for note in all_notes 
             if note.start <= start_time and note.end > start_time
@@ -57,35 +56,41 @@ def extract_midi_skyline(midi_file_path: str, pitch_barrier: int = 12) -> Tuple[
         if not active_notes_in_interval:
             continue
 
-        # Find the single highest note in the interval
         highest_note = max(active_notes_in_interval, key=lambda note: note.pitch)
         
-        # --- 1. Process the Skyline Note ---
-        # If the new skyline segment has the same pitch as the last one and is contiguous, merge them
-        if (skyline_notes and 
-            skyline_notes[-1].pitch == highest_note.pitch and
-            skyline_notes[-1].end == start_time):
-            skyline_notes[-1].duration += (end_time - start_time)
-        else:
-            # Create a new skyline note segment
-            skyline_notes.append(Note(
-                time=start_time,
-                duration=end_time - start_time,
-                pitch=highest_note.pitch,
-                velocity=highest_note.velocity
-            ))
-
-        # --- 2. Process Accompaniment Notes ---
+        # --- Check for significant skyline drops, but only after short rests ---
+        is_valid_skyline_note = True
+        if skyline_notes:
+            time_since_last_skyline = start_time - skyline_notes[-1].end
+            # Only apply the drop rule if the rest was shorter than the threshold
+            if time_since_last_skyline < max_rest_duration_ticks:
+                last_skyline_pitch = skyline_notes[-1].pitch
+                if last_skyline_pitch - highest_note.pitch > max_skyline_drop:
+                    is_valid_skyline_note = False
+        
+        # --- Process each note in the interval ---
         for note in active_notes_in_interval:
-            # An accompaniment note must not be the highest note AND must be within the pitch barrier
-            if note is not highest_note and (highest_note.pitch - note.pitch <= pitch_barrier):
-                
-                # Check if this note can be merged with a previous segment of the same pitch
-                last_note = last_accomp_note_for_pitch.get(note.pitch)
-                if (last_note and last_note.end == start_time):
-                    last_note.duration += (end_time - start_time)
+            is_the_skyline_note = (note is highest_note and is_valid_skyline_note)
+
+            if is_the_skyline_note:
+                # --- 1. Add to Skyline (with merging) ---
+                if (skyline_notes and 
+                    skyline_notes[-1].pitch == note.pitch and
+                    skyline_notes[-1].end == start_time):
+                    skyline_notes[-1].duration += (end_time - start_time)
                 else:
-                    # Create a new accompaniment note segment
+                    skyline_notes.append(Note(
+                        time=start_time,
+                        duration=end_time - start_time,
+                        pitch=note.pitch,
+                        velocity=note.velocity
+                    ))
+            else:
+                # --- 2. Add to Accompaniment (with merging) ---
+                last_accomp_note = last_accomp_note_for_pitch.get(note.pitch)
+                if (last_accomp_note and last_accomp_note.end == start_time):
+                    last_accomp_note.duration += (end_time - start_time)
+                else:
                     new_accomp_note = Note(
                         time=start_time,
                         duration=end_time - start_time,
@@ -93,11 +98,9 @@ def extract_midi_skyline(midi_file_path: str, pitch_barrier: int = 12) -> Tuple[
                         velocity=note.velocity
                     )
                     accompaniment_notes.append(new_accomp_note)
-                    # Track this new note for potential future merges
                     last_accomp_note_for_pitch[note.pitch] = new_accomp_note
 
     return score, skyline_notes, accompaniment_notes
-
 
 def save_notes_to_midi(
     notes: list[Note],
