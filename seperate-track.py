@@ -6,7 +6,11 @@ import glob
 import concurrent.futures
 from tqdm import tqdm
 
-def extract_midi_skyline(midi_file_path: str, max_skyline_drop: int = 12, max_rest_duration_sec: float = 2.0) -> Tuple[Score, List[Note], List[Note]]:
+def extract_midi_skyline(
+    midi_file_path: str, 
+    max_skyline_drop: int = 12,
+    max_rest_duration_sec: float = 2.0
+) -> Tuple[Score, List[Note], List[Note]]:
     """
     Separates a MIDI file into a 'skyline' melody and the 'accompaniment' notes.
 
@@ -102,23 +106,44 @@ def extract_midi_skyline(midi_file_path: str, max_skyline_drop: int = 12, max_re
 
     return score, skyline_notes, accompaniment_notes
 
+
 def save_notes_to_midi(
     notes: list[Note],
     original_score: Score,
     output_path: str,
     track_name: str
 ):
-    new_score = Score(ticks_per_quarter=original_score.ticks_per_quarter)
+    """
+    Saves a list of symusic.Note objects to a new MIDI file using the symusic library.
+    This is the definitive version that correctly creates a Score and saves it.
+    """
+    # 1. Create a score object using the Score() factory function.
+    new_score = Score()
+    
+    # 2. Set the 'ticks_per_quarter' attribute on the newly created object.
+    new_score.ticks_per_quarter = original_score.ticks_per_quarter
+
+    # 3. Create a new track for the notes.
     track = Track(name=track_name, program=0, is_drum=False)
+
+    # 4. Add the notes to the track's note list.
     track.notes.extend(notes)
+    
+    # 5. IMPORTANT: Sort notes by start time for a valid MIDI file.
     track.notes.sort(key=lambda note: note.start)
+    
+    # 6. Add the completed track to the score.
     new_score.tracks.append(track)
+    
     try:
-        # 目录创建可以放在主逻辑中一次性完成，这里可以省略
-        # os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        # Create the directory if it doesn't exist.
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        # 7. Use the correct .dump_midi() method to save the file.
         new_score.dump_midi(output_path)
+        
     except Exception as e:
-        print(f"Error saving MIDI file to '{output_path}': {e}")
+        print(f"Error saving MIDI file with symusic to '{output_path}': {e}")
 
 def printTypes():
     message = """Types:
