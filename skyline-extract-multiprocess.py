@@ -2,8 +2,6 @@ from symusic import Score, Note, Track
 from typing import List, Tuple
 import argparse
 import os
-import glob
-# Import the multiprocessing module
 import multiprocessing
 from tqdm import tqdm
 
@@ -14,13 +12,12 @@ def extract_midi_skyline(
 ) -> Tuple[Score, List[Note], List[Note]]:
     """
     Separates a MIDI file into a 'skyline' melody and the 'accompaniment' notes.
-    (This function remains unchanged)
     """
     try:
         score = Score(midi_file_path)
     except Exception as e:
-        # Using tqdm.write is better in a multiprocessing context than print
-        tqdm.write(f"Error loading MIDI file '{midi_file_path}': {e}")
+        # CHANGE: Use a flushed print for reliable output from child processes.
+        print(f"\n[ERROR] Error loading MIDI file '{midi_file_path}': {e}", flush=True)
         return Score(ticks_per_quarter=480), [], []
 
     all_notes = [note for track in score.tracks for note in track.notes]
@@ -70,10 +67,13 @@ def extract_midi_skyline(
 
 
 def save_notes_to_midi(notes: list[Note], original_score: Score, output_path: str, track_name: str):
-    """
-    (This function remains unchanged)
-    """
-    new_score = Score(ticks_per_quarter=original_score.ticks_per_quarter)
+    # --- FIX ---
+    # The Score constructor no longer accepts ticks_per_quarter directly.
+    # First, create the Score object.
+    new_score = Score()
+    # Then, set the attribute.
+    new_score.ticks_per_quarter = original_score.ticks_per_quarter
+
     track = Track(name=track_name, program=0, is_drum=False)
     track.notes.extend(notes)
     track.notes.sort(key=lambda note: note.start)
@@ -82,7 +82,8 @@ def save_notes_to_midi(notes: list[Note], original_score: Score, output_path: st
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         new_score.dump_midi(output_path)
     except Exception as e:
-        tqdm.write(f"Error saving MIDI file to '{output_path}': {e}")
+        print(f"\n[ERROR] Error saving MIDI file to '{output_path}': {e}", flush=True)
+
 
 
 def process_file_wrapper(input_path: str, input_dir: str, right_hand_dir: str, left_hand_dir: str) -> str:
@@ -90,33 +91,31 @@ def process_file_wrapper(input_path: str, input_dir: str, right_hand_dir: str, l
     Orchestrates the processing for a single file and returns a status string.
     This is called by the main worker function.
     """
+    # CHANGE: Use a flushed print for reliable diagnostic output from child processes.
+    print(f"[PID: {os.getpid()}] Starting: {os.path.relpath(input_path, input_dir)}", flush=True)
+
     try:
-        # This print statement is still useful for diagnostics
-        #tqdm.write(f"[PID: {os.getpid()}] Starting: {os.path.relpath(input_path, input_dir)}")
-        
         original_score, right_hand_notes, left_hand_notes = extract_midi_skyline(input_path)
         if original_score is None or (not right_hand_notes and not left_hand_notes):
-            return f"Skipped (no notes or error): {input_path}"
-        
+            return f"Skipped (no notes or load error): {os.path.relpath(input_path, input_dir)}"
+
         relative_path_no_ext = os.path.splitext(os.path.relpath(input_path, input_dir))[0]
         output_filename = relative_path_no_ext.replace(os.sep, '_') + '.mid'
         right_hand_output_path = os.path.join(right_hand_dir, output_filename)
         left_hand_output_path = os.path.join(left_hand_dir, output_filename)
-        
+
         if right_hand_notes:
             save_notes_to_midi(right_hand_notes, original_score, right_hand_output_path, "Melody")
         if left_hand_notes:
             save_notes_to_midi(left_hand_notes, original_score, left_hand_output_path, "Accompaniment")
-            
-        return f"Successfully processed: {input_path}"
+
+        return f"Success: {os.path.relpath(input_path, input_dir)}"
     except Exception as e:
-        return f"Failed to process {input_path}: {e}"
+        return f"Failed: {os.path.relpath(input_path, input_dir)} with error: {e}"
 
 def worker(task_queue: multiprocessing.Queue, result_queue: multiprocessing.Queue, input_dir: str, right_hand_dir: str, left_hand_dir: str):
     """
     The main function for each worker process.
-    Continuously fetches a file path from the task_queue, processes it,
-    and puts the result string onto the result_queue.
     """
     # The worker loop continues until it receives a `None` sentinel value
     for file_path in iter(task_queue.get, None):
@@ -124,17 +123,13 @@ def worker(task_queue: multiprocessing.Queue, result_queue: multiprocessing.Queu
             result = process_file_wrapper(file_path, input_dir, right_hand_dir, left_hand_dir)
             result_queue.put(result)
         except Exception as e:
-            # Catch exceptions within the worker to prevent it from crashing
-            result_queue.put(f"Worker-level error for {file_path}: {e}")
-
+            result_queue.put(f"WORKER CRASH on {file_path}: {e}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Concurrently and robustly extract skyline and accompaniment notes from MIDI files.")
+    parser = argparse.ArgumentParser(description="Concurrently extract skyline and accompaniment from MIDI files.")
     parser.add_argument("--input_dir", type=str, required=True, help="Path to the root directory containing input MIDI files.")
     parser.add_argument("--output_dir", type=str, required=True, help="Path to the directory where separated MIDI files will be saved.")
-    # Use os.cpu_count() for default workers
-    parser.add_argument("--workers", type=int, default=os.cpu_count(), help="Number of worker processes to use. Defaults to the number of CPUs.")
-    # Note: The per-file timeout feature is removed as it's complex to implement with this pattern.
+    parser.add_argument("--workers", type=int, default=os.cpu_count(), help="Number of worker processes. Defaults to CPU count.")
     args = parser.parse_args()
 
     left_hand_dir = os.path.join(args.output_dir, "left_hand")
@@ -153,48 +148,37 @@ if __name__ == "__main__":
         print(f"No MIDI files found in '{args.input_dir}'.")
     else:
         num_files = len(all_midi_files)
-        # Determine the number of workers, ensuring it's not more than the number of files
-        num_workers = min(args.workers, num_files)
-        print(f"Found {num_files} MIDI files to process using up to {num_workers} workers.")
+        num_workers = min(args.workers, num_files) if num_files > 0 else 0
+        print(f"Found {num_files} MIDI files to process using {num_workers} workers.")
 
-        # --- ROBUST CONCURRENT PROCESSING BLOCK using multiprocessing.Process ---
+        if num_workers > 0:
+            task_queue = multiprocessing.Queue()
+            result_queue = multiprocessing.Queue()
 
-        # 1. Create task and result queues
-        task_queue = multiprocessing.Queue()
-        result_queue = multiprocessing.Queue()
+            processes = []
+            for _ in range(num_workers):
+                p = multiprocessing.Process(
+                    target=worker,
+                    args=(task_queue, result_queue, args.input_dir, right_hand_dir, left_hand_dir)
+                )
+                p.start()
+                processes.append(p)
 
-        # 2. Start worker processes
-        processes = []
-        for _ in range(num_workers):
-            # Each process is given the queues and necessary directory info
-            p = multiprocessing.Process(
-                target=worker, 
-                args=(task_queue, result_queue, args.input_dir, right_hand_dir, left_hand_dir)
-            )
-            p.start()
-            processes.append(p)
+            for path in all_midi_files:
+                task_queue.put(path)
 
-        # 3. Add all file paths to the task queue for the workers to consume
-        for path in all_midi_files:
-            task_queue.put(path)
+            for _ in range(num_workers):
+                task_queue.put(None)
 
-        # 4. Add "sentinel" values (None) to the task queue to signal workers to exit
-        for _ in range(num_workers):
-            task_queue.put(None)
-            
-        # 5. Collect results from the result queue and display progress
-        with tqdm(total=num_files, desc="Processing MIDI files") as pbar:
-            for i in range(num_files):
-                # Wait for a result from any worker
-                result = result_queue.get()
-                # Use tqdm.write to avoid interfering with the progress bar
-                # You can uncomment the line below for verbose real-time status updates
-                # tqdm.write(result)
-                pbar.update(1)
+            with tqdm(total=num_files, desc="Processing MIDI files") as pbar:
+                for _ in range(num_files):
+                    result = result_queue.get()
+                    # CHANGE: Use tqdm.write to print results without breaking the progress bar
+                    tqdm.write(result)
+                    pbar.update(1)
 
-        # 6. Wait for all worker processes to terminate
-        for p in processes:
-            p.join()
+            for p in processes:
+                p.join()
 
         print("\n--- Process Complete ---")
         print(f"Left hand files saved in: '{left_hand_dir}'")
