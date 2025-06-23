@@ -33,13 +33,13 @@ class RoFormerSymbolicTransformer(L.LightningModule):
 
     def __init__(self, large=False):
         super().__init__()
-        self.hidden_size = 768 if large else 512
-        self.num_layers = 12 if large else 6
-        self.num_attention_heads = 12 if large else 8
-        self.intermediate_size = 3072 if large else 1024
-        self.local_model_num_layers = 3
-        self.local_model_num_attention_heads = 8
-        self.local_model_intermediate_size = 768
+        self.hidden_size = 1536 if large else 512
+        self.num_layers = 24 if large else 6
+        self.num_attention_heads = 24 if large else 8
+        self.intermediate_size = 6144 if large else 1024
+        self.local_model_num_layers = 6
+        self.local_model_num_attention_heads = 24
+        self.local_model_intermediate_size = 3072
         main_roformer_config = RoFormerConfig(
             hidden_size=self.hidden_size,
             num_hidden_layers=self.num_layers,
@@ -59,6 +59,32 @@ class RoFormerSymbolicTransformer(L.LightningModule):
             hidden_dropout_prob=0.1,
             attention_probs_dropout_prob=0.1
         )
+        # self.hidden_size = 768 if large else 512
+        # self.num_layers = 12 if large else 6
+        # self.num_attention_heads = 12 if large else 8
+        # self.intermediate_size = 3072 if large else 1024
+        # self.local_model_num_layers = 3
+        # self.local_model_num_attention_heads = 8
+        # self.local_model_intermediate_size = 768
+        # main_roformer_config = RoFormerConfig(
+        #     hidden_size=self.hidden_size,
+        #     num_hidden_layers=self.num_layers,
+        #     num_attention_heads=self.num_attention_heads,
+        #     intermediate_size=self.intermediate_size,
+        #     hidden_act="gelu",
+        #     hidden_dropout_prob=0.1,
+        #     attention_probs_dropout_prob=0.1
+        # )
+        # self.model = self.get_base_model(main_roformer_config)
+        # local_encoder_config = local_decoder_config = RoFormerConfig(
+        #     hidden_size=self.hidden_size,
+        #     num_hidden_layers=self.local_model_num_layers,
+        #     num_attention_heads=self.local_model_num_attention_heads,
+        #     intermediate_size=self.local_model_intermediate_size,
+        #     hidden_act="gelu",
+        #     hidden_dropout_prob=0.1,
+        #     attention_probs_dropout_prob=0.1
+        # )
         self.local_embedding = nn.Embedding(N_TOKENS, self.hidden_size)
         self.token_type_embeddings = nn.Embedding(2, self.hidden_size)
         with torch.no_grad():

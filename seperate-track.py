@@ -5,6 +5,7 @@ import os
 import glob
 import concurrent.futures
 from tqdm import tqdm
+import multiprocessing
 
 def extract_midi_skyline(
     midi_file_path: str, 
@@ -106,6 +107,118 @@ def extract_midi_skyline(
 
     return score, skyline_notes, accompaniment_notes
 
+def separate_midi_by_pitch(
+    midi_file_path: str,
+    num_top_notes: int = 1,
+    max_melody_drop: int = 12,
+    max_interval_spread: int = 24, # New parameter: max semitones between top note and others in a chord
+    max_rest_duration_sec: float = 2.0
+) -> Tuple[Score, List[Note], List[Note]]:
+    """
+    Separates a MIDI file into a 'melody' (top N notes) and 'accompaniment'.
+
+    Args:
+        midi_file_path: Path to the MIDI file.
+        num_top_notes: The number of top notes to attempt to extract as melody.
+        max_melody_drop: The maximum allowed pitch drop (in semitones) for the highest
+                         melodic line to maintain continuity.
+        max_interval_spread: Maximum pitch difference between the highest note and other
+                             notes in a chord for them to be considered 'melody'.
+        max_rest_duration_sec: Maximum rest in the melody before the drop check resets.
+
+    Returns:
+        A tuple containing the original score, a list of melody notes,
+        and a list of accompaniment notes.
+    """
+    try:
+        # FIX for newer symusic versions: Create Score, then set TPQ.
+        score = Score(midi_file_path)
+    except Exception as e:
+        print(f"\n[ERROR] Error loading MIDI file '{midi_file_path}': {e}", flush=True)
+        empty_score = Score()
+        empty_score.ticks_per_quarter = 480
+        return empty_score, [], []
+
+    all_notes = [note for track in score.tracks for note in track.notes]
+    if not all_notes:
+        return score, [], []
+
+    qpm = score.tempos[0].qpm if score.tempos else 120.0
+    ticks_per_second = score.ticks_per_quarter * (qpm / 60)
+    max_rest_duration_ticks = max_rest_duration_sec * ticks_per_second
+
+    event_times = sorted(list(set(t for note in all_notes for t in (note.start, note.end))))
+
+    melody_notes: List[Note] = []
+    accompaniment_notes: List[Note] = []
+    # Use dictionaries to track the last note of a given pitch for merging
+    last_melody_note_for_pitch: Dict[int, Note] = {}
+    last_accomp_note_for_pitch: Dict[int, Note] = {}
+
+    last_highest_melody_note = None
+
+    for i in range(len(event_times) - 1):
+        start_time = event_times[i]
+        end_time = event_times[i+1]
+        if start_time >= end_time: continue
+
+        active_notes_in_interval = [note for note in all_notes if note.start <= start_time and note.end > start_time]
+        if not active_notes_in_interval:
+            continue
+
+        # --- NEW LOGIC START ---
+
+        # 1. Sort active notes by pitch, highest first
+        sorted_notes = sorted(active_notes_in_interval, key=lambda note: note.pitch, reverse=True)
+        highest_note = sorted_notes[0]
+
+        # 2. Check for melodic continuity based on the absolute highest note
+        is_melodically_valid = True
+        if last_highest_melody_note:
+            time_since_last_melody = start_time - last_highest_melody_note.end
+            if time_since_last_melody < max_rest_duration_ticks:
+                if last_highest_melody_note.pitch - highest_note.pitch > max_melody_drop:
+                    is_melodically_valid = False
+
+        # 3. Determine which notes belong to melody vs. accompaniment
+        notes_for_melody = set()
+        if is_melodically_valid:
+            # The highest note is part of the melody if valid
+            notes_for_melody.add(highest_note)
+            # Add up to (num_top_notes - 1) more notes if they are within the interval spread
+            for j in range(1, min(num_top_notes, len(sorted_notes))):
+                note = sorted_notes[j]
+                if highest_note.pitch - note.pitch <= max_interval_spread:
+                    notes_for_melody.add(note)
+                else:
+                    # Since notes are sorted, we can stop early
+                    break
+
+        # --- NEW LOGIC END ---
+
+        # 4. Process and merge all active notes
+        for note in active_notes_in_interval:
+            is_melody_note = note in notes_for_melody
+
+            # Select the target list and dictionary for merging
+            target_notes = melody_notes if is_melody_note else accompaniment_notes
+            last_note_map = last_melody_note_for_pitch if is_melody_note else last_accomp_note_for_pitch
+
+            last_note = last_note_map.get(note.pitch)
+            if last_note and last_note.end == start_time:
+                # Extend the duration of the last note
+                last_note.duration += (end_time - start_time)
+            else:
+                # Create a new note
+                new_note = Note(time=start_time, duration=end_time - start_time, pitch=note.pitch, velocity=note.velocity)
+                target_notes.append(new_note)
+                last_note_map[note.pitch] = new_note
+
+        # Update the last highest note for the next iteration's continuity check
+        if notes_for_melody:
+            last_highest_melody_note = max(notes_for_melody, key=lambda n: n.pitch)
+
+    return score, melody_notes, accompaniment_notes
 
 def save_notes_to_midi(
     notes: list[Note],
@@ -159,9 +272,13 @@ def process_single_file(input_path: str, args):
     处理单个文件的完整逻辑，方便并行调用。
     """
     try:
-        original_score, right_hand_notes, left_hand_notes = None
+        original_score = None
+        right_hand_notes = None
+        left_hand_notes = None
         if args.type == "skyline_basic":
             original_score, right_hand_notes, left_hand_notes = extract_midi_skyline(input_path)
+        elif args.type == "skyline_topk":
+            original_score, right_hand_notes, left_hand_notes = separate_midi_by_pitch(input_path, args.k)
         else:
             print(printTypes())
             return
@@ -185,11 +302,60 @@ def process_single_file(input_path: str, args):
         if left_hand_notes:
             save_notes_to_midi(left_hand_notes, original_score, left_hand_output_path, "Left Hand")
             
-        return f"Success: {input_path}"
+        return f"{input_path} is done. Good job"
     except Exception as e:
         return f"Failed: {input_path} with error: {e}"
 
+def process_file_wrapper(input_path: str, input_dir: str, right_hand_dir: str, left_hand_dir: str, args) -> str:
+    """
+    Orchestrates the processing for a single file and returns a status string.
+    This is called by the main worker function.
+    """
+    # CHANGE: Use a flushed print for reliable diagnostic output from child processes.
+    #print(f"[PID: {os.getpid()}] Starting: {os.path.relpath(input_path, input_dir)}", flush=True)
 
+    try:
+        original_score = None
+        right_hand_notes = None
+        left_hand_notes = None
+        if args.type == "skyline_basic":
+            original_score, right_hand_notes, left_hand_notes = extract_midi_skyline(input_path)
+        elif args.type == "skyline_topk":
+            original_score, right_hand_notes, left_hand_notes = separate_midi_by_pitch(input_path, args.k)
+        else:
+            print("Doing nothing LOLLLLLLLL")
+            print(printTypes())
+            return
+        
+        if original_score is None or (not right_hand_notes and not left_hand_notes):
+            return f"Skipped (no notes or load error): {os.path.relpath(input_path, input_dir)}"
+
+        relative_path_no_ext = os.path.splitext(os.path.relpath(input_path, input_dir))[0]
+        output_filename = relative_path_no_ext.replace(os.sep, '_') + '.mid'
+        right_hand_output_path = os.path.join(right_hand_dir, output_filename)
+        left_hand_output_path = os.path.join(left_hand_dir, output_filename)
+
+        if right_hand_notes:
+            save_notes_to_midi(right_hand_notes, original_score, right_hand_output_path, "Melody")
+        if left_hand_notes:
+            save_notes_to_midi(left_hand_notes, original_score, left_hand_output_path, "Accompaniment")
+
+        return f"{os.path.relpath(input_path, input_dir)} is done. OMG YOUR GOOD"
+    except Exception as e:
+        return f"Failed: {os.path.relpath(input_path, input_dir)} with error: {e}"
+
+
+def worker(task_queue: multiprocessing.Queue, result_queue: multiprocessing.Queue, input_dir: str, right_hand_dir: str, left_hand_dir: str, args):
+    """
+    The main function for each worker process.
+    """
+    # The worker loop continues until it receives a `None` sentinel value
+    for file_path in iter(task_queue.get, None):
+        try:
+            result = process_file_wrapper(file_path, input_dir, right_hand_dir, left_hand_dir, args)
+            result_queue.put(result)
+        except Exception as e:
+            result_queue.put(f"WORKER CRASH on {file_path}: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -198,12 +364,13 @@ if __name__ == "__main__":
     parser.add_argument("--input_dir", type=str, required=True, help="Path to the root directory containing input MIDI files.")
     parser.add_argument("--output_dir", type=str, required=True, help="Path to the directory where separated MIDI files will be saved.")
     # 添加一个控制进程数的参数
-    parser.add_argument("--workers", type=int, default=None, help="Number of worker processes to use. Defaults to the number of CPU cores.")
+    parser.add_argument("--workers", type=int, default=os.cpu_count(), help="Number of worker processes to use. Defaults to the number of CPU cores.")
     parser.add_argument("--type", type=str, required=True, help="Type of algorithm used to extract melody and accompanement.")
+    parser.add_argument("--k", type=int, default = 1, help="Type of algorithm used to extract melody and accompanement.")
     args = parser.parse_args()
 
 
-    VALID_TYPES = ["skyline_basic"] 
+    VALID_TYPES = ["skyline_basic", "skyline_topk"] 
     
     if args.type not in VALID_TYPES:
         print(f"Error: Invalid type '{args.type}'.")
@@ -218,30 +385,49 @@ if __name__ == "__main__":
     os.makedirs(left_hand_dir, exist_ok=True)
     os.makedirs(right_hand_dir, exist_ok=True)
 
+    all_midi_files = []
     print(f"Searching for MIDI files in '{args.input_dir}'...")
-    search_pattern = os.path.join(args.input_dir, '**', '*.mid')
-    all_midi_files = glob.glob(search_pattern, recursive=True)
-    search_pattern_midi = os.path.join(args.input_dir, '**', '*.midi')
-    all_midi_files.extend(glob.glob(search_pattern_midi, recursive=True))
+    for root, _, files in os.walk(args.input_dir):
+        for file in files:
+            if file.lower().endswith(('.mid', '.midi')):
+                all_midi_files.append(os.path.join(root, file))
 
     if not all_midi_files:
         print(f"No MIDI files found in '{args.input_dir}'.")
     else:
-        print(f"Found {len(all_midi_files)} total MIDI files.")
-        
-        # --- 这里是并发处理的核心 ---
-        print(f"\nProcessing {len(all_midi_files)} files using multiple processes...")
-        
-        with concurrent.futures.ProcessPoolExecutor(max_workers=args.workers) as executor:
-            # 创建一个 future 列表，将每个文件的处理任务提交给进程池
-            futures = [executor.submit(process_single_file, midi_file, args) for midi_file in all_midi_files]
-            
-            # 使用 tqdm 来显示处理进度
-            for future in tqdm(concurrent.futures.as_completed(futures), total=len(all_midi_files)):
-                # (可选) 您可以在这里处理每个任务返回的结果，例如记录失败的文件
-                # print(future.result())
-                pass
+        num_files = len(all_midi_files)
+        num_workers = min(args.workers, num_files) if num_files > 0 else 0
+        print(f"Found {num_files} MIDI files to process using {num_workers} workers.")
 
-        print("\n--- Concurrency Process Complete! ---")
-        print(f"Left hand files saved in: '{left_hand_dir}'")
-        print(f"Right hand files saved in: '{right_hand_dir}'")
+        if num_workers > 0:
+            task_queue = multiprocessing.Queue()
+            result_queue = multiprocessing.Queue()
+
+            processes = []
+            for _ in range(num_workers):
+                p = multiprocessing.Process(
+                    target=worker,
+                    args=(task_queue, result_queue, args.input_dir, right_hand_dir, left_hand_dir, args)
+                )
+                p.start()
+                processes.append(p)
+
+            for path in all_midi_files:
+                task_queue.put(path)
+
+            for _ in range(num_workers):
+                task_queue.put(None)
+
+            with tqdm(total=num_files, desc="This is a progres bar --->") as pbar:
+                for _ in range(num_files):
+                    result = result_queue.get()
+                    # CHANGE: Use tqdm.write to print results without breaking the progress bar
+                    tqdm.write(result)
+                    pbar.update(1)
+
+            for p in processes:
+                p.join()
+
+        print("\n--- File extracting process completed YIPEEEEEEEEEEE! ---")
+        print(f"Acompanement files saved in: '{left_hand_dir}'")
+        print(f"Melodie files saved in: '{right_hand_dir}'")
