@@ -1,56 +1,85 @@
 import requests
-from pynput import keyboard
 import time
+import mido
+import mido.backends.rtmidi  # Ensures the rtmidi backend is available
 
-# This should match the server address
+# This should match the server address and may need to be updated
+# if your client and server are on different machines.
 SERVER_URL = "http://localhost:8000/generate"
 
-# Maps keyboard keys to MIDI pitch values.
-KEY_TO_PITCH = {
-    'a': 60, 'w': 61, 's': 62, 'e': 63, 'd': 64, 'f': 65, 't': 66,
-    'g': 67, 'y': 68, 'h': 69, 'u': 70, 'j': 71, 'k': 72
-}
+def _midi_to_note_name(pitch: int) -> str:
+    """
+    Converts a MIDI pitch number (0-127) to its scientific pitch notation.
+    e.g., 60 -> "C4", 69 -> "A4"
+    """
+    if not 0 <= pitch <= 127:
+        return "N/A"
+    note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    octave = (pitch // 12) - 1
+    note_index = pitch % 12
+    return f"{note_names[note_index]}{octave}"
 
-print("Starting StreamMUSE client...")
-print("Press keys (a, w, s, e, d, f, t, g, y, h, u, j, k) to generate music.")
-print("Press 'esc' to exit.")
-
-def on_press(key):
+def main():
+    """
+    The main function to run the MIDI client.
+    """
+    port = None
     try:
-        char_key = key.char
-        if char_key in KEY_TO_PITCH:
-            pitch = KEY_TO_PITCH[char_key]
-            note_event = {
-                "key": char_key,
-                "pitch": pitch,
-                "time": time.time()
-            }
-            
-            print(f"-> Sending note: {note_event['key']} (pitch {note_event['pitch']})")
-            
-            try:
-                # Send the note event to the server
-                response = requests.post(SERVER_URL, json=[note_event])
-                response.raise_for_status()  # Raise an exception for bad status codes
+        # List available MIDI input ports
+        input_ports = mido.get_input_names()
+        print("Available MIDI input devices:")
+        if not input_ports:
+            print("  No MIDI devices found. Please connect a MIDI keyboard.")
+            return
+        
+        for i, port_name in enumerate(input_ports):
+            print(f"  {i}: {port_name}")
+        
+        # Open the first available MIDI port
+        port_name = input_ports[0]
+        port = mido.open_input(port_name)
+        print(f"\nListening for MIDI input on '{port_name}'...")
+        print("Play notes on your keyboard to generate music.")
+        print("Press Ctrl+C to exit.")
+
+        # Loop to process incoming MIDI messages
+        for msg in port:
+            # We only care about 'note_on' events with velocity > 0
+            if msg.type == 'note_on' and msg.velocity > 0:
+                note_event = {
+                    "key": _midi_to_note_name(msg.note),
+                    "pitch": msg.note,
+                    "time": time.time()
+                }
                 
-                accompaniment_notes = response.json()
+                print(f"-> Sending note: {note_event['key']} (pitch {note_event['pitch']})")
                 
-                if accompaniment_notes:
-                    print(f"<- Received accompaniment: {accompaniment_notes}")
-                    # TODO: Add code here to play the received notes using a MIDI library
-                    # like pygame.midi or mido.
-                else:
-                    print("<- Received no accompaniment.")
+                try:
+                    # Send the note event to the server
+                    response = requests.post(SERVER_URL, json=[note_event])
+                    response.raise_for_status()
                     
-            except requests.exceptions.RequestException as e:
-                print(f"Error communicating with server: {e}")
+                    accompaniment_notes = response.json()
+                    
+                    if accompaniment_notes:
+                        notes_str = ", ".join([f"{_midi_to_note_name(n['pitch'])}" for n in accompaniment_notes])
+                        print(f"<- Received accompaniment: {notes_str}")
+                        # TODO: Add code here to play the received notes.
+                    else:
+                        print("<- Received no accompaniment.")
+                        
+                except requests.exceptions.RequestException as e:
+                    print(f"\nError communicating with server: {e}")
+                    print("Is the server running?")
 
-    except AttributeError:
-        # Special keys (like 'esc')
-        if key == keyboard.Key.esc:
-            print("Exiting client.")
-            return False  # Stop listener
+    except KeyboardInterrupt:
+        print("\nExiting client.")
+    except Exception as e:
+        print(f"\nAn unexpected error occurred: {e}")
+    finally:
+        if port and not port.closed:
+            port.close()
+            print("MIDI port closed.")
 
-# Collect events until released
-with keyboard.Listener(on_press=on_press) as listener:
-    listener.join()
+if __name__ == "__main__":
+    main()
