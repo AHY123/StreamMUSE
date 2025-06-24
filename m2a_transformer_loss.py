@@ -144,26 +144,57 @@ class RoFormerSymbolicTransformer(L.LightningModule):
     def local_sampling(self, h, max_subseq_len=32, temperature=1.0):
         batch_size, _ = h.shape
         y = torch.zeros((batch_size, 0), dtype=torch.long, device=h.device)
-        emb = h[:, None, :]
-        eos_triggered = torch.zeros(batch_size, dtype=torch.bool, device=h.device)
+        all_logits = []
+        emb = h[:, None, :]  # Start with [B, 1, H]
 
-        for i in range(max_subseq_len):
+        for _ in range(max_subseq_len):
+            # h_ has shape [B, current_len, H]
             h_ = self.local_decoder(emb, attention_mask=self.buffered_future_mask(emb))[0]
-            if temperature == 0:
-                p = F.one_hot(self.final_decoder(h_).argmax(dim=-1), N_TOKENS).float()
-            else:
-                p = F.softmax(self.final_decoder(h_[:, -1]) / temperature, dim=-1)
-            y_next = torch.multinomial(p, 1)
-            y_next[eos_triggered, :] = PAD_TOKEN
-            eos_triggered = eos_triggered | (y_next.squeeze(1) == EOS_TOKEN)
-            y = torch.cat([y, y_next], dim=1)
-            if torch.all(eos_triggered):
-                break
+            
+            # Get logits for the next token prediction from the last hidden state
+            step_logits = self.final_decoder(h_[:, -1])  # Shape: [B, N_TOKENS]
+            all_logits.append(step_logits)
 
-            # 5a) now append the embedding (always ACCOMPANIMENT), so token_type_ids = 1
+            if temperature == 0:
+                # Argmax sampling from the logits
+                y_next = step_logits.argmax(dim=-1, keepdim=True) # Shape: [B, 1]
+            else:
+                # Temperature sampling from the logits
+                p = F.softmax(step_logits / temperature, dim=-1)
+                y_next = torch.multinomial(p, 1) # Shape: [B, 1]
+            
+            y = torch.cat([y, y_next], dim=1) # y grows to [B, max_subseq_len]
+            
+            # Append the embedding of the newly generated token for the next step
             emb = torch.cat([emb, self.local_embedding(y_next) + self.token_type_embeddings(torch.ones_like(y_next))], dim=1)
 
-        return y
+        # Stack the list of logits into a single tensor
+        final_logits = torch.stack(all_logits, dim=1) # Shape: [B, max_subseq_len, N_TOKENS]
+
+        return y, final_logits
+
+        # batch_size, _ = h.shape
+        # y = torch.zeros((batch_size, 0), dtype=torch.long, device=h.device)
+        # emb = h[:, None, :]
+        # eos_triggered = torch.zeros(batch_size, dtype=torch.bool, device=h.device)
+
+        # for i in range(max_subseq_len):
+        #     h_ = self.local_decoder(emb, attention_mask=self.buffered_future_mask(emb))[0]
+        #     if temperature == 0:
+        #         p = F.one_hot(self.final_decoder(h_).argmax(dim=-1), N_TOKENS).float()
+        #     else:
+        #         p = F.softmax(self.final_decoder(h_[:, -1]) / temperature, dim=-1)
+        #     y_next = torch.multinomial(p, 1)
+        #     y_next[eos_triggered, :] = PAD_TOKEN
+        #     eos_triggered = eos_triggered | (y_next.squeeze(1) == EOS_TOKEN)
+        #     y = torch.cat([y, y_next], dim=1)
+        #     if torch.all(eos_triggered):
+        #         break
+
+        #     # 5a) now append the embedding (always ACCOMPANIMENT), so token_type_ids = 1
+        #     emb = torch.cat([emb, self.local_embedding(y_next) + self.token_type_embeddings(torch.ones_like(y_next))], dim=1)
+
+        # return y
    
 
     def global_sampling(self, x, x_mel_gt=None, max_seq_len=384, temperature=1.0):
@@ -178,46 +209,37 @@ class RoFormerSymbolicTransformer(L.LightningModule):
         h, _= self.local_encode(x, token_type_ids)
         h_mel, _ = self.local_encode(x_mel_gt, torch.zeros(*x_mel_gt.shape[:-1], x_mel_gt.shape[-1] + 1, device=x_mel_gt.device, dtype=x_mel_gt.dtype))
         h = h.view(batch_size, seq_len, -1)
-        # h_mel = h_mel.view(batch_size, seq_len_gt, -1)
-        # sos = self.global_sos.view(1, 1, -1).repeat(batch_size, 1, 1)
-        # h = torch.cat([sos, h], dim=1)
-        token_type_ids_mel = torch.zeros(*x_mel_gt.shape[:-1], x_mel_gt.shape[-1] + 1, device=x_mel_gt.device, dtype=x_mel_gt.dtype)
-        h_mel_full, _ = self.local_encode(x_mel_gt, token_type_ids_mel)
-
-        batch_size, seq_len_gt, _ = x_mel_gt.shape
-        h_mel_full = h_mel_full.view(batch_size, seq_len_gt, -1)  # Reshape back to [B, S, H]
-
-        # SOS token
-        sos = self.global_sos.view(1, 1, -1).repeat(batch_size, 1, 1)  # [B, 1, H]
-
-        # Concatenate
-        h = torch.cat([sos, h_mel_full], dim=1)  # [B, S+1, H]
-        # h becomes: [SOS, h_mel_1, h_mel_2, ..., h_mel_S]
-        if sos.dim() == 2:
-            sos = sos.unsqueeze(1) 
-        print("Shape of sos:", sos.shape)
-        print("Shape of h_mel_full:", h_mel_full.shape)
-        h = torch.cat([sos, h_mel_full], dim=1)
+        h_mel = h_mel.view(batch_size, seq_len_gt, -1)
+        sos = self.global_sos.view(1, 1, -1).repeat(batch_size, 1, 1)
+        h = torch.cat([sos, h], dim=1)
         y = [x[:, i, :] for i in range(seq_len)]  # y will be returned by a list a0,m0,a1,m1,a_to_be_2
-        if x_mel_gt != None:
-            print('with gt!')
-            token_type_ids_mel = torch.zeros(*x_mel_gt.shape[:-1], x_mel_gt.shape[-1] + 1, device=x_mel_gt.device, dtype=x_mel_gt.dtype)
-            h_mel_full, _ = self.local_encode(x_mel_gt, token_type_ids_mel)
+        
+        # To store the loss of the generated parts
+        total_loss = 0.0
+        num_generated_tokens = 0
 
-            batch_size, seq_len_gt, _ = x_mel_gt.shape
-            h_mel = h_mel_full.view(batch_size, seq_len_gt, -1)
+        if x_mel_gt is not None:
+            print('with gt!')
             for i in range(0, max_seq_len):
                 if i % 10 == 0:
                     print('Sampling', i, '/', max_seq_len)
                 if i % 2 == 0:
                     h_out = self.model(h, attention_mask=self.buffered_future_mask(h), interleave_pos=True)[0]
-                    y_next = self.local_sampling(h_out[:, -1], max_subseq_len=subseq_len, temperature=temperature)
+                    y_next, logits = self.local_sampling(h_out[:, -1], max_subseq_len=subseq_len, temperature=temperature)
+                    
+                    # Calculate loss for the generated accompaniment part
+                    loss = F.cross_entropy(logits.view(-1, N_TOKENS), y_next.view(-1), ignore_index=PAD_TOKEN)
+                    
+                    # Accumulate loss and token counts
+                    valid_tokens = (y_next != PAD_TOKEN).sum()
+                    total_loss += loss.item() * valid_tokens.item()
+                    num_generated_tokens += valid_tokens.item()
+
                     y.append(y_next)
                     b, s, l = y_next.unsqueeze(1).shape
                     token_type_ids = torch.ones((b, s, l+1), dtype=torch.long, device=y_next.device)
                     h = torch.cat([h, self.local_encode(y_next.unsqueeze(1), token_type_ids = token_type_ids)[0].unsqueeze(1)], dim=1)
                 else:
-                    # token_type_ids = torch.zeros((b, s, l+1), dtype=torch.long, device=y_next.device)
                     h_prev_mel = h_mel[:, i//2, :].unsqueeze(1)  # [B, 1, H]
                     h = torch.cat([h, h_prev_mel], dim=1)  # [B, cur_len, H]
                     y.append(x_mel_gt[: ,i//2, :])
@@ -226,7 +248,16 @@ class RoFormerSymbolicTransformer(L.LightningModule):
                 if i % 10 == 0:
                     print('Sampling', i, '/', max_seq_len)
                 h_out = self.model(h, attention_mask=self.buffered_future_mask(h), interleave_pos=True)[0]
-                y_next = self.local_sampling(h_out[:, -1], max_subseq_len=subseq_len, temperature=temperature)
+                y_next, logits = self.local_sampling(h_out[:, -1], max_subseq_len=subseq_len, temperature=temperature)
+                
+                # Calculate loss for the generated part
+                loss = F.cross_entropy(logits.view(-1, N_TOKENS), y_next.view(-1), ignore_index=PAD_TOKEN)
+
+                # Accumulate loss and token counts
+                valid_tokens = (y_next != PAD_TOKEN).sum()
+                total_loss += loss.item() * valid_tokens.item()
+                num_generated_tokens += valid_tokens.item()
+
                 y.append(y_next)
                 b, s, l = y_next.unsqueeze(1).shape
                 if i%2==0:
@@ -234,41 +265,63 @@ class RoFormerSymbolicTransformer(L.LightningModule):
                 else:
                     token_type_ids = torch.zeros((b, s, l+1), dtype=torch.long, device=y_next.device)
                 h = torch.cat([h, self.local_encode(y_next.unsqueeze(1), token_type_ids = token_type_ids)[0].unsqueeze(1)], dim=1)
-        return y
+        
+        # Print the average loss of the generated parts
+        if num_generated_tokens > 0:
+            average_loss = total_loss / num_generated_tokens
+            print(f"Average loss of generated parts: {average_loss:.4f}")
+
+        stacked = torch.stack(y, dim=1)  # [B, seq_len*2, subseq_len]
+        x_acc_gen = stacked[:, ::2, :]
+        x_mel_gen = stacked[:, 1::2, :]
+
+        return x_mel_gen, x_acc_gen, y
 
     def global_sampling_from_scratch(self, x_mel: torch.LongTensor, temperature: float = 1.0, max_seq_len=384):
         B, S, L = x_mel.shape
         device = x_mel.device
 
-        # Build program IDs = 0 for all melody tokens
-        # token_type_ids = torch.zeros_like(x_mel, dtype=torch.long)  # [B, S, L]
         h_mel, _ = self.local_encode(x_mel, torch.zeros((B, S, L+1), device=device, dtype=x_mel.dtype))
         h_mel = h_mel.view(B, S, self.hidden_size)     # [B, S, H]
 
-        # Prepare SOS for global
         sos = self.global_sos.view(1, 1, -1).repeat(B, 1, 1)  # [B, 1, H]
+        y = []
+        h = sos
+        
+        # To store the loss of the generated parts
+        total_loss = 0.0
+        num_generated_tokens = 0
 
-        # Will store generated accompaniment frames
-        y = []  # each entry: [B, L]
-
-        # Start with just [SOS]
-        h = sos  # [B, 1, H]
         for t in range(max_seq_len):
             if t % 10 == 0:
                     print('Sampling', t, '/', max_seq_len)
             if t > 0:
-                # Append previous melody summary before generating new accompaniment
-                h_prev_mel = h_mel[:, t-1, :].unsqueeze(1)  # [B, 1, H]
-                h = torch.cat([h, h_prev_mel], dim=1)  # [B, cur_len, H]
+                h_prev_mel = h_mel[:, t-1, :].unsqueeze(1)
+                h = torch.cat([h, h_prev_mel], dim=1)
                 y.append(x_mel[: ,t-1, :])
 
             h_out = self.model(h, attention_mask=self.buffered_future_mask(h), interleave_pos=True)[0]
-            y_next = self.local_sampling(h_out[:, -1], max_subseq_len=L, temperature=temperature)
+            y_next, logits = self.local_sampling(h_out[:, -1], max_subseq_len=L, temperature=temperature)
+            
+            # Calculate loss for the generated part
+            loss = F.cross_entropy(logits.view(-1, N_TOKENS), y_next.view(-1), ignore_index=PAD_TOKEN)
+
+            # Accumulate loss and token counts
+            valid_tokens = (y_next != PAD_TOKEN).sum()
+            total_loss += loss.item() * valid_tokens.item()
+            num_generated_tokens += valid_tokens.item()
+
             y.append(y_next)
             b, s, l = y_next.unsqueeze(1).shape
             token_type_ids = torch.ones((b, s, l+1), dtype=torch.long, device=y_next.device)
             h = torch.cat([h, self.local_encode(y_next.unsqueeze(1), token_type_ids = token_type_ids)[0].unsqueeze(1)], dim=1)
-        return y  # list of S tensors [B, L]
+
+        # Print the average loss of the generated parts
+        if num_generated_tokens > 0:
+            average_loss = total_loss / num_generated_tokens
+            print(f"Average loss of generated parts: {average_loss:.4f}")
+
+        return y
 
 
     def buffered_future_mask(self, tensor):
@@ -344,6 +397,35 @@ class RoFormerSymbolicTransformer(L.LightningModule):
 
             return x_processed.view(batch_size, seq_length, subseq_length // 3 * 2), y_processed.view(batch_size_y, seq_length_y, subseq_length_y // 3 * 2)
 
+    def calculate_loss_on_generated(self, x_mel_gen, x_acc_gen):
+        """
+        Calculates the loss on a batch of generated melody and accompaniment.
+        This function assumes the inputs are already tokenized and skips the
+        preprocess step.
+        """
+        # 1. Stack the melody and accompaniment to create the interleaved input
+        batch_size, seq_len, subseq_len = x_mel_gen.shape
+        # NOTE: The original training loss stacks [acc, mel]. We do the same here.
+        stacked = torch.stack([x_acc_gen, x_mel_gen], dim=2)
+        x = stacked.view(batch_size, seq_len * 2, subseq_len)
+        
+        # 2. Create the target tensor. It's the same as the input `x`, but with
+        #    the melody parts masked out, as the model's task is to predict
+        #    the accompaniment.
+        x_target = x.clone()
+        # build a mask: True at every odd timestep (melody)
+        idx = torch.arange(seq_len * 2, device=x.device)
+        mel_mask = (idx % 2 == 1).unsqueeze(0).unsqueeze(-1)    # [1, 2*S, 1]
+        mel_mask = mel_mask.expand(batch_size, seq_len * 2, subseq_len) # [B, 2*S, L]
+        x_target[mel_mask] = PAD_TOKEN
+
+        # 3. Run the forward pass to get the model's predictions (logits)
+        logits = self(x) # self(x) calls the forward() method
+
+        # 4. Calculate the cross-entropy loss
+        loss = F.cross_entropy(logits.view(-1, N_TOKENS), x_target.view(-1), ignore_index=PAD_TOKEN)
+        
+        return loss
     
     def loss(self, x_mel, x_acc, pitch_shift):
         # x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y = x_acc)
