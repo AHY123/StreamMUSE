@@ -38,7 +38,7 @@ class TransformerInferenceEngine:
         self.h_history = self.model.global_sos.view(1, 1, -1).to(self.device)
         
         # --- Configuration ---
-        self.subseq_len = 8  # The expected number of tokens per frame.
+        self.subseq_len = 64  # The expected number of tokens per frame.
         self.temperature = 1.0  # Sampling temperature.
 
     def _notes_to_frame(self, note_events: list) -> torch.Tensor:
@@ -135,10 +135,8 @@ class TransformerInferenceEngine:
         h_out_sequence = self.model.model(self.h_history, attention_mask=causal_mask, interleave_pos=True)[0]
         h_acc_pred = h_out_sequence[:, -1, :]
 
-        h_acc_pred = h_out_sequence[:, -1, :]
-
         # 4. Generate the accompaniment frame tokens from the predicted summary.
-        acc_frame = self.model.local_sampling(h_acc_pred, max_subseq_len=self.subseq_len, temperature=self.temperature)
+        acc_frame = self.model.global_sampling(h_acc_pred, h_mel, max_subseq_len=self.subseq_len, temperature=self.temperature)
 
         # --- FIX: Pad the generated frame to the required length ---
         # The generated frame can be shorter than subseq_len if EOS is sampled.

@@ -4,25 +4,20 @@ import time
 
 class CLIOutputHandler:
     """
-    Handles displaying a rolling, multi-line view of the musical interaction,
-    showing one full beat's worth of ticks.
+    Handles displaying a persistent log with updating status lines at the bottom.
     """
-    # REMOVED the limited NOTE_NAMES dictionary.
-
-    def __init__(self, ticks_per_beat: int):
-        """
-        Initializes the handler with a display buffer for the rolling view.
-        """
-        # DYNAMIC: The number of rows is set here from the argument.
+    def __init__(self, ticks_per_beat: int, log_display_count: int = 10):
         self.ticks_per_beat = ticks_per_beat
-        
-        # DYNAMIC: The display buffer's max length (and thus row count)
-        # is set using the ticks_per_beat variable.
-        self.display_buffer = deque(['...'] * self.ticks_per_beat, maxlen=self.ticks_per_beat)
-        
+        self.log_display_count = log_display_count
+        self.status_line_count = 4  # Separator, Inputs, Output, Status
+        self.total_managed_lines = self.log_display_count + self.status_line_count
+
+        # Use a deque for efficient appending and keeping a fixed-size history
+        self.log_history = deque(maxlen=200)  # Store more than we display
+        self.last_model_output_str = "None"
         self.is_first_display = True
-        self.active_model_notes = set()
-        self.all_inference_times = []
+        self.all_inference_times = []  # For saving log on exit
+        self.all_times = []
 
     def _midi_to_note_name(self, pitch: int) -> str:
         """
@@ -30,106 +25,110 @@ class CLIOutputHandler:
         e.g., 60 -> "C4", 69 -> "A4", 38 -> "D2"
         """
         if not 0 <= pitch <= 127:
-            return "?"
-        
+            return "N/A"
         note_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
         octave = (pitch // 12) - 1
         note_index = pitch % 12
         return f"{note_names[note_index]}{octave}"
 
     def update_and_display(self, tick_count, debug_info, model_events_this_tick):
-        """
-        Formats the data for the current tick, including a new debug line,
-        into fixed-width columns for a clean, table-like display.
-        """
-        # First, update the state of active model notes
-        for event in model_events_this_tick:
-            if event['type'] == 'note_on':
-                self.active_model_notes.add(event['pitch'])
-            elif event['type'] == 'note_off':
-                self.active_model_notes.discard(event['pitch'])
+        # 1. --- Prepare content for all lines ---
 
-        # --- Format Debug Line ---
-        events_str = ", ".join([f"{e['key']}({e['pitch']})" for e in debug_info["events_this_tick"]]) or "None"
-        trigger_str = "YES" if debug_info["inference_triggered"] else "NO"
-        debug_line = f"[DEBUG] Tick Events: [{events_str}] | Inference Triggered: {trigger_str}"
+        # A. LOGS: Create a log entry for every tick
+        user_notes_played_str = ", ".join([self._midi_to_note_name(e['pitch']) for e in debug_info["events_this_tick"]])
+        model_notes_played_str = ", ".join([self._midi_to_note_name(e['pitch']) for e in model_events_this_tick if e['type'] == 'note_on'])
+
+        bar = debug_info.get('bar', 0)
+        beat = debug_info.get('beat', 0)
+        sub_tick = (tick_count % self.ticks_per_beat) + 1
+        log_entry = f"[{bar:03d}.{beat}.{sub_tick}]"
         
-        # Append benchmarking info to the debug line
+        if user_notes_played_str:
+            log_entry += f" USER: [{user_notes_played_str}]"
+        if model_notes_played_str:
+            log_entry += f" | MODEL: [{model_notes_played_str}]"
+        
+        # Add a placeholder for empty ticks to make them less visually jarring
+        if not user_notes_played_str and not model_notes_played_str:
+            log_entry += " ..."
+
+        self.log_history.append(log_entry)
+
+        # B. STATUS LINE 1: Inputs this tick
+        inputs_line = f"INPUTS (current tick): {user_notes_played_str or 'None'}"
+
+        # C. STATUS LINE 2: Last model output (update if inference was triggered)
+        if debug_info.get("inference_triggered"):
+            future_events = debug_info.get("future_events", [])
+            self.last_model_output_str = ", ".join([self._midi_to_note_name(e['pitch']) for e in future_events]) or "None"
+            if "last_inference_time" in debug_info:
+                self.all_inference_times.append(debug_info['last_inference_time'])
+
+        output_line = f"LAST MODEL OUTPUT:     {self.last_model_output_str}"
+
+        # D. STATUS LINE 3: General status and benchmarking
+        bar = debug_info.get('bar', 0)
+        beat = debug_info.get('beat', 0)
+        status_line = f"TIME: Bar {bar:03d}, Beat {beat} |"
+        
         if "warmup_time" in debug_info:
-            debug_line += f" | Warmup: {debug_info['warmup_time']:.4f}s"
+            status_line += f" Warmup: {debug_info['warmup_time']:.3f}s"
         elif "last_inference_time" in debug_info:
             last_time = debug_info['last_inference_time']
             avg_time = debug_info['avg_inference_time']
             count = debug_info['inference_count']
-            debug_line += f" | Last Inf: {last_time:.4f}s | Avg Inf ({count}): {avg_time:.4f}s"
-            self.all_inference_times.append(last_time)
+            status_line += f" Round-trip: {last_time:.3f}s (Avg: {avg_time:.3f}s over {count} calls)"
         
-        # --- Format Main Display Line ---
-        timeline_col_width = 12
-        user_col_width = 25
-        model_col_width = 40
+        # 2. --- Render the display ---
 
-        beat_num = (tick_count // self.ticks_per_beat) + 1
-        sub_tick = (tick_count % self.ticks_per_beat) + 1
-        beat_str = f"Beat {beat_num}.{sub_tick}"
-        timeline_col = f"{beat_str:<{timeline_col_width}}"
+        if self.is_first_display:
+            print("\n" * self.total_managed_lines, end="")
+            self.is_first_display = False
 
-        user_str = ""
-        if debug_info["events_this_tick"]:
-            first_event = debug_info["events_this_tick"][0]
-            user_note_name = self._midi_to_note_name(first_event["pitch"])
-            user_str = f"You ({first_event['key']}): {user_note_name}"
-        user_col = f"{user_str:<{user_col_width}}"
+        # Move cursor up to the top of the managed area
+        print(f"\r\x1b[{self.total_managed_lines}A", end="")
 
-        model_str = ""
-        if self.active_model_notes:
-            sorted_notes = sorted(list(self.active_model_notes))
-            accompaniment_str = ", ".join([self._midi_to_note_name(p) for p in sorted_notes])
-            model_str = f"Model Playing: {accompaniment_str}"
-        model_col = f"{model_str:<{model_col_width}}"
-
-        new_line = f"{timeline_col} | {user_col} | {model_col}"
+        # Get the last N log lines to display
+        display_logs = list(self.log_history)[-self.log_display_count:]
         
-        self.display_buffer.append(new_line)
+        # Print logs
+        for i in range(self.log_display_count):
+            line_content = display_logs[i] if i < len(display_logs) else ""
+            print(f"\x1b[2K{line_content}", flush=True)
 
-        # --- Redraw Terminal ---
-        if not self.is_first_display:
-            # Move cursor up to the top of the entire display area (log + debug line)
-            print(f"\x1b[{self.ticks_per_beat + 1}A", end="")
-        
-        self.is_first_display = False
-
-        # Print the debug line first
-        terminal_width = shutil.get_terminal_size().columns
-        print(f"\x1b[2K{debug_line.ljust(terminal_width)}", flush=True)
-
-        # Then print the rolling log
-        for line in self.display_buffer:
-            print(f"\x1b[2K{line}", flush=True)
+        # Print separator and status lines
+        try:
+            terminal_width = shutil.get_terminal_size().columns
+        except OSError:
+            terminal_width = 80 # Default width
+        print(f"\x1b[2K" + "="*terminal_width, flush=True)
+        print(f"\x1b[2K{inputs_line}", flush=True)
+        print(f"\x1b[2K{output_line}", flush=True)
+        print(f"\x1b[2K{status_line}", flush=True)
 
     def save_log_on_exit(self, log_file_prefix="inference_log"):
-            """Saves the collected inference times to a file on exit."""
-            if not self.all_inference_times:
-                print("\nNo inference times to log.")
-                return
+        """Saves the collected inference times to a file on exit."""
+        if not self.all_inference_times:
+            print("\nNo inference times to log.")
+            return
 
-            avg_time = sum(self.all_inference_times) / len(self.all_inference_times)
+        avg_time = sum(self.all_inference_times) / len(self.all_inference_times)
+        
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        log_file = f"{log_file_prefix}_{timestamp}.txt"
+
+        try:
+            with open(log_file, "w") as f:
+                f.write("--- StreamMUSE Client Round-Trip Benchmark Log ---\n")
+                f.write(f"Timestamp: {timestamp}\n")
+                f.write(f"Total Inferences Logged: {len(self.all_inference_times)}\n")
+                f.write(f"Average Round-Trip Time: {avg_time:.4f}s\n")
+                f.write(f"Min Round-Trip Time: {min(self.all_inference_times):.4f}s\n")
+                f.write(f"Max Round-Trip Time: {max(self.all_inference_times):.4f}s\n")
+                f.write("\n--- Raw Data (seconds) ---\n")
+                for i, t in enumerate(self.all_inference_times):
+                    f.write(f"Inference {i+1}: {t:.6f}\n")
             
-            timestamp = time.strftime("%Y%m%d-%H%M%S")
-            log_file = f"{log_file_prefix}_{timestamp}.txt"
-
-            try:
-                with open(log_file, "w") as f:
-                    f.write("--- StreamMUSE Inference Benchmark Log ---\n")
-                    f.write(f"Timestamp: {timestamp}\n")
-                    f.write(f"Total Inferences Logged: {len(self.all_inference_times)}\n")
-                    f.write(f"Average Inference Time: {avg_time:.4f}s\n")
-                    f.write(f"Min Inference Time: {min(self.all_inference_times):.4f}s\n")
-                    f.write(f"Max Inference Time: {max(self.all_inference_times):.4f}s\n")
-                    f.write("\n--- Raw Data (seconds) ---\n")
-                    for i, t in enumerate(self.all_inference_times):
-                        f.write(f"Inference {i+1}: {t:.6f}\n")
-                
-                print(f"\nInference log saved to {log_file}")
-            except IOError as e:
-                print(f"\nError saving log file: {e}")
+            print(f"\nRound-trip log saved to {log_file}")
+        except IOError as e:
+            print(f"\nError saving log file: {e}")
