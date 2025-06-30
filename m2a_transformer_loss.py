@@ -33,32 +33,32 @@ class RoFormerSymbolicTransformer(L.LightningModule):
 
     def __init__(self, large=False):
         super().__init__()
-        self.hidden_size = 1536 if large else 512
-        self.num_layers = 24 if large else 6
-        self.num_attention_heads = 24 if large else 8
-        self.intermediate_size = 6144 if large else 1024
-        self.local_model_num_layers = 6
-        self.local_model_num_attention_heads = 24
-        self.local_model_intermediate_size = 3072
-        main_roformer_config = RoFormerConfig(
-            hidden_size=self.hidden_size,
-            num_hidden_layers=self.num_layers,
-            num_attention_heads=self.num_attention_heads,
-            intermediate_size=self.intermediate_size,
-            hidden_act="gelu",
-            hidden_dropout_prob=0.1,
-            attention_probs_dropout_prob=0.1
-        )
-        self.model = self.get_base_model(main_roformer_config)
-        local_encoder_config = local_decoder_config = RoFormerConfig(
-            hidden_size=self.hidden_size,
-            num_hidden_layers=self.local_model_num_layers,
-            num_attention_heads=self.local_model_num_attention_heads,
-            intermediate_size=self.local_model_intermediate_size,
-            hidden_act="gelu",
-            hidden_dropout_prob=0.1,
-            attention_probs_dropout_prob=0.1
-        )
+        # self.hidden_size = 1536 if large else 512
+        # self.num_layers = 24 if large else 6
+        # self.num_attention_heads = 24 if large else 8
+        # self.intermediate_size = 6144 if large else 1024
+        # self.local_model_num_layers = 6
+        # self.local_model_num_attention_heads = 24
+        # self.local_model_intermediate_size = 3072
+        # main_roformer_config = RoFormerConfig(
+        #     hidden_size=self.hidden_size,
+        #     num_hidden_layers=self.num_layers,
+        #     num_attention_heads=self.num_attention_heads,
+        #     intermediate_size=self.intermediate_size,
+        #     hidden_act="gelu",
+        #     hidden_dropout_prob=0.1,
+        #     attention_probs_dropout_prob=0.1
+        # )
+        # self.model = self.get_base_model(main_roformer_config)
+        # local_encoder_config = local_decoder_config = RoFormerConfig(
+        #     hidden_size=self.hidden_size,
+        #     num_hidden_layers=self.local_model_num_layers,
+        #     num_attention_heads=self.local_model_num_attention_heads,
+        #     intermediate_size=self.local_model_intermediate_size,
+        #     hidden_act="gelu",
+        #     hidden_dropout_prob=0.1,
+        #     attention_probs_dropout_prob=0.1
+        # )
         # self.hidden_size = 768 if large else 512
         # self.num_layers = 12 if large else 6
         # self.num_attention_heads = 12 if large else 8
@@ -85,6 +85,111 @@ class RoFormerSymbolicTransformer(L.LightningModule):
         #     hidden_dropout_prob=0.1,
         #     attention_probs_dropout_prob=0.1
         # )
+
+        # =================================================
+         # --- DEFINE THE ARCHITECTURE TO EXACTLY MATCH THE CHECKPOINT ---
+        # # Based on all combined error logs.
+        # CHECKPOINT_HIDDEN_SIZE = 1088
+        # CHECKPOINT_MAIN_INTERMEDIATE_SIZE = 4352  # Corrected based on the new error
+        # CHECKPOINT_LOCAL_INTERMEDIATE_SIZE = 2176 # Correct based on the previous error
+
+        # # --- Main Model Parameters ---
+        # self.hidden_size = CHECKPOINT_HIDDEN_SIZE
+        # self.intermediate_size = CHECKPOINT_MAIN_INTERMEDIATE_SIZE # This MUST be 4352
+        # self.num_layers = 24 # The error goes up to layer 23, so there are at least 24 layers (0-23)
+        # self.num_attention_heads = 16 # 1088 is divisible by 16, a likely value
+
+        # # --- Local Model Parameters ---
+        # self.local_model_num_layers = 6 # From previous errors
+        # self.local_model_num_attention_heads = 16
+        # self.local_model_intermediate_size = CHECKPOINT_LOCAL_INTERMEDIATE_SIZE # This must be 2176
+
+
+        #=====================================================
+
+
+        # # Based on all combined error logs. LARGE
+        # CHECKPOINT_HIDDEN_SIZE = 1536
+        # CHECKPOINT_MAIN_INTERMEDIATE_SIZE = 6144  # Corrected based on the new error
+        # CHECKPOINT_LOCAL_INTERMEDIATE_SIZE = 3072 # Correct based on the previous error
+
+        # # --- Main Model Parameters ---
+        # self.hidden_size = CHECKPOINT_HIDDEN_SIZE
+        # self.intermediate_size = CHECKPOINT_MAIN_INTERMEDIATE_SIZE # This MUST be 4352
+        # self.num_layers = 24 # The error goes up to layer 23, so there are at least 24 layers (0-23)
+        # self.num_attention_heads = 24 # 1088 is divisible by 16, a likely value
+
+        # # --- Local Model Parameters ---
+        # self.local_model_num_layers = 6 # From previous errors
+        # self.local_model_num_attention_heads = 24
+        # self.local_model_intermediate_size = CHECKPOINT_LOCAL_INTERMEDIATE_SIZE # This must be 2176
+
+
+        # # ====================================================
+        
+        # # --- Main Model Config (Corrected) ---
+        # main_roformer_config = RoFormerConfig(
+        #     hidden_size=self.hidden_size,
+        #     num_hidden_layers=self.num_layers,
+        #     num_attention_heads=self.num_attention_heads,
+        #     intermediate_size=self.intermediate_size, # This now correctly passes 4352
+        #     hidden_act="gelu",
+        #     hidden_dropout_prob=0.1,
+        #     attention_probs_dropout_prob=0.1
+        # )
+        # self.model = self.get_base_model(main_roformer_config)
+
+        # # --- Local Model Config ---
+        # local_encoder_config = local_decoder_config = RoFormerConfig(
+        #     hidden_size=self.hidden_size, # This should be 1088
+        #     num_hidden_layers=self.local_model_num_layers,
+        #     num_attention_heads=self.local_model_num_attention_heads,
+        #     intermediate_size=self.local_model_intermediate_size, # This should be 2176
+        #     hidden_act="gelu",
+        #     hidden_dropout_prob=0.1,
+        #     attention_probs_dropout_prob=0.1
+        # )
+
+        # # --- Other Layers ---
+        # self.local_embedding = nn.Embedding(N_TOKENS, self.hidden_size)
+        # self.token_type_embeddings = nn.Embedding(2, self.hidden_size)
+        # with torch.no_grad():
+        #     self.token_type_embeddings.weight.mul_(2.0)
+
+        # self.local_encoder = RoFormerEncoder(local_encoder_config)
+        # self.local_decoder = RoFormerEncoder(local_decoder_config)
+        
+        # self.final_decoder = nn.Linear(self.hidden_size, N_TOKENS)
+        # self.global_sos = nn.Parameter(torch.randn(self.hidden_size))
+        # self._future_mask = torch.empty(0)
+
+        #OG
+        self.hidden_size = 768 if large else 512
+        self.num_layers = 12 if large else 6
+        self.num_attention_heads = 12 if large else 8
+        self.intermediate_size = 3072 if large else 1024
+        self.local_model_num_layers = 3
+        self.local_model_num_attention_heads = 8
+        self.local_model_intermediate_size = 768
+        main_roformer_config = RoFormerConfig(
+            hidden_size=self.hidden_size,
+            num_hidden_layers=self.num_layers,
+            num_attention_heads=self.num_attention_heads,
+            intermediate_size=self.intermediate_size,
+            hidden_act="gelu",
+            hidden_dropout_prob=0.1,
+            attention_probs_dropout_prob=0.1
+        )
+        self.model = self.get_base_model(main_roformer_config)
+        local_encoder_config = local_decoder_config = RoFormerConfig(
+            hidden_size=self.hidden_size,
+            num_hidden_layers=self.local_model_num_layers,
+            num_attention_heads=self.local_model_num_attention_heads,
+            intermediate_size=self.local_model_intermediate_size,
+            hidden_act="gelu",
+            hidden_dropout_prob=0.1,
+            attention_probs_dropout_prob=0.1
+        )
         self.local_embedding = nn.Embedding(N_TOKENS, self.hidden_size)
         self.token_type_embeddings = nn.Embedding(2, self.hidden_size)
         with torch.no_grad():
@@ -95,6 +200,9 @@ class RoFormerSymbolicTransformer(L.LightningModule):
         self.final_decoder = nn.Linear(self.hidden_size, N_TOKENS)
         self.global_sos = nn.Parameter(torch.randn(self.hidden_size))
         self._future_mask = torch.empty(0)
+
+        # self.type_classifier = nn.Linear(self.hidden_size, 2)
+        # self.type_classifier.weight.requires_grad_(False)
         # self.type_classifier = nn.Linear(self.hidden_size, 2)
         # self.type_classifier.weight.requires_grad_(False)
 
@@ -217,6 +325,7 @@ class RoFormerSymbolicTransformer(L.LightningModule):
         # To store the loss of the generated parts
         total_loss = 0.0
         num_generated_tokens = 0
+        lossArray = []
 
         if x_mel_gt is not None:
             print('with gt!')
@@ -232,9 +341,15 @@ class RoFormerSymbolicTransformer(L.LightningModule):
                     
                     # Accumulate loss and token counts
                     valid_tokens = (y_next != PAD_TOKEN).sum()
-                    total_loss += loss.item() * valid_tokens.item()
+                    average_frame_loss = loss.item()
+                    total_loss += average_frame_loss * valid_tokens.item()
                     num_generated_tokens += valid_tokens.item()
-
+                    lossArray.append(average_frame_loss)
+                    # stacked2 = torch.stack(y, dim=1)  # [B, seq_len*2, subseq_len]
+                    # x_acc_gen2 = stacked2[:, ::2, :]
+                    # x_mel_gen2 = stacked2[:, 1::2, :]
+                    # loss2 = self.calculate_loss_on_generated(x_mel_gen2, x_acc_gen2)
+                    # lossArray.append(loss2)
                     y.append(y_next)
                     b, s, l = y_next.unsqueeze(1).shape
                     token_type_ids = torch.ones((b, s, l+1), dtype=torch.long, device=y_next.device)
@@ -255,9 +370,10 @@ class RoFormerSymbolicTransformer(L.LightningModule):
 
                 # Accumulate loss and token counts
                 valid_tokens = (y_next != PAD_TOKEN).sum()
-                total_loss += loss.item() * valid_tokens.item()
+                average_frame_loss = loss.item()
+                total_loss += average_frame_loss * valid_tokens.item()
                 num_generated_tokens += valid_tokens.item()
-
+                lossArray.append(average_frame_loss)
                 y.append(y_next)
                 b, s, l = y_next.unsqueeze(1).shape
                 if i%2==0:
@@ -275,7 +391,7 @@ class RoFormerSymbolicTransformer(L.LightningModule):
         x_acc_gen = stacked[:, ::2, :]
         x_mel_gen = stacked[:, 1::2, :]
 
-        return x_mel_gen, x_acc_gen, y
+        return x_mel_gen, x_acc_gen, y, lossArray
 
     def global_sampling_from_scratch(self, x_mel: torch.LongTensor, temperature: float = 1.0, max_seq_len=384):
         B, S, L = x_mel.shape

@@ -1,6 +1,6 @@
 import numpy as np
 
-from m2a_transformer import RoFormerSymbolicTransformer, SOS_TOKEN, EOS_TOKEN, PAD_TOKEN
+from m2a_transformer_loss import RoFormerSymbolicTransformer, SOS_TOKEN, EOS_TOKEN, PAD_TOKEN
 from preprocess_large_midi_dataset import preprocess_midi, DURATION_TEMPLATES
 from settings import RWC_DATASET_PATH
 import torch
@@ -101,19 +101,19 @@ def continuation(model, midi_path, prompt_length=100, generation_length=384, tem
         if prompt_length == 0:
             x_mel_gen, x_acc_gen = model.global_sampling_from_scratch(x_mel_gt, temperature=temperature, max_seq_len=generation_length)
         else:
-            output = model.global_sampling(x, x_mel_gt=x_mel_gt if gt_mel else None, temperature=temperature, max_seq_len=generation_length)
+            x_mel_gen, x_acc_gen, output, intermediateloss = model.global_sampling(x, x_mel_gt=x_mel_gt if gt_mel else None, temperature=temperature, max_seq_len=generation_length)
     
-    # pitch_shift = torch.zeros(x_mel_gen.shape[0], dtype=torch.int8, device=x_mel_gen.device)
-    # print("Calculating loss on the generated sequence...")
-    # loss = model.calculate_loss_on_generated(x_mel_gen, x_acc_gen)
-    # print(f"Loss of generated sequence: {loss.item():.4f}")
+    pitch_shift = torch.zeros(x_mel_gen.shape[0], dtype=torch.int8, device=x_mel_gen.device)
+    print("Calculating loss on the generated sequence...")
+    loss = model.calculate_loss_on_generated(x_mel_gen, x_acc_gen)
+    print(f"Loss of generated sequence: {loss.item():.4f}")
 
     for i in range(n_samples):
         output_i = [output[j][i:i + 1, :] for j in range(len(output))]
         decode_output(output_i, f'temp/{model.save_name}/prompt{prompt_length}/{os.path.basename(midi_path)}_temp{temperature}_{i}.mid', tempo=90.0)
+    return intermediateloss
 
-
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description="process midi folder(s) into usable tensors for the task")
     
     parser.add_argument("--model_path", type=str, help="path to model checkpoint")
@@ -128,11 +128,38 @@ if __name__ == '__main__':
     if 'small' in model_path:
         model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, large=False)
     else:
-        model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, map_location='cuda:0', large=True)
+        model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, large=True)
+
     model.save_name = os.path.basename(model_path)
     model.cuda()
     model.eval()
     for midi in os.listdir('./input/mel'):
         if midi.endswith('mid'):
             midi = os.path.join('./input/mel', midi)
-            continuation(model, midi, temperature=args.temperature, generation_length=384, n_samples=args.n_samples, prompt_length=args.prompt_len, gt_mel=True)
+            loss = continuation(model, midi, temperature=args.temperature, generation_length=384, n_samples=args.n_samples, prompt_length=args.prompt_len, gt_mel=True)
+            return loss
+
+if __name__ == '__main__':
+    main()
+    # parser = argparse.ArgumentParser(description="process midi folder(s) into usable tensors for the task")
+    
+    # parser.add_argument("--model_path", type=str, help="path to model checkpoint")
+    # parser.add_argument("--prompt_len",type=int, default=75, help="length of prompt")
+    # parser.add_argument("--n_samples", type=int, default=2, help="number of samples")
+    # parser.add_argument("--temperature", type=float, default=1.0, help="temperature")
+
+    # args = parser.parse_args()
+
+    # model_path = args.model_path
+
+    # if 'small' in model_path:
+    #     model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, large=False)
+    # else:
+    #     model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, large=True)
+    # model.save_name = os.path.basename(model_path)
+    # model.cuda()
+    # model.eval()
+    # for midi in os.listdir('./input/mel'):
+    #     if midi.endswith('mid'):
+    #         midi = os.path.join('./input/mel', midi)
+    #         continuation(model, midi, temperature=args.temperature, generation_length=384, n_samples=args.n_samples, prompt_length=args.prompt_len, gt_mel=True)
