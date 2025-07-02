@@ -189,6 +189,9 @@ class NewM2ATransformer(BasePyTorchLightningModel):
                     h = torch.cat([h, h_prev_mel], dim=1)  # [B, cur_len, H]
                     y.append(x_mel_gt[:, i // 2, :])
         else:
+            
+            y.extend()
+            
             for i in range(0, max_seq_len):
                 # if i % 10 == 0:
                 #     print('Sampling', i, '/', max_seq_len)

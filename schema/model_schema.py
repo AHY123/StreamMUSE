@@ -201,7 +201,7 @@ class OldM2ANomaskTransformerSchema(BaseModelSchema):
 class NewM2ATransformerSchema(OldM2ATransformerSchema):
     model_name: str = Field("XinYue's + customed RoFormer", description="Name of the M2A Transformer model.")
     model_type: Literal["New-M2A-Transformer"] = Field("New-M2A-Transformer", description="Type of the model.")
-    frame_shift: int = Field(4, description="Number of frame shift.")
+    frame_shift: int = Field(32, description="Number of frame shift.")
     
 
 ModelSchema = Union[M2AModelSchema, OldM2ATransformerSchema, OldM2ANomaskTransformerSchema,NewM2ATransformerSchema]
