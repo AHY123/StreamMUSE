@@ -19,7 +19,7 @@ def decode_output(outputs, save_path, tempo=120.0, prompt=True, single=False):
         instrument_map: dict[Literal[0, 1], pretty_midi.Instrument] = {}
         for time_step, data in enumerate(output):
             content = data.squeeze(0)
-            if time_step %2 ==1:
+            if time_step %2 ==0:
                 time_step +=FRAME_SHIFT
             time_step = time_step if single else time_step // 2
             start_time = time_step * time_step_length
