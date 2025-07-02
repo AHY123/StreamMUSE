@@ -63,9 +63,9 @@ def decompress(model, byte_arr_mel, byte_arr_acc):
     x = x.cuda()
     y = torch.tensor(byte_arr_acc).unsqueeze(0)
     y = y.cuda()
-    x=x[:,:1176,:]
-    y=y[:,:1176,:]
-    shift =32
+    min_length = min(x.shape[1], y.shape[1])
+    x = x[:, :min_length]
+    y = y[:, :min_length]
     from schema.model_io_schema import NewPtM2AModelInputData
     data = NewPtM2AModelInputData(mel_data=x,acc_data=y)
     # print(x.shape,y.shape)
