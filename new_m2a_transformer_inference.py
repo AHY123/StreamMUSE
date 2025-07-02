@@ -19,6 +19,8 @@ def decode_output(outputs, save_path, tempo=120.0, prompt=True, single=False):
         instrument_map: dict[Literal[0, 1], pretty_midi.Instrument] = {}
         for time_step, data in enumerate(output):
             content = data.squeeze(0)
+            if time_step %2 ==0:
+                time_step +=32
             time_step = time_step if single else time_step // 2
             start_time = time_step * time_step_length
             for i in range(0, len(content), 2):
@@ -122,6 +124,10 @@ def continuation(model, midi_path, prompt_length=100, generation_length=384, tem
     x_acc = x_acc[:, :prompt_length]
     
     _x_acc,_x_mel = decompress(model, byte_arr_mel[0], byte_arr_acc[0])
+    
+    _x_mel = _x_mel[:, :prompt_length]
+    _x_acc = _x_acc[:, :prompt_length]
+    
     batch_size, seq_len, subseq_len = _x_mel.shape  # 10*384*8
     stacked = torch.stack([_x_acc, _x_mel], dim=2)
     x = stacked.view(batch_size, seq_len * 2, subseq_len)
@@ -135,6 +141,14 @@ def continuation(model, midi_path, prompt_length=100, generation_length=384, tem
         )
 
     with torch.no_grad():
+        
+        
+        x_mel, x_acc = decompress_with_interleaving(model, byte_arr_mel[0], byte_arr_acc[0])
+        x_mel = x_mel[:,:prompt_length]
+        x_acc = x_acc[:,:prompt_length]
+        stacked = torch.stack([_x_acc, _x_mel], dim=2)
+        x = stacked.view(batch_size, seq_len * 2, subseq_len)
+        
         x = x.repeat(n_samples, 1, 1)
         x_mel_gt = x_mel_gt.repeat(n_samples, 1, 1)
         import time
