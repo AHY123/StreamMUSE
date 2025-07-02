@@ -302,7 +302,7 @@ class NewM2ATransformer(BasePyTorchLightningModel):
         eos_indices = x[:, :, :, 0] == 254  # program is 254
         is_not_drum = x[:, :, :, 0] != 127
         x_processed[:, :, :, 0] = 0  # program 不变
-        x_processed[:, :, :, 1] = x[:, :, :, 1] + (x[:, :, :, 2]) * 128 + 2 + pitch_shift * is_not_drum
+        x_processed[:, :, :, 1] = x[:, :, :, 1] + (x[:, :, :, 2]) * 128 + 2 + pitch_shift.view(-1,1,1) * is_not_drum
         x_processed[pad_indices] = PAD_TOKEN
         x_processed[:, :, :, 0][eos_indices] = EOS_TOKEN
 
@@ -323,7 +323,7 @@ class NewM2ATransformer(BasePyTorchLightningModel):
             eos_indices_y = y[:, :, :, 0] == 254  # program is 254
             is_not_drum_y = y[:, :, :, 0] != 127
             y_processed[:, :, :, 0] = 1  # program 不变
-            y_processed[:, :, :, 1] = y[:, :, :, 1] + (y[:, :, :, 2]) * 128 + 2 + pitch_shift * is_not_drum_y
+            y_processed[:, :, :, 1] = y[:, :, :, 1] + (y[:, :, :, 2]) * 128 + 2 + pitch_shift.view(-1,1,1)  * is_not_drum_y
             y_processed[pad_indices_y] = PAD_TOKEN
             y_processed[:, :, :, 0][eos_indices_y] = EOS_TOKEN
 
@@ -335,15 +335,21 @@ class NewM2ATransformer(BasePyTorchLightningModel):
         # x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y = x_acc)
         x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y=x_acc)
         batch_size, seq_len, subseq_len = x_mel.shape  # 10*384*8
-        stacked = torch.stack([x_acc, x_mel], dim=2)
-        x = stacked.view(batch_size, seq_len * 2, subseq_len)
-
-        x_target = x.clone()
-        # build a mask: True at every odd timestep
-        idx = torch.arange(seq_len * 2, device=x.device)
+        x=x_mel
+        x_target = x_acc
+        idx = torch.arange(seq_len, device=x.device)
         mel_mask = (idx % 2 == 1).unsqueeze(0).unsqueeze(-1)  # [1, 2*S, 1]
-        mel_mask = mel_mask.expand(batch_size, seq_len * 2, subseq_len)  # [B, 2*S, L]
+        mel_mask = mel_mask.expand(batch_size, seq_len, subseq_len)  # [B, 2*S, L]
         x_target[mel_mask] = PAD_TOKEN
+        # stacked = torch.stack([x_acc, x_mel], dim=2)
+        # x = stacked.view(batch_size, seq_len * 2, subseq_len)
+
+        # x_target = x.clone()
+        # build a mask: True at every odd timestep
+        # idx = torch.arange(seq_len * 2, device=x.device)
+        # mel_mask = (idx % 2 == 1).unsqueeze(0).unsqueeze(-1)  # [1, 2*S, 1]
+        # mel_mask = mel_mask.expand(batch_size, seq_len * 2, subseq_len)  # [B, 2*S, L]
+        # x_target[mel_mask] = PAD_TOKEN
 
         y = self(x)
 
