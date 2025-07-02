@@ -331,34 +331,70 @@ class NewM2ATransformer(BasePyTorchLightningModel):
             return x_processed.view(batch_size, seq_length, subseq_length // 3 * 2), y_processed.view(
                 batch_size_y, seq_length_y, subseq_length_y // 3 * 2
             )
+            
+    def loss(self, x_mel_raw, x_acc_raw, pitch_shift):
+        # 得到经过 _new_interleave_process 后的模型输入和目标
+        model_input_seq, model_target_seq = self._new_interleave_process(
+            NewPtM2AModelInputData(mel_data=x_mel_raw, acc_data=x_acc_raw, pitch_shift=pitch_shift)
+        )
 
-    def loss(self, x_mel, x_acc, pitch_shift):
-        # x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y = x_acc)
-        x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y=x_acc)
-        batch_size, seq_len, subseq_len = x_mel.shape  # 10*384*8
-        x=x_mel
-        x_target = x_acc
-        idx = torch.arange(seq_len, device=x.device)
-        mel_mask = (idx % 2 == 1).unsqueeze(0).unsqueeze(-1)  # [1, 2*S, 1]
-        mel_mask = mel_mask.expand(batch_size, seq_len, subseq_len)  # [B, 2*S, L]
-        x_target[mel_mask] = PAD_TOKEN
-        # stacked = torch.stack([x_acc, x_mel], dim=2)
-        # x = stacked.view(batch_size, seq_len * 2, subseq_len)
+        # 对 model_input_seq 和 model_target_seq 进行 preprocess
+        # 注意：这里需要确保 preprocess 函数处理的是交错后的序列
+        # 你目前的 preprocess 函数看起来是处理原始的 mel_data 和 acc_data，并重新构造成交错序列
+        # 这可能需要修改 preprocess 的行为，或者在调用它之前完成交错
+        # 假设 preprocess 适用于这种交错序列
+        processed_input, processed_target = self.preprocess(model_input_seq, pitch_shift.unsqueeze(-1), y=model_target_seq)
 
-        # x_target = x.clone()
-        # build a mask: True at every odd timestep
-        # idx = torch.arange(seq_len * 2, device=x.device)
-        # mel_mask = (idx % 2 == 1).unsqueeze(0).unsqueeze(-1)  # [1, 2*S, 1]
-        # mel_mask = mel_mask.expand(batch_size, seq_len * 2, subseq_len)  # [B, 2*S, L]
-        # x_target[mel_mask] = PAD_TOKEN
+        # 确保只有伴奏部分参与损失计算
+        batch_size, seq_len, subseq_len = processed_target.shape
+        idx = torch.arange(seq_len, device=processed_target.device)
 
-        y = self(x)
+        # acc_mask 应该是 True 在伴奏部分，False 在旋律部分
+        # 根据你 interleave 的方式 (0::2 是伴奏，1::2 是旋律)
+        acc_mask = (idx % 2 == 0).unsqueeze(0).unsqueeze(-1) # 偶数位置为 True (伴奏部分)
+        acc_mask = acc_mask.expand(batch_size, seq_len, subseq_len)
 
-        return F.cross_entropy(y.view(-1, N_TOKENS), x_target.view(-1), ignore_index=PAD_TOKEN)
+        # 将 processed_target 中非伴奏的部分（即旋律部分）设为 PAD_TOKEN
+        # 这样损失函数就只会关注伴奏的预测
+        processed_target_masked = processed_target.clone()
+        processed_target_masked[~acc_mask] = PAD_TOKEN # 将非伴奏部分设为 PAD_TOKEN
+
+        # 模型前向传播
+        # 请注意：self(processed_input) 内部也需要处理好输入序列的构成
+        # 即，如果你的 forward 函数期望的是 [SOS, a0, m0, a1, m1, ...]
+        # 那么 processed_input 应该满足这个结构
+        y_pred = self(processed_input)
+
+        # 计算损失，只针对伴奏部分
+        return F.cross_entropy(y_pred.view(-1, N_TOKENS), processed_target_masked.view(-1), ignore_index=PAD_TOKEN)
+
+    # def loss(self, x_mel, x_acc, pitch_shift):
+    #     # x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y = x_acc)
+    #     x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y=x_acc)
+    #     batch_size, seq_len, subseq_len = x_mel.shape  # 10*384*8
+    #     x=x_mel
+    #     x_target = x_acc
+    #     idx = torch.arange(seq_len, device=x.device)
+    #     mel_mask = (idx % 2 == 1).unsqueeze(0).unsqueeze(-1)  # [1, 2*S, 1]
+    #     mel_mask = mel_mask.expand(batch_size, seq_len, subseq_len)  # [B, 2*S, L]
+    #     x_target[mel_mask] = PAD_TOKEN
+    #     # stacked = torch.stack([x_acc, x_mel], dim=2)
+    #     # x = stacked.view(batch_size, seq_len * 2, subseq_len)
+
+    #     # x_target = x.clone()
+    #     # build a mask: True at every odd timestep
+    #     # idx = torch.arange(seq_len * 2, device=x.device)
+    #     # mel_mask = (idx % 2 == 1).unsqueeze(0).unsqueeze(-1)  # [1, 2*S, 1]
+    #     # mel_mask = mel_mask.expand(batch_size, seq_len * 2, subseq_len)  # [B, 2*S, L]
+    #     # x_target[mel_mask] = PAD_TOKEN
+
+    #     y = self(x)
+
+    #     return F.cross_entropy(y.view(-1, N_TOKENS), x_target.view(-1), ignore_index=PAD_TOKEN)
 
     def training_step(self, batch: NewPtM2AModelInputData, batch_idx):
         batch = self._move_to_device(batch)
-        x_mel, x_acc = self._new_interleave_process(batch)
+        x_mel, x_acc = batch.mel_data, batch.acc_data
         pitch_shift = batch.pitch_shift
         
         loss = self.loss(x_mel, x_acc, pitch_shift)
@@ -389,7 +425,7 @@ class NewM2ATransformer(BasePyTorchLightningModel):
 
     def validation_step(self, batch: NewPtM2AModelInputData, batch_idx):
         batch = self._move_to_device(batch)
-        x_mel, x_acc = self._new_interleave_process(batch)
+        x_mel, x_acc = batch.mel_data, batch.acc_data
         pitch_shift = batch.pitch_shift
         loss = self.loss(x_mel, x_acc, pitch_shift)
         self.log(
@@ -418,83 +454,34 @@ class NewM2ATransformer(BasePyTorchLightningModel):
             pitch_shift=batch.pitch_shift.to(self.device).view(-1),
         )
 
-    def _new_interleave_process(self, batch: NewPtM2AModelInputData) :
-        # x = [a0,m0,a5,m1,a6,m2...m(n-6),a(n-1),m(n-5)]
-        # y = [m0,a5,m1,a6,m2,a7...a(n-1),m(n-5),a(n)]
-
+    def _new_interleave_process(self, batch: NewPtM2AModelInputData):
         frame_shift = self.frame_shift
         mel_data = batch.mel_data
         acc_data = batch.acc_data
-        assert mel_data.ndim == 3 and acc_data.ndim == 3, (
-            f"mel_data and acc_data must be 3-dimensional tensors,but got mel_data:{mel_data.shape} acc_data:{acc_data.shape}"
-        )
 
-        x = torch.empty(
-            mel_data.shape[0],
-            mel_data.shape[1] + acc_data.shape[1] - 2 * frame_shift,
-            mel_data.shape[2],
-            dtype=mel_data.dtype,
-            device=mel_data.device,
-        )
+        batch_size, mel_seq_len, subseq_len = mel_data.shape
+        _, acc_seq_len, _ = acc_data.shape
 
-        y = torch.empty(
-            mel_data.shape[0],
-            mel_data.shape[1] + acc_data.shape[1] - 2 * frame_shift,
-            mel_data.shape[2],
-            dtype=mel_data.dtype,
-            device=mel_data.device,
-        )
+        # 确保输入和目标长度匹配，或者进行截断/填充
+        # 这里为了简化，我们假设它们已经对齐，并且 acc_data 包含要预测的未来部分
 
-        x[:, 0, :] = acc_data[:, 0, :]
-        x[:, 1::2, :] = mel_data[:, :-frame_shift, :]
-        x[:, 2::2, :] = acc_data[:, frame_shift:-1, :]
+        # 构建模型输入 (x): 包含旋律和历史伴奏
+        # 例如: [a0, m0, a1, m1, ...]
+        # 注意: 这里的 acc_data 需要是“历史”的，不能包含未来要预测的
+        # 这里是一个示例，你可能需要根据实际的预测策略调整索引
+        input_seq_len = min(mel_seq_len, acc_seq_len - frame_shift) * 2 # 确保不越界
+        model_input = torch.empty(batch_size, input_seq_len, subseq_len, dtype=mel_data.dtype, device=mel_data.device)
 
-        y[:, 0::2, :] = mel_data[:, :-frame_shift, :]
-        y[:, 1::2, :] = acc_data[:, frame_shift:, :]
-        return x, y
+        model_input[:, 0::2, :] = acc_data[:, :input_seq_len // 2, :] # 历史伴奏
+        model_input[:, 1::2, :] = mel_data[:, :input_seq_len // 2, :] # 对应旋律
 
-    # def _new_interleave_process(
-    #     self, batch: NewPtM2AModelInputData
-    # ) -> NewPtM2AModelInputData:
-    #     # input_mel = [m0,m1,m2...]
-    #     # input_acc = [a0,a1,a2...] x
-    #     # target_mel = [m5,m6,m7...] X
-    #     # target_acc = [a5,a6,a7...]
+        # 构建模型目标 (y_target): 包含旋律和要预测的伴奏
+        # 例如: [m0, a_target_0, m1, a_target_1, ...]
+        # 其中 a_target_i 是模型需要预测的伴奏
+        target_seq_len = min(mel_seq_len, acc_seq_len - frame_shift) * 2 # 同步长度
+        model_target = torch.empty(batch_size, target_seq_len, subseq_len, dtype=mel_data.dtype, device=mel_data.device)
 
-    #     # x = [a0,m0,a5,m1,a6,m2...,a(n-1),m(n-5)]
-    #     # y = [m0,a5,m1,a6,m2,a7...,m(n-5),a(n)]
-    #     input_mel = batch.input_mel_data
-    #     input_acc = batch.input_acc_data
-    #     target_mel = batch.target_mel_data
-    #     target_acc = batch.target_acc_data
-    #     frame_shift = self.frame_shift
-    #     assert (
-    #         input_mel.ndim == 3
-    #         and input_acc.ndim == 3
-    #         and target_mel.ndim == 3
-    #         and target_acc.ndim == 3
-    #     ), (
-    #         f"input_mel and input_acc must be 3D tensors,[batch_size, seq_len, subseq_len],however got input_mel:{input_mel.shape} input_acc:{input_acc.shape} ttarget_mel:{target_mel.shape} target_acc:{target_acc.shape}"
-    #     )
+        model_target[:, 0::2, :] = mel_data[:, :target_seq_len // 2, :] # 旋律部分 (不需要预测，但可能在目标中用于损失掩码)
+        model_target[:, 1::2, :] = acc_data[:, frame_shift : frame_shift + target_seq_len // 2, :] # **需要预测的未来伴奏**
 
-    #     x = torch.empty(
-    #         input_mel.shape[0],
-    #         input_mel.shape[1] * 2,
-    #         input_mel.shape[2],
-    #         dtype=input_mel.dtype,
-    #         device=input_mel.device,
-    #     )
-    #     y = torch.empty(
-    #         target_mel.shape[0],
-    #         target_mel.shape[1] * 2,
-    #         target_mel.shape[2],
-    #         dtype=target_mel.dtype,
-    #         device=target_mel.device,
-    #     )
-
-    #     x[:, 0, :] = input_acc[:, 0, :]
-    #     x[:, 2::2, :] = target_acc[:,:-1,:]
-    #     x[:, 1::2, :] = input_mel[:,:-frame_shift,:]
-
-    #     y[:, 0::2, :] = input_mel[:,:-frame_shift,:]
-    #     y[:, 1::2, :] = target_acc[:,frame_shift:,:]
+        return model_input, model_target
