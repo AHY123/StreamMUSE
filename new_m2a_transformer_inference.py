@@ -58,7 +58,7 @@ def decode_output(outputs, save_path, tempo=120.0, prompt=True, single=False):
     midi.write(save_path)
 
 
-def decompress(model, byte_arr_mel, byte_arr_acc):
+def decompress_with_interleaving(model, byte_arr_mel, byte_arr_acc):
     x = torch.tensor(byte_arr_mel).unsqueeze(0)
     x = x.cuda()
     y = torch.tensor(byte_arr_acc).unsqueeze(0)
@@ -70,6 +70,16 @@ def decompress(model, byte_arr_mel, byte_arr_acc):
     data = NewPtM2AModelInputData(mel_data=x,acc_data=y)
     # print(x.shape,y.shape)
     x,y=model._new_interleave_process(data)
+    return model.preprocess(x, pitch_shift=torch.zeros(1, dtype=torch.int8).cuda(), y=y)
+
+def decompress(model, byte_arr_mel, byte_arr_acc):
+    x = torch.tensor(byte_arr_mel).unsqueeze(0)
+    x = x.cuda()
+    y = torch.tensor(byte_arr_acc).unsqueeze(0)
+    y = y.cuda()
+    min_length = min(x.shape[1], y.shape[1])
+    x = x[:, :min_length]
+    y = y[:, :min_length]
     return model.preprocess(x, pitch_shift=torch.zeros(1, dtype=torch.int8).cuda(), y=y)
 
 
@@ -88,7 +98,7 @@ def continuation(model, midi_path, prompt_length=100, generation_length=384, tem
         print(f"Error: preprocess_midi returned None for acc file: {midi_path.replace('mel', 'acc')}")
         return  # Skip this MIDI file
 
-    x_mel, x_acc = decompress(model, byte_arr_mel[0], byte_arr_acc[0])
+    x_mel, x_acc = decompress_with_interleaving(model, byte_arr_mel[0], byte_arr_acc[0])
 
     if prompt_length == 0:
         B, S, L = x_mel.shape
@@ -110,8 +120,10 @@ def continuation(model, midi_path, prompt_length=100, generation_length=384, tem
     x_mel_gt = x_mel_gt[:, first_timestep - 1 + prompt_length :]
     x_mel = x_mel[:, :prompt_length]
     x_acc = x_acc[:, :prompt_length]
-    batch_size, seq_len, subseq_len = x_mel.shape  # 10*384*8
-    stacked = torch.stack([x_acc, x_mel], dim=2)
+    
+    _x_acc,_x_mel = decompress(model, byte_arr_mel[0], byte_arr_acc[0])
+    batch_size, seq_len, subseq_len = _x_mel.shape  # 10*384*8
+    stacked = torch.stack([_x_acc, _x_mel], dim=2)
     x = stacked.view(batch_size, seq_len * 2, subseq_len)
     import numpy as np
     np.save("x.npy", x.cpu().numpy())
