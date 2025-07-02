@@ -6,7 +6,7 @@ import pretty_midi
 import os
 import argparse
 from typing import Literal
-FRAME_SHIFT =32
+FRAME_SHIFT =4
 DIR = "toAndy"
 def new_interleave():...
 
