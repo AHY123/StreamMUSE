@@ -1,18 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers.models.roformer.modeling_roformer import (
-    RoFormerConfig,
-    RoFormerEncoder,
-)
-from schema.model_io_schema import NewPtM2AModelInputData
-from schema.model_schema import NewM2ATransformerSchema
+from transformers.models.roformer.modeling_roformer import RoFormerConfig, RoFormerEncoder
+from schema.model_io_schema import M2AModelInputData,M2AModelOutputData
+from schema.model_schema import OldM2ATransformerSchema
 from typing import Optional
 from .base_pytorch_lightning_model import BasePyTorchLightningModel
 
-# TRAIN_LENGTH = 192
-TRAIN_LENGTH = 412
-
+TRAIN_LENGTH = 192
 MAX_STEPS = 1000000
 
 # Indicator: 0
@@ -23,14 +18,13 @@ SOS_TOKEN = N_NORMAL_TOKENS
 EOS_TOKEN = N_NORMAL_TOKENS + 1
 PAD_TOKEN = N_NORMAL_TOKENS + 2
 
-
 def fill_with_neg_inf(t):
     """FP16-compatible function that fills a tensor with -inf."""
     return t.float().fill_(float("-inf")).type_as(t)
 
 
-class NewM2ATransformer(BasePyTorchLightningModel):
-    def __init__(self, model_schema: NewM2ATransformerSchema):
+class OldM2ATransformer(BasePyTorchLightningModel):
+    def __init__(self, model_schema: OldM2ATransformerSchema):
         super().__init__(model_schema)
         large = model_schema.large
         self.hidden_size = model_schema.hidden_size
@@ -40,7 +34,6 @@ class NewM2ATransformer(BasePyTorchLightningModel):
         self.local_model_num_layers = model_schema.local_model_num_layers
         self.local_model_num_attention_heads = model_schema.local_model_num_attention_heads
         self.local_model_intermediate_size = model_schema.local_model_intermediate_size
-        self.frame_shift = model_schema.frame_shift
         main_roformer_config = RoFormerConfig(
             hidden_size=self.hidden_size,
             num_hidden_layers=self.num_layers,
@@ -64,11 +57,21 @@ class NewM2ATransformer(BasePyTorchLightningModel):
         self.token_type_embeddings = nn.Embedding(2, self.hidden_size)
         with torch.no_grad():
             self.token_type_embeddings.weight.mul_(2.0)
+        # self.token_type_embeddings.weight.requires_grad_(True)
         self.local_encoder = RoFormerEncoder(local_encoder_config)
         self.local_decoder = RoFormerEncoder(local_decoder_config)
         self.final_decoder = nn.Linear(self.hidden_size, N_TOKENS)
         self.global_sos = nn.Parameter(torch.randn(self.hidden_size))
         self._future_mask = torch.empty(0)
+        # self.type_classifier = nn.Linear(self.hidden_size, 2)
+        # self.type_classifier.weight.requires_grad_(False)
+
+        # self.type_scale = nn.Parameter(torch.tensor(1.0))
+        # self.mix_proj = nn.Linear(2 * self.hidden_size, self.hidden_size)
+        # self.type_proj = nn.Sequential(
+        #     nn.Linear(self.hidden_size, self.hidden_size),
+        #     nn.ReLU()
+        # )
 
     def get_base_model(self, config):
         return RoFormerEncoder(config)
@@ -78,13 +81,7 @@ class NewM2ATransformer(BasePyTorchLightningModel):
         x = x.view(-1, subseq_len)
 
         # prepend SOS:
-        x = torch.cat(
-            [
-                torch.full((x.shape[0], 1), SOS_TOKEN, dtype=torch.long, device=x.device),
-                x,
-            ],
-            dim=-1,
-        )  # now [B*seq_len, subseq_len+1]
+        x = torch.cat([torch.full((x.shape[0], 1), SOS_TOKEN, dtype=torch.long, device=x.device), x], dim=-1)  # now [B*seq_len, subseq_len+1]
 
         mask = x != PAD_TOKEN  # [B*seq_len, subseq_len+1]
         word_emb = self.local_embedding(x)  # → [B*seq_len, subseq_len+1, H]
@@ -127,13 +124,7 @@ class NewM2ATransformer(BasePyTorchLightningModel):
                 break
 
             # 5a) now append the embedding (always ACCOMPANIMENT), so token_type_ids = 1
-            emb = torch.cat(
-                [
-                    emb,
-                    self.local_embedding(y_next) + self.token_type_embeddings(torch.ones_like(y_next)),
-                ],
-                dim=1,
-            )
+            emb = torch.cat([emb, self.local_embedding(y_next) + self.token_type_embeddings(torch.ones_like(y_next))], dim=1)
 
         return y
 
@@ -147,13 +138,7 @@ class NewM2ATransformer(BasePyTorchLightningModel):
         token_type_ids = torch.cat([sos_type, token_type_ids], dim=-1)
         h, _ = self.local_encode(x, token_type_ids)
         h_mel, _ = self.local_encode(
-            x_mel_gt,
-            torch.zeros(
-                *x_mel_gt.shape[:-1],
-                x_mel_gt.shape[-1] + 1,
-                device=x_mel_gt.device,
-                dtype=x_mel_gt.dtype,
-            ),
+            x_mel_gt, torch.zeros(*x_mel_gt.shape[:-1], x_mel_gt.shape[-1] + 1, device=x_mel_gt.device, dtype=x_mel_gt.dtype)
         )
         h = h.view(batch_size, seq_len, -1)
         h_mel = h_mel.view(batch_size, seq_len_gt, -1)
@@ -167,29 +152,18 @@ class NewM2ATransformer(BasePyTorchLightningModel):
                     # print('Sampling', i, '/', max_seq_len)
                     ...
                 if i % 2 == 0:
-                    h_out = self.model(
-                        h,
-                        attention_mask=self.buffered_future_mask(h),
-                        interleave_pos=True,
-                    )[0]
+                    h_out = self.model(h, attention_mask=self.buffered_future_mask(h), interleave_pos=True)[0]
                     y_next = self.local_sampling(h_out[:, -1], max_subseq_len=subseq_len, temperature=temperature)
                     y.append(y_next)
                     b, s, l = y_next.unsqueeze(1).shape
                     token_type_ids = torch.ones((b, s, l + 1), dtype=torch.long, device=y_next.device)
-                    h = torch.cat(
-                        [
-                            h,
-                            self.local_encode(y_next.unsqueeze(1), token_type_ids=token_type_ids)[0].unsqueeze(1),
-                        ],
-                        dim=1,
-                    )
+                    h = torch.cat([h, self.local_encode(y_next.unsqueeze(1), token_type_ids=token_type_ids)[0].unsqueeze(1)], dim=1)
                 else:
                     # token_type_ids = torch.zeros((b, s, l+1), dtype=torch.long, device=y_next.device)
                     h_prev_mel = h_mel[:, i // 2, :].unsqueeze(1)  # [B, 1, H]
                     h = torch.cat([h, h_prev_mel], dim=1)  # [B, cur_len, H]
                     y.append(x_mel_gt[:, i // 2, :])
         else:
-            
             for i in range(0, max_seq_len):
                 # if i % 10 == 0:
                 #     print('Sampling', i, '/', max_seq_len)
@@ -201,13 +175,7 @@ class NewM2ATransformer(BasePyTorchLightningModel):
                     token_type_ids = torch.ones((b, s, l + 1), dtype=torch.long, device=y_next.device)
                 else:
                     token_type_ids = torch.zeros((b, s, l + 1), dtype=torch.long, device=y_next.device)
-                h = torch.cat(
-                    [
-                        h,
-                        self.local_encode(y_next.unsqueeze(1), token_type_ids=token_type_ids)[0].unsqueeze(1),
-                    ],
-                    dim=1,
-                )
+                h = torch.cat([h, self.local_encode(y_next.unsqueeze(1), token_type_ids=token_type_ids)[0].unsqueeze(1)], dim=1)
         return y
 
     def global_sampling_from_scratch(self, x_mel: torch.LongTensor, temperature: float = 1.0, max_seq_len=384):
@@ -241,13 +209,7 @@ class NewM2ATransformer(BasePyTorchLightningModel):
             y.append(y_next)
             b, s, l = y_next.unsqueeze(1).shape
             token_type_ids = torch.ones((b, s, l + 1), dtype=torch.long, device=y_next.device)
-            h = torch.cat(
-                [
-                    h,
-                    self.local_encode(y_next.unsqueeze(1), token_type_ids=token_type_ids)[0].unsqueeze(1),
-                ],
-                dim=1,
-            )
+            h = torch.cat([h, self.local_encode(y_next.unsqueeze(1), token_type_ids=token_type_ids)[0].unsqueeze(1)], dim=1)
         return y  # list of S tensors [B, L]
 
     def buffered_future_mask(self, tensor):
@@ -261,7 +223,7 @@ class NewM2ATransformer(BasePyTorchLightningModel):
     def forward(self, x):
         # x: [batch, seq, subseq]
         # Use local encoder to encode subsequences
-        torch.cuda.memory._record_memory_history()  # tool for GPU memory
+        torch.cuda.memory._record_memory_history() # tool for GPU memory
         batch_size, seq_len, subseq_len = x.shape  # 10*384*8
         assert seq_len % 2 == 0, "Expected even number of frames (2*S interleaved)."
 
@@ -291,19 +253,12 @@ class NewM2ATransformer(BasePyTorchLightningModel):
     ):
         batch_size, seq_length, subseq_length = x.shape
         x = x.long().view(batch_size, seq_length, subseq_length // 3, 3)
-        x_processed = torch.zeros(
-            batch_size,
-            seq_length,
-            subseq_length // 3,
-            2,
-            dtype=torch.long,
-            device=x.device,
-        )
+        x_processed = torch.zeros(batch_size, seq_length, subseq_length // 3, 2, dtype=torch.long, device=x.device)
         pad_indices = x[:, :, :, 1] == 255  # pitch is 255 that need to be pad
         eos_indices = x[:, :, :, 0] == 254  # program is 254
         is_not_drum = x[:, :, :, 0] != 127
         x_processed[:, :, :, 0] = 0  # program 不变
-        x_processed[:, :, :, 1] = x[:, :, :, 1] + (x[:, :, :, 2]) * 128 + 2 + pitch_shift.view(-1,1,1) * is_not_drum
+        x_processed[:, :, :, 1] = x[:, :, :, 1] + (x[:, :, :, 2]) * 128 + 2 + pitch_shift[:, None, None] * is_not_drum
         x_processed[pad_indices] = PAD_TOKEN
         x_processed[:, :, :, 0][eos_indices] = EOS_TOKEN
 
@@ -312,135 +267,62 @@ class NewM2ATransformer(BasePyTorchLightningModel):
         else:
             batch_size_y, seq_length_y, subseq_length_y = y.shape
             y = y.long().view(batch_size_y, seq_length_y, subseq_length_y // 3, 3)
-            y_processed = torch.zeros(
-                batch_size_y,
-                seq_length_y,
-                subseq_length_y // 3,
-                2,
-                dtype=torch.long,
-                device=y.device,
-            )
+            y_processed = torch.zeros(batch_size_y, seq_length_y, subseq_length_y // 3, 2, dtype=torch.long, device=y.device)
             pad_indices_y = y[:, :, :, 1] == 255  # pitch is 255 that need to be pad
             eos_indices_y = y[:, :, :, 0] == 254  # program is 254
             is_not_drum_y = y[:, :, :, 0] != 127
             y_processed[:, :, :, 0] = 1  # program 不变
-            y_processed[:, :, :, 1] = y[:, :, :, 1] + (y[:, :, :, 2]) * 128 + 2 + pitch_shift.view(-1,1,1)  * is_not_drum_y
+            y_processed[:, :, :, 1] = y[:, :, :, 1] + (y[:, :, :, 2]) * 128 + 2 + pitch_shift[:, None, None] * is_not_drum_y
             y_processed[pad_indices_y] = PAD_TOKEN
             y_processed[:, :, :, 0][eos_indices_y] = EOS_TOKEN
 
             return x_processed.view(batch_size, seq_length, subseq_length // 3 * 2), y_processed.view(
                 batch_size_y, seq_length_y, subseq_length_y // 3 * 2
             )
-            
-    def loss(self, x_mel_raw, x_acc_raw, pitch_shift):
-        # 得到经过 _new_interleave_process 后的模型输入和目标
-        model_input_seq, model_target_seq = self._new_interleave_process(
-            NewPtM2AModelInputData(mel_data=x_mel_raw, acc_data=x_acc_raw, pitch_shift=pitch_shift)
-        )
 
-        # 对 model_input_seq 和 model_target_seq 进行 preprocess
-        # 注意：这里需要确保 preprocess 函数处理的是交错后的序列
-        # 你目前的 preprocess 函数看起来是处理原始的 mel_data 和 acc_data，并重新构造成交错序列
-        # 这可能需要修改 preprocess 的行为，或者在调用它之前完成交错
-        # 假设 preprocess 适用于这种交错序列
-        processed_input, processed_target = self.preprocess(model_input_seq, pitch_shift.unsqueeze(-1), y=model_target_seq)
+    def loss(self, x_mel, x_acc, pitch_shift):
+        # x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y = x_acc)
+        x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y=x_acc)
+        batch_size, seq_len, subseq_len = x_mel.shape  # 10*384*8
+        stacked = torch.stack([x_acc, x_mel], dim=2)
+        x = stacked.view(batch_size, seq_len * 2, subseq_len)
 
-        # 确保只有伴奏部分参与损失计算
-        batch_size, seq_len, subseq_len = processed_target.shape
-        idx = torch.arange(seq_len, device=processed_target.device)
+        x_target = x.clone()
+        # build a mask: True at every odd timestep
+        idx = torch.arange(seq_len * 2, device=x.device)
+        mel_mask = (idx % 2 == 1).unsqueeze(0).unsqueeze(-1)  # [1, 2*S, 1]
+        mel_mask = mel_mask.expand(batch_size, seq_len * 2, subseq_len)  # [B, 2*S, L]
+        x_target[mel_mask] = PAD_TOKEN
 
-        # acc_mask 应该是 True 在伴奏部分，False 在旋律部分
-        # 根据你 interleave 的方式 (0::2 是伴奏，1::2 是旋律)
-        acc_mask = (idx % 2 == 0).unsqueeze(0).unsqueeze(-1) # 偶数位置为 True (伴奏部分)
-        acc_mask = acc_mask.expand(batch_size, seq_len, subseq_len)
+        y = self(x)
 
-        # 将 processed_target 中非伴奏的部分（即旋律部分）设为 PAD_TOKEN
-        # 这样损失函数就只会关注伴奏的预测
-        processed_target_masked = processed_target.clone()
-        processed_target_masked[~acc_mask] = PAD_TOKEN # 将非伴奏部分设为 PAD_TOKEN
+        return F.cross_entropy(y.view(-1, N_TOKENS), x_target.view(-1), ignore_index=PAD_TOKEN)
 
-        # 模型前向传播
-        # 请注意：self(processed_input) 内部也需要处理好输入序列的构成
-        # 即，如果你的 forward 函数期望的是 [SOS, a0, m0, a1, m1, ...]
-        # 那么 processed_input 应该满足这个结构
-        y_pred = self(processed_input)
-
-        # 计算损失，只针对伴奏部分
-        return F.cross_entropy(y_pred.view(-1, N_TOKENS), processed_target_masked.view(-1), ignore_index=PAD_TOKEN)
-
-    # def loss(self, x_mel, x_acc, pitch_shift):
-    #     # x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y = x_acc)
-    #     x_mel, x_acc = self.preprocess(x_mel, pitch_shift, y=x_acc)
-    #     batch_size, seq_len, subseq_len = x_mel.shape  # 10*384*8
-    #     x=x_mel
-    #     x_target = x_acc
-    #     idx = torch.arange(seq_len, device=x.device)
-    #     mel_mask = (idx % 2 == 1).unsqueeze(0).unsqueeze(-1)  # [1, 2*S, 1]
-    #     mel_mask = mel_mask.expand(batch_size, seq_len, subseq_len)  # [B, 2*S, L]
-    #     x_target[mel_mask] = PAD_TOKEN
-    #     # stacked = torch.stack([x_acc, x_mel], dim=2)
-    #     # x = stacked.view(batch_size, seq_len * 2, subseq_len)
-
-    #     # x_target = x.clone()
-    #     # build a mask: True at every odd timestep
-    #     # idx = torch.arange(seq_len * 2, device=x.device)
-    #     # mel_mask = (idx % 2 == 1).unsqueeze(0).unsqueeze(-1)  # [1, 2*S, 1]
-    #     # mel_mask = mel_mask.expand(batch_size, seq_len * 2, subseq_len)  # [B, 2*S, L]
-    #     # x_target[mel_mask] = PAD_TOKEN
-
-    #     y = self(x)
-
-    #     return F.cross_entropy(y.view(-1, N_TOKENS), x_target.view(-1), ignore_index=PAD_TOKEN)
-
-    def training_step(self, batch: NewPtM2AModelInputData, batch_idx):
+    def training_step(self, batch: M2AModelInputData, batch_idx):
         batch = self._move_to_device(batch)
-        x_mel, x_acc = batch.mel_data, batch.acc_data
-        pitch_shift = batch.pitch_shift
-        
+        x_mel, x_acc, pitch_shift = batch.mel_data, batch.acc_data, batch.pitch_shift
         loss = self.loss(x_mel, x_acc, pitch_shift)
-        self.log(
-            "train_loss",
-            loss,
-            on_step=True,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-            batch_size=x_mel.shape[0],
-        )
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
         # scheduler step
         scheduler = self.lr_schedulers()
         scheduler.step()
-        self.log(
-            "training/lr",
-            scheduler.get_last_lr()[0],
-            on_step=True,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-            batch_size=x_mel.shape[0],
-        )
+        self.log("training/lr", scheduler.get_last_lr()[0], on_step=True, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
         return loss
 
-    def validation_step(self, batch: NewPtM2AModelInputData, batch_idx):
+    def validation_step(self, batch: M2AModelInputData, batch_idx):
         batch = self._move_to_device(batch)
-        x_mel, x_acc = batch.mel_data, batch.acc_data
-        pitch_shift = batch.pitch_shift
+        x_mel, x_acc, pitch_shift = batch.mel_data, batch.acc_data, batch.pitch_shift
         loss = self.loss(x_mel, x_acc, pitch_shift)
-        self.log(
-            "val_loss",
-            loss,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-            sync_dist=True,
-            batch_size=x_mel.shape[0],
-        )
+        self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
         return loss
 
-    def _move_to_device(self, batch: NewPtM2AModelInputData) -> NewPtM2AModelInputData:
+    def configure_optimizers(self):
+        max_lr = 1e-4
+        optimizer = torch.optim.AdamW(self.parameters(), lr=max_lr)
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=max_lr, total_steps=MAX_STEPS, pct_start=0.005)
+        return [optimizer], [scheduler]
+
+    def _move_to_device(self, batch: M2AModelInputData) -> M2AModelInputData:
         """
         Move the batch data to the appropriate device.
         Args:
@@ -448,40 +330,8 @@ class NewM2ATransformer(BasePyTorchLightningModel):
         Returns:
             M2AModelInputData: The batch data moved to the appropriate device.
         """
-        return NewPtM2AModelInputData(
+        return M2AModelInputData(
             mel_data=batch.mel_data.to(self.device),
             acc_data=batch.acc_data.to(self.device),
-            pitch_shift=batch.pitch_shift.to(self.device).view(-1),
+            pitch_shift=batch.pitch_shift.to(self.device),
         )
-
-    def _new_interleave_process(self, batch: NewPtM2AModelInputData):
-        frame_shift = self.frame_shift
-        mel_data = batch.mel_data
-        acc_data = batch.acc_data
-
-        batch_size, mel_seq_len, subseq_len = mel_data.shape
-        _, acc_seq_len, _ = acc_data.shape
-
-        # 确保输入和目标长度匹配，或者进行截断/填充
-        # 这里为了简化，我们假设它们已经对齐，并且 acc_data 包含要预测的未来部分
-
-        # 构建模型输入 (x): 包含旋律和历史伴奏
-        # 例如: [a0, m0, a1, m1, ...]
-        # 注意: 这里的 acc_data 需要是“历史”的，不能包含未来要预测的
-        # 这里是一个示例，你可能需要根据实际的预测策略调整索引
-        input_seq_len = min(mel_seq_len, acc_seq_len - frame_shift) * 2 # 确保不越界
-        model_input = torch.empty(batch_size, input_seq_len, subseq_len, dtype=mel_data.dtype, device=mel_data.device)
-
-        model_input[:, 0::2, :] = acc_data[:, :input_seq_len // 2, :] # 历史伴奏
-        model_input[:, 1::2, :] = mel_data[:, :input_seq_len // 2, :] # 对应旋律
-
-        # 构建模型目标 (y_target): 包含旋律和要预测的伴奏
-        # 例如: [m0, a_target_0, m1, a_target_1, ...]
-        # 其中 a_target_i 是模型需要预测的伴奏
-        target_seq_len = min(mel_seq_len, acc_seq_len - frame_shift) * 2 # 同步长度
-        model_target = torch.empty(batch_size, target_seq_len, subseq_len, dtype=mel_data.dtype, device=mel_data.device)
-
-        model_target[:, 0::2, :] = mel_data[:, :target_seq_len // 2, :] # 旋律部分 (不需要预测，但可能在目标中用于损失掩码)
-        model_target[:, 1::2, :] = acc_data[:, frame_shift : frame_shift + target_seq_len // 2, :] # **需要预测的未来伴奏**
-
-        return model_input, model_target

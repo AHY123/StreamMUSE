@@ -19,7 +19,6 @@ m2a_transformer_inference_copy.py
 aria-dataset
 POP909-Dataset
 /test/
-*.mid
 aria-extract.py
 /dataset/
 src/transformers/
