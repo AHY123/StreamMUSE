@@ -1,6 +1,6 @@
 from typing import Any
 from pydantic import BaseModel, Field
-from roformer import RoFormerConfig
+from customed_roformer import RoFormerConfig
 from typing import Union, Optional
 from typing import Literal
 

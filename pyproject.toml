@@ -28,7 +28,7 @@ dependencies = [
   "torch>=2.5.0",
   "torch-tb-profiler>=0.4.3",
   "torchvision>=0.22.0",
-  "transformers",
+  "transformers>=4.53.1",
   "wandb>=0.20.1",
 ]
 
@@ -41,7 +41,6 @@ torch = [
 torchvision = [
   { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-transformers = { path = "transformers", editable = true }
 
 [[tool.uv.index]]
 name = "pytorch-cu126"

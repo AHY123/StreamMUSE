@@ -1,7 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers.models.roformer.modeling_roformer import (
+# from transformers.models.roformer.modeling_roformer import (
+#     RoFormerConfig,
+#     RoFormerEncoder,
+# )
+from customed_roformer import (
     RoFormerConfig,
     RoFormerEncoder,
 )
