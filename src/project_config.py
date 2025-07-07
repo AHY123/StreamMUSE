@@ -1,9 +1,9 @@
 from typing import Any, Optional
-from pydantic import BaseModel, Field, model_validator
+from .utils.base_config import BaseConfig, Field, dataclass, ConfigDict
+from pydantic import model_validator
 from .logger.base import UnionLoggerConfig
 from .model.specific_model import UnionModelConfig
-# from .datamodule import UnionDataModuleConfig # Old import
-from schema.dataset_schema import DataModuleSchema # New import
+from .datamodule import UnionDataModuleConfig 
 from typing import Union, Literal
 import yaml
 import os
@@ -54,20 +54,20 @@ def get_next_version(base_dir: str, project_name: Optional[str] = None, version_
         return f"{version_prefix}.{next_version_num}"
     return f"version_{next_version_num}"
 
-
-class TrainerConfig(BaseModel):
+@dataclass
+class TrainerConfig:
     """
     Config for the PyTorch Lightning Trainer configuration.
     """
-    _target_: str = Field("pytorch_lightning.Trainer", description="The class to instantiate for the PyTorch Lightning Trainer.")
+    # _target_: str = Field("pytorch_lightning.Trainer", description="The class to instantiate for the PyTorch Lightning Trainer.")
     max_epochs: int = Field(10, description="Maximum number of epochs for training. Default is 10.")
     accelerator: Optional[str] = Field("auto", description="Accelerator to use for training (e.g., 'cpu', 'gpu'). Default is 'auto'.")
     devices: Optional[Union[int, list[int], tuple[int]]] = Field(
         None, description="Number of devices to use for training. Default is None (use all available)."
     )
 
-
-class ProjectConfig(BaseModel):
+@dataclass
+class ProjectConfig:
     """
     Config for the M2A Transformer project configuration.
     """
@@ -79,8 +79,8 @@ class ProjectConfig(BaseModel):
     description: Optional[str] = Field(None, description="Description of the project.")
     loggers: list[UnionLoggerConfig] = Field(None, description="List of logger configurations.")
     model: UnionModelConfig = Field(..., description="Model configuration.")
-    datamodule: DataModuleSchema = Field(..., description="Data module configuration.") # Changed type
-    trainer: TrainerConfig = Field(default_factory=TrainerConfig, description="Trainer configuration.")
+    datamodule: UnionDataModuleConfig = Field(..., description="Data module configuration.") # Changed type
+    trainer: TrainerConfig = Field(default=TrainerConfig(), description="Trainer configuration.")
     seed: Optional[int] = Field(42, description="Random seed for reproducibility.")
 
     @classmethod

@@ -7,7 +7,7 @@ from datetime import datetime
 import hydra
 
 from .config import PlBaseModelConfig, TrainingProbingLoggerConfig
-from .. import UnionModelInput,UnionModelOutput,UnionModelConfig
+from .model_io import PlBaseModelInput
 from typing import Any
 import sys
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class PlBaseModel(L.LightningModule):
-    def __init__(self, config: UnionModelConfig):
+    def __init__(self, config: PlBaseModelConfig):
         super().__init__()
         # Ensure training_probing_training_logger_schema exists in your BaseModelConfig
         if config.training_probing_training_logger_config:
@@ -62,7 +62,7 @@ class PlBaseModel(L.LightningModule):
                 )
             self._record_abnormal_event(current_loss, global_step, avg_loss, batch)
 
-    def _record_abnormal_event(self, current_loss: torch.Tensor, global_step: int, avg_loss: float, batch: UnionModelInput):
+    def _record_abnormal_event(self, current_loss: torch.Tensor, global_step: int, avg_loss: float, batch: PlBaseModelInput):
         # This entire method's file I/O and direct logging should only happen on rank 0
         if self.trainer.is_global_zero:
             lr = self.lr_schedulers().get_last_lr()[0] if self.lr_schedulers() else "N/A"
@@ -165,6 +165,7 @@ class PlBaseModel(L.LightningModule):
         return super().on_fit_start()
 
     def configure_optimizers(self):
+        self.config.optimizer_config.params = self.parameters()
         optimizer=hydra.utils.instantiate(self.config.optimizer_config)
         self.config.lr_scheduler_config.optimizer = optimizer
         scheduler = hydra.utils.instantiate(self.config.lr_scheduler_config)

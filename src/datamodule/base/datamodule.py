@@ -18,12 +18,16 @@ class BaseDataModule(pl.LightningDataModule):
 
     def setup(self, stage):
         if stage == "fit":
-            self.train_dataset = hydra.utils.instantiate(self.config.train_config)
-            self.val_dataset = hydra.utils.instantiate(self.config.val_config)
+            train_cls = hydra.utils.get_class(self.config.train_config._target_)
+            self.train_dataset = train_cls(self.config.train_config)
+            val_cls = hydra.utils.get_class(self.config.val_config._target_)
+            self.val_dataset = val_cls(self.config.val_config)
         elif stage == "test":
-            self.test_dataset = hydra.utils.instantiate(self.config.test_config)
+            test_cls = hydra.utils.get_class(self.config.test_config._target_)
+            self.test_dataset = test_cls(self.config.test_config)
         elif stage == "predict":
-            self.predict_dataset = hydra.utils.instantiate(self.config.predict_config)
+            predict_cls = hydra.utils.get_class(self.config.predict_config._target_)
+            self.predict_dataset = predict_cls(self.config.predict_config)
         return super().setup(stage)
 
     def train_dataloader(self):

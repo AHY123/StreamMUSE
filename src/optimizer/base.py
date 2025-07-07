@@ -6,5 +6,6 @@ class OptimizerConfig:
     _target_: str = Field("torch.optim.Adam", description="Optimizer class")
     lr: float = Field(1e-5, description="Learning rate")
     betas: tuple[float, float] = Field((0.9, 0.999), description="Betas")
+    params: Optional[Any] = Field(None, description="Parameters for the model.")
     eps: float = Field(1e-8, description="Epsilon")
     weight_decay: float = Field(0.0, description="Weight decay")

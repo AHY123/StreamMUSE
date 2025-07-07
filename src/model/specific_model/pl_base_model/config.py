@@ -1,5 +1,5 @@
 from ....utils.base_config import BaseConfig, Field, dataclass
-from typing import Optional
+from typing import Optional,Literal,Dict,Any
 from ....optimizer.base import OptimizerConfig
 from ....lr_scheduler.base import LRSchedulerConfig
 
@@ -12,14 +12,15 @@ class TrainingProbingLoggerConfig:
     loss_avg_window_Y: int = Field(10, description="Window size for loss average")
     recording_window_N: int = Field(5, description="Window size for recording")
 
-
+@dataclass
 class PlBaseModelConfig(BaseConfig):
     """
     Config for the Base model configuration.
     """
 
-    _target_: str = Field("src.model.specific_model.base_model.BaseModel")
+    _target_: Literal["src.model.specific_model.pl_base_model.PlBaseModel"] = Field("src.model.specific_model.pl_base_model.PlBaseModel")
     optimizer_config: Optional[OptimizerConfig] = Field(default_factory=lambda: OptimizerConfig(), description="Configuration for the optimizer.")
+    
     lr_scheduler_config: Optional[LRSchedulerConfig] = Field(
         default_factory=lambda: LRSchedulerConfig(), description="Configuration for the learning rate scheduler."
     )

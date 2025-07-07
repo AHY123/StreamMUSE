@@ -19,7 +19,7 @@ class WandbLoggerConfig:
     """
     Schema for the Weights & Biases logger configuration.
     """
-    _target_ :Literal["pytorch_lightning.loggers.wandb.WandbLogger"] = "pytorch_lightning.loggers.wandb.WandbLogger"
+    _target_ :Literal["pytorch_lightning.loggers.WandbLogger"] = "pytorch_lightning.loggers.WandbLogger"
     project: str = Field(..., description="Name of the Weights & Biases project.")
     entity: Optional[str] = Field(None, description="Entity name for the Weights & Biases project. Optional if not needed.")
     log_model: bool = Field(True, description="Whether to log the model to Weights & Biases. Default is True.")

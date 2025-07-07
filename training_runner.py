@@ -1,19 +1,21 @@
+import hydra.conf
+import hydra.core
+import hydra.core.config_store
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger, CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 # from lightning.pytorch.utilities.seed import seed_everything
-from schema.project_schema import ProjectSchema
-from datamodules.remi_json_datamodule import MelAccRemiJsonDataModule
+from src.project_config import ProjectConfig
 import os
 import shutil
 import logging
 import sys
 import re  # Added for version parsing if needed, but the current approach uses config.version directly
 from typing import List, Union, Any, Optional  # Import necessary types
-
-
+import hydra
+from dataclasses import asdict
 # --- Initial Logging Setup (for early messages and console output) ---
 # This basicConfig applies to ALL processes.
 # We will dynamically adjust handlers/levels for non-rank 0 processes later.
@@ -40,7 +42,7 @@ class ProjectRunner:
     def __init__(self, config_path: str):
         self.config_path = config_path
         try:
-            self.config = ProjectSchema.from_yaml(config_path)
+            self.config = ProjectConfig.from_yaml(config_path)
         except Exception as e:
             logger.critical(f"Fatal error: Failed to load configuration from {config_path}: {e}", exc_info=True)
             sys.exit(1)
@@ -55,86 +57,30 @@ class ProjectRunner:
 
     def setup_datamodule(self):
         try:
-            if self.config.dataset.tokenizer == "REMI":
-                self.datamodule = MelAccRemiJsonDataModule(
-                    config=self.config.dataset,
-                )
-            elif self.config.dataset.tokenizer == "XinYue's":
-                from datamodules.old_pt_datamodule import OldPtDataModule  # Import if needed
-
-                self.datamodule = OldPtDataModule(
-                    config=self.config.dataset,
-                )
-            elif self.config.dataset.tokenizer == "New XinYue's":
-                from datamodules.new_pt_datamodule import NewPtDataModule  # Import if needed
-                self.datamodule = NewPtDataModule(
-                    config=self.config.dataset,
-                )
-            else:
-                logger.warning(
-                    f"Unsupported tokenizer type: {self.config.dataset.tokenizer}. Please ensure this is intentional or define a new tokenizer type."
-                )
-                raise ValueError(f"Unsupported tokenizer type: {self.config.dataset.tokenizer}")
+            cls=hydra.utils.get_class(self.config.datamodule._target_)
+            self.datamodule=cls(self.config.datamodule)
         except Exception as e:
-            logger.critical(f"Fatal error setting up datamodule with tokenizer '{self.config.dataset.tokenizer}': {e}", exc_info=True)
+            logger.critical(f"Fatal error setting up datamodule '{self.config.datamodule}': {e}", exc_info=True)
             raise
 
     def setup_model(self):
         try:
-            # Assuming OldM2ATransformer and REMIRoformer are subclasses of BasePyTorchLightningModel
-            # and accept model_schema as argument.
-            if self.config.model.model_type == "Old-M2A-Transformer":
-                from models.old_m2a_transformer import OldM2ATransformer  # Import if needed
-
-                self.model = OldM2ATransformer(
-                    model_schema=self.config.model,
-                )
-            elif self.config.model.model_type == "REMI-RoFormer":
-                from models.remi_roformer import REMIRoformer  # Import if needed
-
-                self.model = REMIRoformer(
-                    model_schema=self.config.model,
-                )
-            elif self.config.model.model_type == "New-M2A-Transformer":
-                from models.new_m2a_transformer import NewM2ATransformer
-
-                self.model = NewM2ATransformer(
-                    model_schema=self.config.model,
-                )
-            elif self.config.model.model_type == "Old-M2A-Transformer-Nomask":
-                from models.old_m2a_nomask_transformer import OldM2ANomaskTransformer
-
-                self.model = OldM2ANomaskTransformer(
-                    model_schema=self.config.model,
-                )
-            
-            else:
-                logger.warning(f"Unsupported model type: {self.config.model.model_type}. Check your config or implement the model.")
-                raise ValueError(f"Unsupported model type: {self.config.model.model_type}")
+            cls = hydra.utils.get_class(self.config.model._target_)
+            self.model = cls(self.config.model)
         except Exception as e:
-            logger.critical(f"Fatal error setting up model of type '{self.config.model.model_type}': {e}", exc_info=True)
+            logger.critical(f"Fatal error setting up model of type '{self.config.model._target_}': {e}", exc_info=True)
             raise
 
     def setup_loggers(self):
-        from schema.project_schema import CSVLoggerSchema, WandbLoggerSchema, TensorBoardLoggerSchema
-
         loggers = []
         try:
-            for name, logger_config in self.config.loggers.items():
-                _logger_config = logger_config.model_dump()
-                _logger_config.__delitem__("type")
-                if isinstance(logger_config, TensorBoardLoggerSchema):
-                    loggers.append(TensorBoardLogger(**_logger_config))
-                elif isinstance(logger_config, WandbLoggerSchema):
-                    loggers.append(WandbLogger(**_logger_config))
-                elif isinstance(logger_config, CSVLoggerSchema):
-                    loggers.append(CSVLogger(**_logger_config))
-                else:
-                    logger.warning(f"Unknown logger type: {type(logger_config)}. This logger will be skipped.")
-                print(name, _logger_config) # This line was in your original code
-            self.loggers = loggers if len(loggers) > 0 else [TensorBoardLogger("logs", name="default")]
+            for logger_config in self.config.loggers:
+                loggers.append(hydra.utils.instantiate(logger_config))
+            
             if not self.loggers:
+                loggers.append(TensorBoardLogger("logs", name="default"))
                 logger.warning("No loggers were configured or recognized. Defaulting to TensorBoardLogger.")
+            self.loggers = loggers
         except Exception as e:
             logger.error(f"Error setting up PyTorch Lightning loggers: {e}", exc_info=True)
             # Fallback if logger setup fails, but try to continue with a basic logger
@@ -178,7 +124,7 @@ class ProjectRunner:
 
             # **self.config.trainer.model_dump() might include callbacks from config.
             # It's better to exclude it if you manage callbacks explicitly like this.
-            trainer_config_dict = self.config.trainer.model_dump(exclude={"callbacks"})
+            # trainer_config_dict = self.config.trainer.model_dump(exclude={"callbacks"})
 
             self.trainer = Trainer(
                 precision="bf16-mixed",  # data precision
@@ -187,7 +133,7 @@ class ProjectRunner:
                 # log_every_n_steps=1,
                 # limit_val_batches=5,
                 log_every_n_steps=5,
-                **self.config.trainer.model_dump(),
+                **asdict(self.config.trainer),
                 callbacks=[
                     ModelCheckpoint(
                         every_n_train_steps=500,
@@ -312,7 +258,7 @@ if __name__ == "__main__":
 
     # Example usage
     # runner = ProjectRunner(config_path="schema/yaml/old_m2a_transformer_aria_skyline_v0-1.2.yaml")
-    runner = ProjectRunner(config_path="schema/yaml/new_m2a_transformer_pop909_v0-1.0.yaml")  # Use your specific config
+    runner = ProjectRunner(config_path="conf/old_m2a_transformer_pop909-1.0.yaml")  # Use your specific config
 
     try:
         runner.run_experiment()
@@ -321,3 +267,6 @@ if __name__ == "__main__":
         # and ensures they are logged before program exit.
         logger.critical(f"Unhandled exception occurred during experiment execution: {e}", exc_info=True)
         sys.exit(1)
+    
+    import hydra 
+    import omegaconf

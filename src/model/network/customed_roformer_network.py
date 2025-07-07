@@ -1535,16 +1535,21 @@ class RoFormerForQuestionAnswering(RoFormerPreTrainedModel):
 #     "load_tf_weights_in_roformer",
 # ]
 
-from ...utils.base_config import Field, BaseConfig
+# from ...utils.base_config import Field, BaseConfig
+from pydantic.dataclasses import dataclass
+from pydantic import Field, ConfigDict
 from typing import Literal
 
 
 class CustomedRoformerNetwork(RoFormerEncoder): ...
 
 
-class CustomedRoformerConfig(BaseConfig):
-    _target_: Literal["src.models.customed_roformer_network.CustomedRoformerNetwork"] = "src.models.customed_roformer_network.CustomedRoformerNetwork"
-    config: RoFormerConfig = Field(default=RoFormerConfig())
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
+class CustomedRoformerConfig:
+    _target_: Literal["src.model.network.customed_roformer_network.CustomedRoformerNetwork"] = (
+        "src.model.network.customed_roformer_network.CustomedRoformerNetwork"
+    )
+    config: Optional[RoFormerConfig] = Field(RoFormerConfig())
 
 
 __all__ = [

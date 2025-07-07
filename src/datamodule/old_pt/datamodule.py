@@ -6,7 +6,7 @@ import miditok
 import torch
 from ..base.datamodule import BaseDataModule, BaseDataset
 from .config import OldPtDatasetConfig,OldPtDataModuleConfig
-from schema.model_io_schema import NewPtM2AModelInputData
+from ...model.specific_model.old_m2a_roformer.model_io import OldM2ARoformerInput, OldM2ARoformerOutput
 import pytorch_lightning as pl
 
 class OldPtDataset(BaseDataset):
@@ -63,14 +63,14 @@ class OldPtDataset(BaseDataset):
         """返回数据集中有效歌曲片段的总数。"""
         return self.valid_song_count
 
-    def __getitem__(self, idx: int) -> NewPtM2AModelInputData:
+    def __getitem__(self, idx: int) -> OldM2ARoformerInput:
         """
         根据索引 idx 获取单个样本（固定长度的片段及其音高偏移）。
         获取包含 input 和 target 的合并片段。
         Args:
             idx (int): self.valid_indices 中的索引。
         Returns:
-            NewPtM2AModelInputData: 包含合并的旋律/伴奏片段和音高偏移的模型输入数据。
+            OldM2ARoformerInput: 包含合并的旋律/伴奏片段和音高偏移的模型输入数据。
         """
         raw_id = self.valid_indices[idx]
         
@@ -104,7 +104,7 @@ class OldPtDataset(BaseDataset):
         maxmin = torch.maximum(self.pitch_shift_range_mel[raw_id, 0], self.pitch_shift_range_acc[raw_id, 0])
         single_pitch_shift = torch.floor(torch.rand(1) * (minmax - maxmin + 1)).long() + maxmin
         
-        return NewPtM2AModelInputData(
+        return OldM2ARoformerInput(
             mel_data=combined_mel_segment,
             acc_data=combined_acc_segment,
             pitch_shift=single_pitch_shift,
@@ -114,7 +114,7 @@ class OldPtDataset(BaseDataset):
 class OldPtDataModule(BaseDataModule):
     def __init__(self, config: OldPtDataModuleConfig):
         super().__init__(config)    
-    def _collate_fn(self, batch: list[NewPtM2AModelInputData]) -> NewPtM2AModelInputData:
+    def _collate_fn(self, batch: list[OldM2ARoformerInput]) -> OldM2ARoformerInput:
         """
         Collate function to stack the tensors from a batch.
         Assumes all segments in the batch have the same target_length.
@@ -123,8 +123,4 @@ class OldPtDataModule(BaseDataModule):
         acc_data = torch.stack([item.acc_data for item in batch])
         pitch_shift = torch.stack([item.pitch_shift for item in batch])
         
-        return NewPtM2AModelInputData(
-            mel_data=mel_data,
-            acc_data=acc_data,
-            pitch_shift=pitch_shift
-        )
+        return OldM2ARoformerInput(mel_data=mel_data, acc_data=acc_data, pitch_shift=pitch_shift)

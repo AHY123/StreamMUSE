@@ -33,8 +33,8 @@ class OldM2ATransformer(PlBaseModel):
         self.local_encoder = hydra.utils.instantiate(local_encoder_config)
         self.model = hydra.utils.instantiate(global_network_config)
         self.local_decoder = hydra.utils.instantiate(local_decoder_config)
-        encoder_hidden_size = self.config.local_encoder_network_config.hidden_size
-        decoder_hidden_size = self.config.local_decoder_network_config.hidden_size
+        encoder_hidden_size = config.local_encoder_network_config.config.hidden_size
+        decoder_hidden_size = config.local_decoder_network_config.config.hidden_size
         self.local_embedding = nn.Embedding(N_TOKENS, encoder_hidden_size)
         self.token_type_embeddings = nn.Embedding(2, encoder_hidden_size)
         with torch.no_grad():
@@ -225,7 +225,8 @@ class OldM2ATransformer(PlBaseModel):
         eos_indices = x[:, :, :, 0] == 254  # program is 254
         is_not_drum = x[:, :, :, 0] != 127
         x_processed[:, :, :, 0] = 0  # program 不变
-        x_processed[:, :, :, 1] = x[:, :, :, 1] + (x[:, :, :, 2]) * 128 + 2 + pitch_shift[:, None, None] * is_not_drum
+        # print(f"x:{x[:, :, :, 2].shape} pitch_shift: {pitch_shift[:,None].shape},is not drum: {is_not_drum.shape}")
+        x_processed[:, :, :, 1] = x[:, :, :, 1] + (x[:, :, :, 2]) * 128 + 2 + pitch_shift[:,None] * is_not_drum
         x_processed[pad_indices] = PAD_TOKEN
         x_processed[:, :, :, 0][eos_indices] = EOS_TOKEN
 
@@ -239,7 +240,7 @@ class OldM2ATransformer(PlBaseModel):
             eos_indices_y = y[:, :, :, 0] == 254  # program is 254
             is_not_drum_y = y[:, :, :, 0] != 127
             y_processed[:, :, :, 0] = 1  # program 不变
-            y_processed[:, :, :, 1] = y[:, :, :, 1] + (y[:, :, :, 2]) * 128 + 2 + pitch_shift[:, None, None] * is_not_drum_y
+            y_processed[:, :, :, 1] = y[:, :, :, 1] + (y[:, :, :, 2]) * 128 + 2 + pitch_shift[:, None] * is_not_drum_y
             y_processed[pad_indices_y] = PAD_TOKEN
             y_processed[:, :, :, 0][eos_indices_y] = EOS_TOKEN
 
