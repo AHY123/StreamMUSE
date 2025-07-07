@@ -46,7 +46,7 @@ class TransformerInferenceEngine:
                                                                           )
         
         if torch.cuda.is_available():
-            self.model.to('cuda:0')
+            self.model.to('cuda')
         self.model.eval()
         print("Model loaded successfully.")
         
@@ -205,7 +205,7 @@ class TransformerInferenceEngine:
                     duration = DURATION_TEMPLATES[duration_idx]
 
                     sample_notes.append({
-                        'tick': tick*4,
+                        'tick': tick,
                         'pitch': pitch,
                         'duration': int(duration),
                         'program': program
