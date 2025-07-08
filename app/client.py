@@ -121,7 +121,7 @@ def tick_loop(
 
             elif event['type'] == 'note_off':
                 # Pass the note_off event directly to the audio handler
-
+                
                 #find the pitch in currently pressed down and delete it
                 for n in currently_pressed_down[:]:
                     if n["pitch"] == event["pitch"]:

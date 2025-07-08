@@ -22,7 +22,7 @@ class JsonLogHandler:
             response_data (dict): The full JSON response from the server.
         """
         self.inference_log.append({
-            "request": request_data,
+            "request": request_data.copy(),
             "response": response_data
         })
 
