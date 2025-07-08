@@ -18,7 +18,7 @@ from output_handlers.json_log_handler import JsonLogHandler
 from input_handlers.input_handler import read_midi_input, read_keyboard_input
 
 # --- Constants ---
-DEFAULT_NOTE_DURATION_TICKS = 2
+DEFAULT_NOTE_DURATION_TICKS = 0 #changed from 2
 LATENCY_OFFSET_TICKS = 2
 
 def inference_worker(request_queue: Queue, response_queue: Queue, server_url: str):
@@ -78,11 +78,18 @@ def tick_loop(
     notes_for_next_request = []
     last_inference_timings = {} # To persist timing info for display
     ticks_per_bar = ticks_per_beat * beats_per_bar
+    currently_pressed_down = [] # Store notes that are currently pressed down
 
     # --- Main Loop ---
     while True:
         tick_count += 1
-        
+
+
+        # --- 0. Update the durations ---
+        for i in currently_pressed_down:
+            i["duration"] += 1
+
+
         # --- 1. Process User Input ---
         user_notes_this_tick = []
 
@@ -96,20 +103,31 @@ def tick_loop(
             if event['type'] == 'note_on':
                 # 1. Quantize the note for the inference engine request.
                 # All user notes are given a fixed duration for the model.
+                is_already_pressed = any(note['pitch'] == event['pitch'] for note in currently_pressed_down)
+
                 quantized_note = {
                     "pitch": event['pitch'],
                     "tick": tick_count,
                     "duration": DEFAULT_NOTE_DURATION_TICKS
                 }
-                notes_for_next_request.append(quantized_note)
-                user_notes_this_tick.append(quantized_note)
-                midi_file_handler.add_user_note(quantized_note)
+                if not is_already_pressed:
+                    currently_pressed_down.append(quantized_note)
+                notes_for_next_request.append(quantized_note.copy())
+                user_notes_this_tick.append(quantized_note.copy())
+                midi_file_handler.add_user_note(quantized_note.copy())
 
                 # 2. Play the note immediately for audio feedback.
                 audio_output_handler.on(event['pitch'], event['velocity'])
 
             elif event['type'] == 'note_off':
                 # Pass the note_off event directly to the audio handler
+
+                #find the pitch in currently pressed down and delete it
+                for n in currently_pressed_down[:]:
+                    if n["pitch"] == event["pitch"]:
+                        currently_pressed_down.remove(n)
+                        break
+
                 audio_output_handler.off(event['pitch'])
         
         # --- 2. Handle Inference Responses ---
@@ -180,7 +198,8 @@ def tick_loop(
 
             request_data = {
                 "melody_notes": notes_for_next_request,
-                "generation_start_tick": next_interval_start_tick
+                "generation_start_tick": next_interval_start_tick,
+                "currently_pressed_notes": currently_pressed_down
             }
             inference_request_queue.put((request_data, request_data.copy())) # Pass a copy for logging
             notes_for_next_request = [] # Clear the buffer
@@ -253,7 +272,7 @@ def tick_loop(
         time.sleep(seconds_per_tick)
 
 def main():
-    SERVER_URL = "http://localhost:8008/generate_accompaniment"
+    SERVER_URL = "http://0.0.0.0:8988/generate_accompaniment"
     TEMPO = 90.0
     TICKS_PER_BEAT = 4
     BEATS_PER_BAR = 4

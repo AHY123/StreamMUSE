@@ -9,7 +9,7 @@ from pydantic import BaseModel
 import uvicorn
 import time
 from contextlib import asynccontextmanager
-from app.midi_input_script import midi_to_note_list
+# from midi_input_script import midi_to_note_list
 from app.inference_engines.transformer_engine import TransformerInferenceEngine
 
 class MelodyNoteEvent(BaseModel):
@@ -19,6 +19,7 @@ class MelodyNoteEvent(BaseModel):
 
 class InferenceRequest(BaseModel):
     melody_notes: list[MelodyNoteEvent]
+    currently_pressed_notes: list[MelodyNoteEvent]
     generation_start_tick: int
     client_request_send_time: float
 
@@ -74,12 +75,12 @@ async def lifespan(app: FastAPI):
         )
         print("Inference engine loaded successfully.")
         # preload part
-        acc_notes, _ = midi_to_note_list("/home/bowen.zheng/Documents/StreamMUSE/input/acc/001.mid", max_tick=9600)
-        inference_engine.accompaniment_history = acc_notes
-        print(f"预加载了 {len(acc_notes)} 条伴奏到 history")
-        mel_notes, _ = midi_to_note_list("/home/bowen.zheng/Documents/StreamMUSE/input/mel/001.mid", max_tick=9600)
-        inference_engine.melody_history = mel_notes
-        print(f"预加载了 {len(mel_notes)} 条旋律到 history")
+        # acc_notes, _ = midi_to_note_list("/home/bowen.zheng/Documents/StreamMUSE/input/acc/001.mid", max_tick=9600)
+        # inference_engine.accompaniment_history = acc_notes
+        # print(f"预加载了 {len(acc_notes)} 条伴奏到 history")
+        # mel_notes, _ = midi_to_note_list("/home/bowen.zheng/Documents/StreamMUSE/input/mel/001.mid", max_tick=9600)
+        # inference_engine.melody_history = mel_notes
+        # print(f"预加载了 {len(mel_notes)} 条旋律到 history")
 
     except FileNotFoundError as e:
         print(f"Fatal Error: {e}")
@@ -101,14 +102,18 @@ async def generate_accompaniment(request: InferenceRequest):
         return JSONResponse(status_code=503, content={"error": "Inference engine not loaded"})
     
     melody_notes_dicts = [note.dict() for note in request.melody_notes]
+    currently_pressed_dicts = [note.dict() for note in request.currently_pressed_notes]
     
     accompaniment_dicts, preprocess_start_time, inference_start_time, inference_end_time, postprocess_start_time = inference_engine.generate_accompaniment(
-        melody_notes_dicts,
+        melody_notes_dicts, 
+        currently_pressed_dicts,
         generation_start_tick=request.generation_start_tick
     )
     
     response_output_time = time.perf_counter()
 
+    print(f"SERVER: Sending back accompaniment: {accompaniment_dicts}")
+    
     return AccompanimentResponse(
         accompaniment=accompaniment_dicts,
         timings=Timings(

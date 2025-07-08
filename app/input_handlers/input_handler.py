@@ -58,6 +58,9 @@ def _on_release(key, event_queue):
         char_key = key.char
         if char_key in KEY_TO_PITCH and char_key in pressed_keys:
             pressed_keys.remove(char_key)
+            pitch = KEY_TO_PITCH[char_key]
+            event = {"type": "note_off", "pitch": pitch, "velocity": VELOCITY, "time": time.time()}
+            event_queue.put(event)
     except AttributeError:
         if key == keyboard.Key.esc:
             # Stop listener

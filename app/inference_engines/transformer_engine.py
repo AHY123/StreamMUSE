@@ -213,7 +213,7 @@ class TransformerInferenceEngine:
             notes_per_sample.append(sample_notes)
         return notes_per_sample
 
-    def generate_accompaniment(self, melody_notes, generation_start_tick: int, accompaniment_notes=[]):
+    def generate_accompaniment(self, melody_notes, pressed_notes, generation_start_tick: int, accompaniment_notes=[]):
         """
         Generates musical accompaniment based on a history of melody and accompaniment notes.
         This is the main public method for the engine.
@@ -223,6 +223,29 @@ class TransformerInferenceEngine:
         # Step 1: Update the internal melody history with the new user notes for this turn.
         self.melody_history.extend(melody_notes)
         # Note: We do NOT update the accompaniment history until after generation.
+
+
+        # Update the notes already in melody_history to match their current duration if they are already pressed
+        
+        for history_note in reversed(self.melody_history):
+            # Iterate over a copy of the list to allow safe removal
+            for pressed_note in pressed_notes[:]:
+                if (
+                    pressed_note["tick"] == history_note["tick"]
+                    and pressed_note["pitch"] == history_note["pitch"]
+                ):
+                    # Update the duration in the original history list
+                    history_note["duration"] = pressed_note["duration"]
+                    
+                    # Remove the matched note from the original pressed_notes list
+                    pressed_notes.remove(pressed_note)
+                    
+                    # Break the inner loop since we found a match for this history_note
+                    break
+            
+            # If we have processed all pressed_notes, we can exit the main loop
+            if not pressed_notes:
+                break
 
         # Step 2: Create a prompt for the model from history occurring BEFORE the generation start tick.
         # This logic ensures the model always gets a fixed-size input and that the most

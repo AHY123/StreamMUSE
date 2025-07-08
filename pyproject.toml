@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
   "deepspeed>=0.17.1",
+  "fastapi>=0.116.0",
   "ipykernel>=6.29.5",
   "joblib>=1.5.1",
   "lightning>=2.5.2",
@@ -19,7 +20,7 @@ dependencies = [
   "pynput>=1.8.1",
   "pytest>=8.4.1",
   "python-rtmidi>=1.5.8",
-  "pytorch-lightning>=2.5.1.post0", 
+  "pytorch-lightning>=2.5.1.post0",
   "tensorboard>=2.19.0",
   "tensorboardx>=2.6.4",
   "tensorflow>=2.19.0",
@@ -28,6 +29,7 @@ dependencies = [
   "torch-tb-profiler>=0.4.3",
   "torchvision>=0.22.0",
   "transformers",
+  "uvicorn>=0.35.0",
   "wandb>=0.20.1",
 ]
 
