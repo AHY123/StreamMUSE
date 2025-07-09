@@ -6,8 +6,9 @@ import os
 from datetime import datetime
 import hydra
 
-from .config import PlBaseModelConfig, TrainingProbingLoggerConfig
+from .config import TrainingProbingLoggerConfig
 from .model_io import PlBaseModelInput
+from .. import UnionModelConfig, UnionModelInput
 from typing import Any
 import sys
 
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class PlBaseModel(L.LightningModule):
-    def __init__(self, config: PlBaseModelConfig):
+    def __init__(self, config: UnionModelConfig):
         super().__init__()
         # Ensure training_probing_training_logger_schema exists in your BaseModelConfig
         if config.training_probing_training_logger_config:
@@ -42,7 +43,7 @@ class PlBaseModel(L.LightningModule):
 
         # This will be set by _setup_training_probing_logger on rank 0
         self.abnormal_event_save_dir = None
-        self.config=config
+        self.config = config
 
     def _check_for_loss_jump(self, current_loss: torch.Tensor, global_step: int, batch: Any):
         self.loss_history.append(current_loss.item())
@@ -110,7 +111,7 @@ class PlBaseModel(L.LightningModule):
 
             self.recorded_events.append(event_info)
 
-    def on_train_batch_end(self, outputs: dict, batch: Any, batch_idx: int):  # Changed batch type to Any for broader compatibility
+    def on_train_batch_end(self, outputs: dict, batch: UnionModelInput, batch_idx: int):  # Changed batch type to Any for broader compatibility
         loss = outputs.get("loss")  # Use .get() for safer access
         if loss is not None:
             # _check_for_loss_jump will handle its own rank-based logging
@@ -166,7 +167,7 @@ class PlBaseModel(L.LightningModule):
 
     def configure_optimizers(self):
         self.config.optimizer_config.params = self.parameters()
-        optimizer=hydra.utils.instantiate(self.config.optimizer_config)
+        optimizer = hydra.utils.instantiate(self.config.optimizer_config)
         self.config.lr_scheduler_config.optimizer = optimizer
         scheduler = hydra.utils.instantiate(self.config.lr_scheduler_config)
         return [optimizer], [scheduler]

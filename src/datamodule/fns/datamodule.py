@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 from schema.dataset_schema import OldPtDatasetSchema, OldPtDataModuleSchema
 from schema.model_io_schema import M2AModelInputData
 import pytorch_lightning as pl
-
+from miditok.pytorch_data import DataCollator,DatasetJSON,DatasetMIDI
 
 class OldPtDataset(Dataset):
     def __init__(self, config: OldPtDatasetSchema):

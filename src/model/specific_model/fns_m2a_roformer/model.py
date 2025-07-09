@@ -3,12 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional
 from ..pl_base_model.model import PlBaseModel
-from .config import OldM2ARoformerConfig
-from .model_io import OldM2ARoformerInput, OldM2ARoformerOutput
+from .config import FnsM2ARoformerConfig
+from .model_io import FnsM2ARoformerInput, FnsM2ARoformerOutput
 import hydra
 
-TRAIN_LENGTH = 192
-MAX_STEPS = 1000000
 
 # Indicator: 0
 # pitch+duration*2: 3200 (25*128)
@@ -24,12 +22,14 @@ def fill_with_neg_inf(t):
     return t.float().fill_(float("-inf")).type_as(t)
 
 
-class OldM2ATransformer(PlBaseModel):
-    def __init__(self, config: OldM2ARoformerConfig):
+class FnsM2ATransformer(PlBaseModel):
+    def __init__(self, config: FnsM2ARoformerConfig):
         super().__init__(config)
         local_decoder_config = config.local_decoder_network_config
         local_encoder_config = config.local_encoder_network_config
         global_network_config = config.global_network_config
+        tokenizer_config = config.tokenizer_config
+        self.tokenizer = hydra.utils.instantiate(tokenizer_config)
         self.local_encoder = hydra.utils.instantiate(local_encoder_config)
         self.model = hydra.utils.instantiate(global_network_config)
         self.local_decoder = hydra.utils.instantiate(local_decoder_config)
@@ -226,7 +226,7 @@ class OldM2ATransformer(PlBaseModel):
         is_not_drum = x[:, :, :, 0] != 127
         x_processed[:, :, :, 0] = 0  # program 不变
         # print(f"x:{x[:, :, :, 2].shape} pitch_shift: {pitch_shift[:,None].shape},is not drum: {is_not_drum.shape}")
-        x_processed[:, :, :, 1] = x[:, :, :, 1] + (x[:, :, :, 2]) * 128 + 2 + pitch_shift[:,None] * is_not_drum
+        x_processed[:, :, :, 1] = x[:, :, :, 1] + (x[:, :, :, 2]) * 128 + 2 + pitch_shift[:, None] * is_not_drum
         x_processed[pad_indices] = PAD_TOKEN
         x_processed[:, :, :, 0][eos_indices] = EOS_TOKEN
 
@@ -266,7 +266,7 @@ class OldM2ATransformer(PlBaseModel):
 
         return F.cross_entropy(y.view(-1, N_TOKENS), x_target.view(-1), ignore_index=PAD_TOKEN)
 
-    def training_step(self, batch: OldM2ARoformerInput, batch_idx):
+    def training_step(self, batch: FnsM2ARoformerInput, batch_idx):
         batch = self._move_to_device(batch)
         x_mel, x_acc, pitch_shift = batch.mel_data, batch.acc_data, batch.pitch_shift
         loss = self.loss(x_mel, x_acc, pitch_shift)
@@ -277,18 +277,14 @@ class OldM2ATransformer(PlBaseModel):
         self.log("training/lr", scheduler.get_last_lr()[0], on_step=True, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
         return loss
 
-    def validation_step(self, batch: OldM2ARoformerInput, batch_idx):
+    def validation_step(self, batch: FnsM2ARoformerInput, batch_idx):
         batch = self._move_to_device(batch)
         x_mel, x_acc, pitch_shift = batch.mel_data, batch.acc_data, batch.pitch_shift
         loss = self.loss(x_mel, x_acc, pitch_shift)
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
         return loss
-    
-    def token_encode(self,):...
-    
-    def token_decode(self,):...
-    
-    def _move_to_device(self, batch: OldM2ARoformerInput) -> OldM2ARoformerInput:
+
+    def _move_to_device(self, batch: FnsM2ARoformerInput) -> FnsM2ARoformerInput:
         """
         Move the batch data to the appropriate device.
         Args:
@@ -296,8 +292,7 @@ class OldM2ATransformer(PlBaseModel):
         Returns:
             M2AModelInputData: The batch data moved to the appropriate device.
         """
-        return OldM2ARoformerInput(
-            mel_data=batch.mel_data.to(self.device),
-            acc_data=batch.acc_data.to(self.device),
+        return FnsM2ARoformerInput(
+            token_ids=batch.token_ids.to(self.device),
             pitch_shift=batch.pitch_shift.to(self.device),
         )
