@@ -284,10 +284,6 @@ class OldM2ATransformer(PlBaseModel):
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
         return loss
     
-    def token_encode(self,):...
-    
-    def token_decode(self,):...
-    
     def _move_to_device(self, batch: OldM2ARoformerInput) -> OldM2ARoformerInput:
         """
         Move the batch data to the appropriate device.

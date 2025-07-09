@@ -4,7 +4,7 @@ from miditok import Event
 from symusic import Note, TimeSignature, Track, Score
 from collections.abc import Mapping, Sequence
 from miditok.classes import TokSequence
-from miditok.constants import  MIDI_INSTRUMENTS, TIME_SIGNATURE
+from miditok.constants import MIDI_INSTRUMENTS, TIME_SIGNATURE
 
 from miditok.utils import compute_ticks_per_bar
 import numpy as np
@@ -24,7 +24,7 @@ class FnsTokenizer(MusicTokenizer):
             {
                 "MELODY": 0,
                 "BRIDGE": 1,
-                "PIANO": 2,
+                "PIANO": 1,
             }
         )
 
@@ -87,6 +87,7 @@ class FnsTokenizer(MusicTokenizer):
         # program = track.program if not track.is_drum else -1
 
         # Get the program by the track's name
+        
         program = self.track_name_to_program[track.name]
 
         use_durations = program in self.config.use_note_duration_programs
@@ -152,7 +153,6 @@ class FnsTokenizer(MusicTokenizer):
         dic["Bar"] = {"Frame"}
 
         return dic
-
     def _add_time_events(self, events: list[Event], time_division: int) -> list[list[Event]]:
         r"""
         Create the time events from a list of global and track events.
@@ -214,7 +214,6 @@ class FnsTokenizer(MusicTokenizer):
                     desc=f"Frame {frame_index} (at {current_tick} ticks)",
                 )
             )
-
     def _tokens_to_score(
         self,
         tokens: TokSequence | list[TokSequence],
@@ -333,22 +332,57 @@ class FnsTokenizer(MusicTokenizer):
                 for track in tracks.values():
                     if not is_track_empty(track):
                         score.tracks.append(track)
-
+        print(score)
         return score
+
+    def _ids_to_tokens(self, ids: list[int | list[int]], as_str: bool = True) -> list[str | Event | list[str | Event]]:
+        r"""
+        Convert a sequence of ids (int) to their tokens format (str or Event).
+
+        **This method will not work with ids encoded with the tokenizer's model. You
+        will need to decode them first (
+        :py:meth:`miditok.MusicTokenizer.decode_token_ids`)**.
+
+        :param ids: sequence of ids (int) to convert.
+        :param as_str: return the tokens as string objects, otherwise Event objects
+            (default: True)
+        :return: the sequence of corresponding tokens (str or Event).
+        """
+        tokens = []
+        if len(ids) == 0:
+            return tokens
+        if isinstance(ids[0], list):  # multiple vocabularies
+            for multi_ids in ids:  # cannot use recursion here because of the vocabulary type id
+                multi_event = []
+                for i, token in enumerate(multi_ids):
+                    event_str = self[token]
+                    multi_event.append(event_str if as_str else Event(*event_str.split("_")))
+                tokens.append(multi_event)
+            tokens = tokens[0]
+            return tokens
+
+        for id_ in ids:
+            event_str = self[id_]
+            tokens.append(event_str if as_str else Event(*event_str.split("_")))
+        
+        return tokens
+
 
 
 if __name__ == "__main__":
     fns_tokenizer_config = FnsTokenizerConfig()
     tokenizer = FnsTokenizer(fns_tokenizer_config.config)
-    from pathlib import Path
     # tokenizer.one_token_stream = True
-    # tokenizer.config.one_token_stream_for_programs = True
-    # tokens = tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")
-    # print(len(tokens))
-    # import miditok 
+    tokenizer.config.one_token_stream_for_programs = True
+    tokens = tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")
+    # print(tokens.ids)
+    import miditok
+
+    _tokens = miditok.TokSequence(ids=tokens.ids, are_ids_encoded=True)
+    # import miditok
     # miditok.pytorch_data.
-    # decode = tokenizer.decode(tokens)
+    decode = tokenizer.decode(tokens.ids)
     # tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/mel").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/mel").resolve())
     # tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/acc").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/acc").resolve())
     # tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/original").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/original").resolve())
-    # decode.dump_midi("y.mid")
+    decode.dump_midi("x.mid")

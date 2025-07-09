@@ -14,3 +14,4 @@ class FnsM2ARoformerConfig(PlBaseModelConfig):
     global_network_config: CustomedRoformerConfig = Field(default_factory=lambda: CustomedRoformerConfig())
     local_decoder_network_config: CustomedRoformerConfig = Field(default_factory=lambda: CustomedRoformerConfig())
     tokenizer_config: FnsTokenizerConfig = Field(default_factory=lambda: FnsTokenizerConfig())
+    sub_seq_len:int =Field(4*3,description="4(polyphony) * 3(program,pitch,duration)*2(melody,accompany)")

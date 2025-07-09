@@ -4,7 +4,9 @@ import torch.nn.functional as F
 from typing import Optional
 from ..pl_base_model.model import PlBaseModel
 from .config import FnsM2ARoformerConfig
-from .model_io import FnsM2ARoformerInput, FnsM2ARoformerOutput
+from .model_io import FnsM2ARoformerInput
+from ....tokenizer.Fns.tokenizer import FnsTokenizer
+from symusic import Score
 import hydra
 
 
@@ -29,7 +31,7 @@ class FnsM2ATransformer(PlBaseModel):
         local_encoder_config = config.local_encoder_network_config
         global_network_config = config.global_network_config
         tokenizer_config = config.tokenizer_config
-        self.tokenizer = hydra.utils.instantiate(tokenizer_config)
+        self.tokenizer = FnsTokenizer(tokenizer_config.config)
         self.local_encoder = hydra.utils.instantiate(local_encoder_config)
         self.model = hydra.utils.instantiate(global_network_config)
         self.local_decoder = hydra.utils.instantiate(local_decoder_config)
@@ -42,7 +44,13 @@ class FnsM2ATransformer(PlBaseModel):
         self.final_decoder = nn.Linear(decoder_hidden_size, N_TOKENS)
         self.global_sos = nn.Parameter(torch.randn(encoder_hidden_size))
         self._future_mask = torch.empty(0)
-
+        
+        # tokenization params
+        self.sub_seq_len = config.sub_seq_len
+        self.frame_none_id = self.tokenizer.vocab["Frame_None"]
+        self.mel_program_id = self.tokenizer.vocab["Program_0"]
+        self.acc_program_id = self.tokenizer.vocab["Program_1"]
+        self.pad_token_id = self.tokenizer.pad_token_id
     def local_encode(self, x, token_type_ids):
         batch_size, seq_len, subseq_len = x.shape
         x = x.view(-1, subseq_len)
@@ -296,3 +304,233 @@ class FnsM2ATransformer(PlBaseModel):
             token_ids=batch.token_ids.to(self.device),
             pitch_shift=batch.pitch_shift.to(self.device),
         )
+
+    def token_encode(self, score: Score) -> torch.Tensor:
+        return self.tokenizer.encode(score)
+
+    def token_decode(self, token_ids: torch.Tensor) -> Score:
+        return self.tokenizer.decode(token_ids)
+
+    def preprocess_with_all_program(self, token_ids: torch.Tensor) -> torch.Tensor:
+        """
+        Segments token_ids into multiple frames based on 'Frame_None' tokens.
+        Each frame is then processed, and padded/truncated to a (fixed_sub_seq_len) shape.
+        If a frame segment, after removing Frame_None and Pad tokens, is empty,
+        it will still be represented by a full padding frame of fixed_sub_seq_len.
+
+        Args:
+            token_ids (torch.Tensor): Input token IDs, with shape (batch_size, total_tokens).
+
+        Returns:
+            torch.Tensor: Processed token IDs, with shape (batch_size, seq_len, fixed_sub_seq_len).
+                          'seq_len' will be the maximum number of frames across all sequences in the batch.
+        """
+        assert token_ids.ndim == 2, f"token_ids.ndim must be 2, but got the shape {token_ids.shape}"
+
+        batch_size, _ = token_ids.shape
+        device = token_ids.device
+
+        frame_none_id = self.frame_none_id
+        pad_token_id = self.pad_token_id
+        target_sub_seq_len = self.sub_seq_len
+
+        processed_batches: list[list[torch.Tensor]] = []
+        max_seq_len_in_batch = 0  # Stores the maximum number of frames in the current batch
+
+        for i in range(batch_size):
+            single_sequence = token_ids[i]
+            frames_in_sequence: list[torch.Tensor] = []
+
+            # Find all indices of 'Frame_None' tokens.
+            # 'Frame_None' indicates the start of a frame.
+            frame_start_indices = (single_sequence == frame_none_id).nonzero(as_tuple=True)[0]
+
+            if frame_start_indices.numel() == 0:
+                # If no Frame_None tokens, treat the entire non-padded sequence as one frame
+                # This frame will either contain actual tokens or be a full padding frame.
+                non_pad_tokens = single_sequence[single_sequence != pad_token_id]
+
+                if non_pad_tokens.numel() > 0:
+                    # Truncate or pad to target_sub_seq_len
+                    if non_pad_tokens.shape[0] > target_sub_seq_len:
+                        frames_in_sequence.append(non_pad_tokens[:target_sub_seq_len].to(device))
+                    else:
+                        padded_frame = F.pad(non_pad_tokens, (0, target_sub_seq_len - non_pad_tokens.shape[0]), value=pad_token_id)
+                        frames_in_sequence.append(padded_frame.to(device))
+                else:
+                    # If the sequence is empty or only contains pad tokens, add a full padding frame
+                    full_pad_frame = torch.full((target_sub_seq_len,), fill_value=pad_token_id, dtype=torch.long, device=device)
+                    frames_in_sequence.append(full_pad_frame)
+            else:
+                current_frame_indices = frame_start_indices.tolist()
+
+                for j in range(len(current_frame_indices)):
+                    start_idx = current_frame_indices[j]
+                    end_idx = current_frame_indices[j + 1] if j + 1 < len(current_frame_indices) else single_sequence.shape[0]
+
+                    current_frame_segment = single_sequence[start_idx:end_idx]
+
+                    # Remove trailing PAD_TOKENs and the frame_none_id itself from the current segment
+                    current_frame_content = current_frame_segment[(current_frame_segment != pad_token_id) & (current_frame_segment != frame_none_id)]
+
+                    if current_frame_content.numel() > 0:
+                        # Truncate or pad current_frame_content to target_sub_seq_len
+                        if current_frame_content.shape[0] > target_sub_seq_len:
+                            # Truncate if too long
+                            frames_in_sequence.append(current_frame_content[:target_sub_seq_len].to(device))
+                        else:
+                            # Pad if too short (or already correct length)
+                            padded_frame = F.pad(current_frame_content, (0, target_sub_seq_len - current_frame_content.shape[0]), value=pad_token_id)
+                            frames_in_sequence.append(padded_frame.to(device))
+                    else:
+                        # If the frame segment is empty after removing special tokens, append a full padding frame
+                        full_pad_frame = torch.full((target_sub_seq_len,), fill_value=pad_token_id, dtype=torch.long, device=device)
+                        frames_in_sequence.append(full_pad_frame)
+
+            # Update the maximum number of frames in the current batch
+            if len(frames_in_sequence) > max_seq_len_in_batch:
+                max_seq_len_in_batch = len(frames_in_sequence)
+
+            processed_batches.append(frames_in_sequence)
+
+        # Pad the sequences of frames to the final tensor shape:
+        # (batch_size, max_seq_len_in_batch, target_sub_seq_len)
+        output_tensor = torch.full((batch_size, max_seq_len_in_batch, target_sub_seq_len), fill_value=pad_token_id, dtype=torch.long, device=device)
+
+        for i, frames_for_this_seq in enumerate(processed_batches):
+            for j, frame_tensor in enumerate(frames_for_this_seq):
+                # 'frame_tensor' here is already padded or truncated to target_sub_seq_len
+                output_tensor[i, j, :] = frame_tensor
+
+        return output_tensor
+
+    def preprocess_with_program_id(self, token_ids: torch.Tensor, program_token_id: int) -> torch.Tensor:
+        """
+        Segments token_ids into multiple frames based on 'Frame_None' tokens.
+        Each frame is then processed: filtered by program_token_id, and padded/truncated
+        to a (fixed_sub_seq_len) shape.
+
+        Crucially, if a frame, after filtering, has no relevant tokens, it will
+        still be represented by a full padding frame of fixed_sub_seq_len.
+
+        Args:
+            token_ids (torch.Tensor): Input token IDs, with shape (batch_size, total_tokens).
+            program_token_id (int): The program ID to filter for.
+
+        Returns:
+            list[torch.Tensor]: A list of processed token IDs, where each tensor in the list
+                                has shape (num_frames_in_sequence, fixed_sub_seq_len).
+                                Each tensor now explicitly includes fully padded frames for
+                                segments that contained no matching program_id tokens.
+        """
+        assert token_ids.ndim == 2, f"token_ids.ndim must be 2, but got the shape {token_ids.shape}"
+
+        batch_size, _ = token_ids.shape
+        device = token_ids.device
+
+        frame_none_id = self.frame_none_id
+        pad_token_id = self.pad_token_id
+        target_sub_seq_len = self.sub_seq_len
+
+        output_sequences: list[torch.Tensor] = []
+
+        for i in range(batch_size):
+            single_sequence = token_ids[i]
+
+            frame_start_indices = (single_sequence == frame_none_id).nonzero(as_tuple=True)[0]
+
+            frames_for_current_sequence: list[torch.Tensor] = []
+
+            if frame_start_indices.numel() == 0:
+                # If no Frame_None tokens, treat the entire non-padded sequence as one logical "frame"
+                filtered_sequence_tokens = []
+                non_pad_tokens = single_sequence[single_sequence != pad_token_id]
+
+                for k in range(0, non_pad_tokens.numel(), 3):
+                    if k + 2 < non_pad_tokens.numel():  # Ensure enough tokens for a triplet
+                        current_program_id = non_pad_tokens[k].item()
+                        if current_program_id == program_token_id:
+                            # Append program, pitch, and duration
+                            filtered_sequence_tokens.append(non_pad_tokens[k])
+                            filtered_sequence_tokens.append(non_pad_tokens[k + 1])
+                            filtered_sequence_tokens.append(non_pad_tokens[k + 2])
+
+                if len(filtered_sequence_tokens) > 0:
+                    filtered_tensor = torch.stack(filtered_sequence_tokens).to(device)
+                    # Truncate or pad to target_sub_seq_len
+                    if filtered_tensor.shape[0] > target_sub_seq_len:
+                        frames_for_current_sequence.append(filtered_tensor[:target_sub_seq_len])
+                    else:
+                        padded_frame = F.pad(filtered_tensor, (0, target_sub_seq_len - filtered_tensor.shape[0]), value=pad_token_id)
+                        frames_for_current_sequence.append(padded_frame)
+                else:
+                    # If no tokens after filtering, append a full padding frame
+                    full_pad_frame = torch.full((target_sub_seq_len,), fill_value=pad_token_id, dtype=torch.long, device=device)
+                    frames_for_current_sequence.append(full_pad_frame)
+
+            else:
+                current_frame_indices = frame_start_indices.tolist()
+
+                for j in range(len(current_frame_indices)):
+                    start_idx = current_frame_indices[j]
+                    end_idx = current_frame_indices[j + 1] if j + 1 < len(current_frame_indices) else single_sequence.shape[0]
+
+                    current_frame_segment = single_sequence[start_idx:end_idx]
+
+                    # Remove trailing PAD_TOKENs and frame_none_id for filtering purposes
+                    current_frame_non_padded = current_frame_segment[
+                        (current_frame_segment != pad_token_id) & (current_frame_segment != frame_none_id)
+                    ]
+
+                    filtered_frame_tokens = []
+                    for k in range(0, current_frame_non_padded.numel(), 3):
+                        if k + 2 < current_frame_non_padded.numel():  # Ensure enough tokens for a triplet
+                            current_program_id = current_frame_non_padded[k].item()
+                            if current_program_id == program_token_id:
+                                # Append program, pitch, and duration
+                                filtered_frame_tokens.append(current_frame_non_padded[k])
+                                filtered_frame_tokens.append(current_frame_non_padded[k + 1])
+                                filtered_frame_tokens.append(current_frame_non_padded[k + 2])
+
+                    if len(filtered_frame_tokens) > 0:
+                        filtered_tensor_frame = torch.stack(filtered_frame_tokens).to(device)
+                        # Truncate or pad filtered_tensor_frame to target_sub_seq_len
+                        if filtered_tensor_frame.shape[0] > target_sub_seq_len:
+                            frames_for_current_sequence.append(filtered_tensor_frame[:target_sub_seq_len])
+                        else:
+                            padded_frame = F.pad(filtered_tensor_frame, (0, target_sub_seq_len - filtered_tensor_frame.shape[0]), value=pad_token_id)
+                            frames_for_current_sequence.append(padded_frame)
+                    else:
+                        # If no tokens after filtering for this frame segment, append a full padding frame
+                        full_pad_frame = torch.full((target_sub_seq_len,), fill_value=pad_token_id, dtype=torch.long, device=device)
+                        frames_for_current_sequence.append(full_pad_frame)
+
+            # Stack all collected frames (including full padding ones) for the current sequence
+            if frames_for_current_sequence:
+                output_sequences.append(torch.stack(frames_for_current_sequence))
+            else:
+                # This case handles an input sequence that was entirely empty or only contained pad_tokens
+                # It results in no logical frames, even padding ones.
+                # If you want even an empty input to result in one full_pad_frame,
+                # you'd need to add `frames_for_current_sequence.append(full_pad_frame)` here.
+                # For now, if no frames were generated at all, we append an empty tensor.
+                output_sequences.append(torch.empty(0, target_sub_seq_len, dtype=torch.long, device=device))
+
+        return torch.stack(output_sequences,dim=0)
+    
+    def postprocess(self,):...
+
+if __name__ == "__main__":
+    from src.tokenizer.fns_tokenizer import FnsTokenizerConfig
+    from src.model.specific_model.fns_m2a_roformer.config import FnsM2ARoformerConfig
+    
+    model_config = FnsM2ARoformerConfig()
+    model = FnsM2ATransformer(model_config)
+    
+    x=model.tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")[499:600]
+    print(model.preprocess_with_all_program(torch.tensor(x.ids).unsqueeze(0)).shape)
+    print(model.preprocess_with_program_id(torch.tensor(x.ids).unsqueeze(0), program_token_id=model.mel_program_id).shape)
+    print(model.preprocess_with_program_id(torch.tensor(x.ids).unsqueeze(0), program_token_id=model.acc_program_id).shape)
+    # print(x.ids)
+    # score =model.tokenizer.decode(x.ids)
+    # score.dump_midi("z.mid")

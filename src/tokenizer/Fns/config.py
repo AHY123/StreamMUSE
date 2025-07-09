@@ -15,6 +15,7 @@ class FnsTokenizerConfig:
     @model_validator(mode="after")
     def validate_config(self)->"FnsTokenizerConfig":
         self.config.one_token_stream_for_programs=True
+        # self.config.use_programs = True
         return self
     
 
