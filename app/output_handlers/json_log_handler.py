@@ -4,6 +4,7 @@ Handles saving detailed JSON logs of the session.
 
 import json
 import os
+import copy
 
 class JsonLogHandler:
     """
@@ -22,7 +23,7 @@ class JsonLogHandler:
             response_data (dict): The full JSON response from the server.
         """
         self.inference_log.append({
-            "request": request_data.copy(),
+            "request": copy.deepcopy(request_data),
             "response": response_data
         })
 

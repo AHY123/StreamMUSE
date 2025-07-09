@@ -114,20 +114,35 @@ def tick_loop(
                     currently_pressed_down.append(quantized_note)
                 notes_for_next_request.append(quantized_note.copy())
                 user_notes_this_tick.append(quantized_note.copy())
-                midi_file_handler.add_user_note(quantized_note.copy())
+                #midi_file_handler.add_user_note(quantized_note)
 
                 # 2. Play the note immediately for audio feedback.
-                audio_output_handler.on(event['pitch'], event['velocity'])
+                audio_output_handler.on(event['pitch'], event['velocity'], channel=1)
 
             elif event['type'] == 'note_off':
-                # Pass the note_off event directly to the audio handler
-                
+
                 #find the pitch in currently pressed down and delete it
                 for n in currently_pressed_down[:]:
                     if n["pitch"] == event["pitch"]:
+
+                        #calculate the duration
+                        final_duration = tick_count - n["tick"]
+                        if final_duration == 0:
+                            final_duration = 1 # Ensure note has at least 1 tick duration
+
+                        #makee a new one with the new duration                
+                        completed_note_for_midi = {
+                            "pitch": n["pitch"],
+                            "tick": n["tick"],
+                            "duration": final_duration
+                        }
+
+                        #Add the *completed* note to the MIDI file handler
+                        midi_file_handler.add_user_note(completed_note_for_midi)
+
                         currently_pressed_down.remove(n)
                         break
-
+                # Pass the note_off event directly to the audio handler
                 audio_output_handler.off(event['pitch'])
         
         # --- 2. Handle Inference Responses ---

@@ -11,6 +11,7 @@ METRONOME_PITCH_OTHER = 77
 METRONOME_VELOCITY_FIRST = 100
 METRONOME_VELOCITY_OTHER = 70
 PIANO_CHANNEL = 0
+OREGON_CHANNEL = 1
 
 class AudioOutputHandler:
     def __init__(self, port_name: str = None, accompaniment_velocity: int = 90):
@@ -36,6 +37,7 @@ class AudioOutputHandler:
             print(f"Successfully opened MIDI output port: '{self.port.name}'")
             # Set instrument to Acoustic Grand Piano on channel 0
             self.port.send(mido.Message('program_change', channel=PIANO_CHANNEL, program=0))
+            self.port.send(mido.Message('program_change', channel=OREGON_CHANNEL, program=19))
             print(f"Set instrument on channel {PIANO_CHANNEL} to Acoustic Grand Piano.")
         except (OSError, IOError) as e:
             print(f"Warning: Could not open MIDI output port '{port_name}': {e}")
@@ -48,7 +50,7 @@ class AudioOutputHandler:
         if self.port:
             msg = mido.Message('note_on', note=pitch, velocity=vel, channel=channel)
             self.port.send(msg)
-
+           
     def off(self, pitch, channel=PIANO_CHANNEL):
         """
         Stop a note.
