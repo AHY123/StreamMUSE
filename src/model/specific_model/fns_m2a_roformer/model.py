@@ -31,26 +31,32 @@ class FnsM2ATransformer(PlBaseModel):
         local_encoder_config = config.local_encoder_network_config
         global_network_config = config.global_network_config
         tokenizer_config = config.tokenizer_config
-        self.tokenizer = FnsTokenizer(tokenizer_config.config)
-        self.local_encoder = hydra.utils.instantiate(local_encoder_config)
-        self.model = hydra.utils.instantiate(global_network_config)
-        self.local_decoder = hydra.utils.instantiate(local_decoder_config)
-        encoder_hidden_size = config.local_encoder_network_config.config.hidden_size
-        decoder_hidden_size = config.local_decoder_network_config.config.hidden_size
-        self.local_embedding = nn.Embedding(N_TOKENS, encoder_hidden_size)
-        self.token_type_embeddings = nn.Embedding(2, encoder_hidden_size)
-        with torch.no_grad():
-            self.token_type_embeddings.weight.mul_(2.0)
-        self.final_decoder = nn.Linear(decoder_hidden_size, N_TOKENS)
-        self.global_sos = nn.Parameter(torch.randn(encoder_hidden_size))
-        self._future_mask = torch.empty(0)
-        
+
         # tokenization params
+        self.tokenizer = FnsTokenizer(tokenizer_config.config)
         self.sub_seq_len = config.sub_seq_len
         self.frame_none_id = self.tokenizer.vocab["Frame_None"]
         self.mel_program_id = self.tokenizer.vocab["Program_0"]
         self.acc_program_id = self.tokenizer.vocab["Program_1"]
         self.pad_token_id = self.tokenizer.pad_token_id
+        self.TOKEN_NUM_USED = self.tokenizer.pitch_num * self.tokenizer.duration_num
+
+        # network params
+        self.local_encoder = hydra.utils.instantiate(local_encoder_config)
+        self.model = hydra.utils.instantiate(global_network_config)
+        self.local_decoder = hydra.utils.instantiate(local_decoder_config)
+        encoder_hidden_size = config.local_encoder_network_config.config.hidden_size
+        decoder_hidden_size = config.local_decoder_network_config.config.hidden_size
+
+        # embbedig params , token_used -> hidden_size
+        self.local_embedding = nn.Embedding(self.TOKEN_NUM_USED, encoder_hidden_size)
+        self.token_type_embeddings = nn.Embedding(2, encoder_hidden_size)
+        with torch.no_grad():
+            self.token_type_embeddings.weight.mul_(2.0)
+        self.final_decoder = nn.Linear(decoder_hidden_size, self.TOKEN_NUM_USED)
+        self.global_sos = nn.Parameter(torch.randn(encoder_hidden_size))
+        self._future_mask = torch.empty(0)
+
     def local_encode(self, x, token_type_ids):
         batch_size, seq_len, subseq_len = x.shape
         x = x.view(-1, subseq_len)
@@ -516,21 +522,27 @@ class FnsM2ATransformer(PlBaseModel):
                 # For now, if no frames were generated at all, we append an empty tensor.
                 output_sequences.append(torch.empty(0, target_sub_seq_len, dtype=torch.long, device=device))
 
-        return torch.stack(output_sequences,dim=0)
-    
-    def postprocess(self,):...
+        return torch.stack(output_sequences, dim=0)
+
+    def postprocess(
+        self,
+    ): ...
+
 
 if __name__ == "__main__":
-    from src.tokenizer.fns_tokenizer import FnsTokenizerConfig
     from src.model.specific_model.fns_m2a_roformer.config import FnsM2ARoformerConfig
-    
+
     model_config = FnsM2ARoformerConfig()
     model = FnsM2ATransformer(model_config)
-    
+    # print(model.tokenizer.vocab)
+    # print(model.tokenizer.pitch_num)
+    # print(model.tokenizer.duration_num)
     x=model.tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")[499:600]
-    print(model.preprocess_with_all_program(torch.tensor(x.ids).unsqueeze(0)).shape)
-    print(model.preprocess_with_program_id(torch.tensor(x.ids).unsqueeze(0), program_token_id=model.mel_program_id).shape)
-    print(model.preprocess_with_program_id(torch.tensor(x.ids).unsqueeze(0), program_token_id=model.acc_program_id).shape)
+    x= torch.tensor(x.ids)
+    x= torch.stack([x,x],dim=0)
+    print(model.preprocess_with_all_program(x).shape)
+    print(model.preprocess_with_program_id(x, program_token_id=model.mel_program_id).shape)
+    print(model.preprocess_with_program_id(x, program_token_id=model.acc_program_id).shape)
     # print(x.ids)
     # score =model.tokenizer.decode(x.ids)
     # score.dump_midi("z.mid")

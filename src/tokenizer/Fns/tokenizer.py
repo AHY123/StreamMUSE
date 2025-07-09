@@ -18,6 +18,8 @@ class FnsTokenizer(MusicTokenizer):
     """
 
     def __init__(self, tokenizer_config: TokenizerConfig):
+        self.pitch_num = 0
+        self.duration_num =0
         super().__init__(tokenizer_config=tokenizer_config)
         # You can add any additional initialization here if needed
         self.track_name_to_program = dict(
@@ -27,6 +29,7 @@ class FnsTokenizer(MusicTokenizer):
                 "PIANO": 1,
             }
         )
+
 
     def _create_base_vocabulary(self) -> list[str]:
         r"""
@@ -39,9 +42,12 @@ class FnsTokenizer(MusicTokenizer):
         # Program
         vocab += [f"Program_{program}" for program in self.config.programs]
         # Pitch
-        vocab += [f"Pitch_{i}" for i in range(*self.config.pitch_range)]
+        pitch = [f"Pitch_{i}" for i in range(*self.config.pitch_range)]
+        self.pitch_num = len(pitch)
+        vocab += pitch
 
         # Duration
+        self.duration_num = len(self.durations)
         vocab += [f"Duration_{'.'.join(map(str, duration))}" for duration in self.durations]
 
         return vocab
