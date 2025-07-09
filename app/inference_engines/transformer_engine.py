@@ -323,15 +323,17 @@ class TransformerInferenceEngine:
         # - Filter for unique notes to prevent duplicates. (Temporarily Disabled)
         # unique_notes_tracker = set()
         final_generated_notes = []
+        deduped_notes = {}
+        # print(f"all_notes_absolute:{all_notes_absolute}")
         for note in all_notes_absolute:
             if note['tick'] >= generation_start_tick and note['program'] == 1:
-                # The uniqueness filter below is temporarily disabled.
-                # A note is unique based on its absolute tick, pitch, and duration.
-                # note_signature = (note['tick'], note['pitch'], note['duration'])
-                # if note_signature not in unique_notes_tracker:
-                #     unique_notes_tracker.add(note_signature)
-                final_generated_notes.append(note)
-
+                key = (note['tick'], note['pitch'])
+                # 只保留 duration 最大的 note
+                if key not in deduped_notes or note['duration'] > deduped_notes[key]['duration']:
+                    deduped_notes[key] = note
+        
+        final_generated_notes = list(deduped_notes.values())
+        # print(f"final_generated_notes:{final_generated_notes}")
         # Step 8: Update the history with the newly generated accompaniment notes.
         # This ensures they become part of the context for the next turn.
         # 先收集新生成的所有 tick

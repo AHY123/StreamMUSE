@@ -1,5 +1,5 @@
 import pretty_midi
-from .inference_engines.transformer_engine import TransformerInferenceEngine
+from inference_engines.transformer_engine import TransformerInferenceEngine
 import os
 import json
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     # 3. 获取所有 tick
     all_ticks = sorted(set(n['tick'] for n in melody_notes))
-    max_steps = 100  # 最多生成多少步（tick）
+    max_steps = 500  # 最多生成多少个 iteration
 
     # 4. 逐tick送入 melody，收集伴奏
     melody_history = []
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         melody_history.extend(current_notes)
 
         # 关键：传入完整的 melody_history
-        acc_notes, *_ = inference_engine.generate_accompaniment(melody_history, generation_start_tick=tick + 1)
+        acc_notes, *_ = inference_engine.generate_accompaniment(melody_history, generation_start_tick=tick)
         acc_history.extend(acc_notes)
 
         print(f"Step {i}, tick={tick}, melody={current_notes}, generated acc={acc_notes}")
@@ -96,5 +96,5 @@ if __name__ == "__main__":
     acc_instr = note_list_to_pretty_midi(acc_history, resolution, program=1, name="accompaniment")
     midi_out.instruments.append(melody_instr)
     midi_out.instruments.append(acc_instr)
-    midi_out.write("fake_client_output.mid")
-    print("已保存为 fake_client_output.mid")
+    midi_out.write("fake_client_output2.mid")
+    print("已保存为 fake_client_output2.mid")
