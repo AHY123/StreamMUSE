@@ -426,11 +426,11 @@ class FnsTokenizer(MusicTokenizer):
 
 if __name__ == "__main__":
     tokenizer = FnsTokenizer()
-    tokenizer.one_token_stream = True
-    tokenizer.config.one_token_stream_for_programs = True
-    tokens = tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")
-    decode = tokenizer.decode(tokens)
+    # tokenizer.one_token_stream = True
+    # tokenizer.config.one_token_stream_for_programs = True
+    # tokens = tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")
+    # decode = tokenizer.decode(tokens)
     tokenizer.tokenize_dataset()
     from miditok import REMI
     # REMI().tokenize_dataset()
-    decode.dump_midi("y.mid")
+    # decode.dump_midi("y.mid")

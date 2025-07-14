@@ -383,12 +383,13 @@ if __name__ == "__main__":
     tokens = tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")
     # print(tokens.ids)
     import miditok
+    from pathlib import Path
 
     _tokens = miditok.TokSequence(ids=tokens.ids, are_ids_encoded=True)
     # import miditok
     # miditok.pytorch_data.
     decode = tokenizer.decode(tokens.ids)
-    # tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/mel").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/mel").resolve())
-    # tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/acc").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/acc").resolve())
-    # tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/original").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/original").resolve())
-    decode.dump_midi("x.mid")
+    tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/mel").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/mel").resolve())
+    tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/acc").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/acc").resolve())
+    tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/original").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/original").resolve())
+    # decode.dump_midi("x.mid")
