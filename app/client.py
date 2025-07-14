@@ -15,7 +15,7 @@ from output_handlers.cli_output import CLIOutputHandler
 from output_handlers.audio_output import AudioOutputHandler
 from output_handlers.midi_file_handler import MidiFileHandler
 from output_handlers.json_log_handler import JsonLogHandler
-from input_handlers.input_handler import read_midi_input, read_keyboard_input
+from input_handlers.input_handler import read_midi_input, read_keyboard_input, read_midi_file_input
 
 # --- Constants ---
 DEFAULT_NOTE_DURATION_TICKS = 0 #changed from 2
@@ -308,6 +308,8 @@ def main():
     parser.add_argument("--midi_output_name", type=str, default=None, help="Specify the MIDI output port name.")
     parser.add_argument("--midi_input_name", type=str, default=None, help="Specify the MIDI input port name.")
     parser.add_argument("--use-keyboard-input", action="store_true", help="Use the computer keyboard as MIDI input.")
+    parser.add_argument("--use-midi-file-input", action="store_true", help="Use a MIDI file as MIDI input.")
+    parser.add_argument("--midi-file-dir", type=str, default=None, help="Specify the MIDI input directory.")
     parser.add_argument("--accompaniment-velocity", type=int, default=50, help="MIDI velocity for generated accompaniment notes (0-127).")
     args = parser.parse_args()
 
@@ -330,6 +332,8 @@ def main():
 
     if args.use_keyboard_input:
         input_thread = threading.Thread(target=read_keyboard_input, args=(event_queue,), daemon=True)
+    elif args.use_midi_file_input:
+        input_thread = threading.Thread(target=read_midi_file_input, args=(event_queue,args.midi_file_dir,), daemon=True)
     else:
         # A check to see if MIDI input is available.
         try:
