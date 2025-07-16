@@ -1,0 +1,3 @@
+2025-07-08 05:42:00,378 - __main__ - INFO - [RANK 0] All subsequent logs from rank 0 will also be saved to: ./logs/old_m2a_aria/1.0.18/experiment_log.log
+2025-07-08 05:42:00,379 - __main__ - INFO - Configuration copied to ./logs/old_m2a_aria/1.0.18/old_m2a_transformer_aria_skyline_v0_0.5B-1.0.yaml
+2025-07-08 05:42:00,379 - __main__ - INFO - [N/A] Experiment setup complete. Starting training...
