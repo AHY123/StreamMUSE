@@ -5,7 +5,7 @@ from typing import Optional
 from ..pl_base_model.model import PlBaseModel
 from .config import FnsM2ARoformerConfig
 from .model_io import FnsM2ARoformerInput
-from ....tokenizer.Fns.tokenizer import FnsTokenizer
+from ...tokenizer.Fns.tokenizer import FnsTokenizer
 from symusic import Score
 import hydra
 

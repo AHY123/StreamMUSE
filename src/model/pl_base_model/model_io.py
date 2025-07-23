@@ -1,4 +1,4 @@
-from ....utils.base_config import dataclass, Field
+from ...utils.base_config import dataclass, Field
 from pydantic import ConfigDict
 from typing import Optional
 import torch

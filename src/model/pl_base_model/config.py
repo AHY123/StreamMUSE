@@ -1,7 +1,7 @@
-from ....utils.base_config import BaseConfig, Field, dataclass
+from ...utils.base_config import BaseConfig, Field, dataclass
 from typing import Optional,Literal,Dict,Any
-from ....optimizer.base import OptimizerConfig
-from ....lr_scheduler.base import LRSchedulerConfig
+from ...optimizer.base import OptimizerConfig
+from ...lr_scheduler.base import LRSchedulerConfig
 
 
 @dataclass

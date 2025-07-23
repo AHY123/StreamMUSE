@@ -1,5 +1,5 @@
 from ..pl_base_model.model_io import PlBaseModelInput,PlBaseModelOutput
-from ....utils.base_config import dataclass, Field
+from ...utils.base_config import dataclass, Field
 from typing import Optional,Union
 import torch
 

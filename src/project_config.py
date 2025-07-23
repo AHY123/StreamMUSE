@@ -2,7 +2,7 @@ from typing import Any, Optional
 from .utils.base_config import BaseConfig, Field, dataclass, ConfigDict
 from pydantic import model_validator
 from .logger.base import UnionLoggerConfig
-from .model.specific_model import UnionModelConfig
+from .model import UnionModelConfig
 from .datamodule import UnionDataModuleConfig 
 from typing import Union, Literal
 import yaml

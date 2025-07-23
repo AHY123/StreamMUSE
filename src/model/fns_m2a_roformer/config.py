@@ -1,6 +1,6 @@
 from ..pl_base_model.config import PlBaseModelConfig, dataclass
 from ...network import CustomedRoformerConfig
-from ....tokenizer.Fns.config import FnsTokenizerConfig
+from ...tokenizer.Fns.config import FnsTokenizerConfig
 from typing import Optional, Literal
 from pydantic import Field
 

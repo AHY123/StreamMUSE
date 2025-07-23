@@ -6,6 +6,7 @@ from ..pl_base_model.model import PlBaseModel
 from .config import OldM2ARoformerConfig
 from .model_io import OldM2ARoformerInput, OldM2ARoformerOutput
 import hydra
+from ...network.customed_roformer_network import CustomedRoformerNetwork
 
 TRAIN_LENGTH = 192
 MAX_STEPS = 1000000
@@ -30,11 +31,15 @@ class OldM2ATransformer(PlBaseModel):
         local_decoder_config = config.local_decoder_network_config
         local_encoder_config = config.local_encoder_network_config
         global_network_config = config.global_network_config
-        self.local_encoder = hydra.utils.instantiate(local_encoder_config)
-        self.model = hydra.utils.instantiate(global_network_config)
-        self.local_decoder = hydra.utils.instantiate(local_decoder_config)
+        self.local_encoder:CustomedRoformerNetwork = hydra.utils.instantiate(local_encoder_config)
+        self.model:CustomedRoformerNetwork = hydra.utils.instantiate(global_network_config)
+        self.local_decoder:CustomedRoformerNetwork = hydra.utils.instantiate(local_decoder_config)
         encoder_hidden_size = config.local_encoder_network_config.config.hidden_size
         decoder_hidden_size = config.local_decoder_network_config.config.hidden_size
+        main_model_hidden_size = config.global_network_config.config.hidden_size
+        self.encoder_hidden_size = encoder_hidden_size
+        self.decoder_hidden_size = decoder_hidden_size
+        self.main_model_hidden_size = main_model_hidden_size
         self.local_embedding = nn.Embedding(N_TOKENS, encoder_hidden_size)
         self.token_type_embeddings = nn.Embedding(2, encoder_hidden_size)
         with torch.no_grad():
@@ -152,7 +157,7 @@ class OldM2ATransformer(PlBaseModel):
         # Build program IDs = 0 for all melody tokens
         # token_type_ids = torch.zeros_like(x_mel, dtype=torch.long)  # [B, S, L]
         h_mel, _ = self.local_encode(x_mel, torch.zeros((B, S, L + 1), device=device, dtype=x_mel.dtype))
-        h_mel = h_mel.view(B, S, self.hidden_size)  # [B, S, H]
+        h_mel = h_mel.view(B, S, self.main_model_hidden_size)  # [B, S, H]
 
         # Prepare SOS for global
         sos = self.global_sos.view(1, 1, -1).repeat(B, 1, 1)  # [B, 1, H]
