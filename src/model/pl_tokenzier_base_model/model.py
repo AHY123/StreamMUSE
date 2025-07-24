@@ -537,7 +537,7 @@ if __name__ == "__main__":
     # print(model.tokenizer.vocab)
     # print(model.tokenizer.pitch_num)
     # print(model.tokenizer.duration_num)
-    x=model.tokenizer.encode("/home/ubuntu/ugrip/original_dataset/POP909-Dataset/POP909/001/001.mid")[499:600]
+    x=model.tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")[499:600]
     x= torch.tensor(x.ids)
     x= torch.stack([x,x],dim=0)
     print(model.preprocess_with_all_program(x).shape)

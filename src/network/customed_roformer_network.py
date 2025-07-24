@@ -1546,8 +1546,8 @@ class CustomedRoformerNetwork(RoFormerEncoder): ...
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class CustomedRoformerConfig:
-    _target_: Literal["src.model.network.customed_roformer_network.CustomedRoformerNetwork"] = (
-        "src.model.network.customed_roformer_network.CustomedRoformerNetwork"
+    _target_: Literal["src.network.customed_roformer_network.CustomedRoformerNetwork"] = (
+        "src.network.customed_roformer_network.CustomedRoformerNetwork"
     )
     config: Optional[RoFormerConfig] = Field(RoFormerConfig())
 

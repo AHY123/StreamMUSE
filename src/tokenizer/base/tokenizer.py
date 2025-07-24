@@ -1,44 +1,35 @@
 from miditok import MusicTokenizer, TokenizerConfig
+
 from miditok import Event
 from symusic import Note, TimeSignature, Track, Score
-
-# from symusic.types import Note,TimeSignature,Track,Score
-from pathlib import Path
-
 from collections.abc import Mapping, Sequence
-from miditok.classes import TokSequence, TokenizerConfig
-from miditok.constants import SPECIAL_TOKENS, MIDI_INSTRUMENTS, TIME_SIGNATURE
+from miditok.classes import TokSequence
+from miditok.constants import MIDI_INSTRUMENTS, TIME_SIGNATURE
 
 from miditok.utils import compute_ticks_per_bar
 import numpy as np
+from .config import BaseTokenizerConfig
 
-XINYUE_SPECIAL_TOKENS = SPECIAL_TOKENS.copy()
 
-
-class FnsTokenizerConfig(TokenizerConfig):
+class BaseTokenizer(MusicTokenizer):
     """
-    XinyueTokenizerConfig is a configuration class for the XinyueTokenizer.
-    It inherits from miditok.TokenizerConfig and can be used to customize the tokenizer's behavior.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Use the custom special tokens including "FRAME"
-        self.special_tokens = XINYUE_SPECIAL_TOKENS
-        # Add frame-specific config. Here, we set a frame to be 120 ticks.
-        # If your MIDI has 480 ticks per beat (TPB), this corresponds to a 16th note.
-        self.additional_params["frame_duration_ticks"] = 120
-
-
-class FnsTokenizer(MusicTokenizer):
-    """
-    XinyueTokenizer is a custom tokenizer for processing MIDI files.
+    BaseTokenizer is a custom tokenizer for processing MIDI files.
     It inherits from miditok.MusicTokenizer and can be used to convert MIDI files to token sequences and vice versa.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, tokenizer_config: TokenizerConfig):
+        self.pitch_num = 0
+        self.duration_num =0
+        super().__init__(tokenizer_config=tokenizer_config)
         # You can add any additional initialization here if needed
+        self.track_name_to_program = dict(
+            {
+                "MELODY": 0,
+                "BRIDGE": 1,
+                "PIANO": 1,
+            }
+        )
+
 
     def _create_base_vocabulary(self) -> list[str]:
         r"""
@@ -50,11 +41,13 @@ class FnsTokenizer(MusicTokenizer):
 
         # Program
         vocab += [f"Program_{program}" for program in self.config.programs]
-
         # Pitch
-        vocab += [f"Pitch_{i}" for i in range(*self.config.pitch_range)]
+        pitch = [f"Pitch_{i}" for i in range(*self.config.pitch_range)]
+        self.pitch_num = len(pitch)
+        vocab += pitch
 
         # Duration
+        self.duration_num = len(self.durations)
         vocab += [f"Duration_{'.'.join(map(str, duration))}" for duration in self.durations]
 
         return vocab
@@ -97,7 +90,12 @@ class FnsTokenizer(MusicTokenizer):
             learn to generate tokens accordingly to the attribute controls.
         :return: sequence of corresponding ``Event``s.
         """
-        program = track.program if not track.is_drum else -1
+        # program = track.program if not track.is_drum else -1
+
+        # Get the program by the track's name
+        
+        program = self.track_name_to_program[track.name]
+
         use_durations = program in self.config.use_note_duration_programs
         events = []
         # max_time_interval is adjusted depending on the time signature denom / tpb
@@ -150,16 +148,6 @@ class FnsTokenizer(MusicTokenizer):
         """
         dic: dict[str, set[str]] = {}
 
-        # # Position -> (Program-> Pitch -> Duration, Position )
-        # dic["Position"] = {"Program", "Postion"}
-        # dic["Program"] = {"Pitch"}
-        # dic["Pitch"] = {"Duration"}
-
-        # # Duration -> (Program, Bar, Position)
-        # dic["Duration"] = {"Program", "Bar", "Position"}
-
-        # dic["Bar"] = {"Position"}
-
         # Frame -> (Program-> Pitch -> Duration, Frame )
         dic["Frame"] = {"Program", "Postion"}
         dic["Program"] = {"Pitch"}
@@ -171,7 +159,6 @@ class FnsTokenizer(MusicTokenizer):
         dic["Bar"] = {"Frame"}
 
         return dic
-
     def _add_time_events(self, events: list[Event], time_division: int) -> list[list[Event]]:
         r"""
         Create the time events from a list of global and track events.
@@ -233,33 +220,6 @@ class FnsTokenizer(MusicTokenizer):
                     desc=f"Frame {frame_index} (at {current_tick} ticks)",
                 )
             )
-
-    def decode(
-        self,
-        tokens: TokSequence | list[TokSequence] | list[int | list[int]] | np.ndarray,
-        programs: list[tuple[int, bool]] | None = None,
-        output_path: str | Path | None = None,
-    ) -> Score:
-        r"""
-        Detokenize one or several sequences of tokens into a ``symusic.Score``.
-
-        You can give the tokens sequences either as :class:`miditok.TokSequence`
-        objects, lists of integers, numpy arrays or PyTorch/Jax/Tensorflow tensors.
-        The Score's time division will be the same as the tokenizer's:
-        ``tokenizer.time_division``.
-
-        :param tokens: tokens to convert. Can be either a list of
-            :class:`miditok.TokSequence`, a Tensor (PyTorch and Tensorflow are
-            supported), a numpy array or a Python list of ints. The first dimension
-            represents tracks, unless the tokenizer handle tracks altogether as a
-            single token sequence (``tokenizer.one_token_stream == True``).
-        :param programs: programs of the tracks. If none is given, will default to
-            piano, program 0. (default: ``None``)
-        :param output_path: path to save the file. (default: ``None``)
-        :return: the ``symusic.Score`` object.
-        """
-        return super().decode(tokens, programs, output_path)
-
     def _tokens_to_score(
         self,
         tokens: TokSequence | list[TokSequence],
@@ -364,53 +324,11 @@ class FnsTokenizer(MusicTokenizer):
                         velocity=50,
                     )
                     # tracks[program_val].append(new_note)
-
                     if program_val in tracks.keys():
                         tracks[program_val].notes.append(new_note)
                     else:
                         tracks[program_val] = Track(program=program_val)
                         tracks[program_val].notes.append(new_note)
-
-                # elif tok_type in {
-                # "Program",
-                # }:
-                # pitch = int(tok_val)
-                # ins_type = tok_val
-
-                # try:
-                #     if self.config.use_velocities:
-                #         vel_type, vel = seq[ti + 1].split("_")
-                #     else:
-                #         vel_type, vel = "Velocity", DEFAULT_VELOCITY
-                #     if current_track_use_duration:
-                #         dur_type, dur = seq[ti + dur_offset].split("_")
-                #     else:
-                #         dur_type = "Duration"
-                #         dur = int(self.config.default_note_duration * ticks_per_beat)
-                #     if vel_type == "Velocity" and dur_type == "Duration":
-                #         if isinstance(dur, str):
-                #             dur = self._tpb_tokens_to_ticks[ticks_per_beat][dur]
-                #         new_note = Note(
-                #             current_tick,
-                #             dur,
-                #             pitch,
-                #             int(vel),
-                #         )
-                #         if self.config.one_token_stream_for_programs:
-                #             check_inst(current_program)
-                #             tracks[current_program].notes.append(new_note)
-                #         else:
-                #             current_track.notes.append(new_note)
-                #         previous_note_end = max(previous_note_end, current_tick + dur)
-                # except IndexError:
-                # A well constituted sequence should not raise an exception
-                # However with generated sequences this can happen, or if the
-                # sequence isn't finished
-                # pass
-
-            # Add current_inst to score and handle notes still active
-            # if not self.config.one_token_stream_for_programs and not is_track_empty(current_track):
-            # score.tracks.append(current_track)
 
             if not self.config.one_token_stream_for_programs:
                 for track in tracks.values():
@@ -420,17 +338,58 @@ class FnsTokenizer(MusicTokenizer):
                 for track in tracks.values():
                     if not is_track_empty(track):
                         score.tracks.append(track)
-
+        print(score)
         return score
+
+    def _ids_to_tokens(self, ids: list[int | list[int]], as_str: bool = True) -> list[str | Event | list[str | Event]]:
+        r"""
+        Convert a sequence of ids (int) to their tokens format (str or Event).
+
+        **This method will not work with ids encoded with the tokenizer's model. You
+        will need to decode them first (
+        :py:meth:`miditok.MusicTokenizer.decode_token_ids`)**.
+
+        :param ids: sequence of ids (int) to convert.
+        :param as_str: return the tokens as string objects, otherwise Event objects
+            (default: True)
+        :return: the sequence of corresponding tokens (str or Event).
+        """
+        tokens = []
+        if len(ids) == 0:
+            return tokens
+        if isinstance(ids[0], list):  # multiple vocabularies
+            for multi_ids in ids:  # cannot use recursion here because of the vocabulary type id
+                multi_event = []
+                for i, token in enumerate(multi_ids):
+                    event_str = self[token]
+                    multi_event.append(event_str if as_str else Event(*event_str.split("_")))
+                tokens.append(multi_event)
+            tokens = tokens[0]
+            return tokens
+
+        for id_ in ids:
+            event_str = self[id_]
+            tokens.append(event_str if as_str else Event(*event_str.split("_")))
+        
+        return tokens
+
 
 
 if __name__ == "__main__":
-    tokenizer = FnsTokenizer()
+    fns_tokenizer_config = BaseTokenizerConfig()
+    tokenizer = BaseTokenizer(fns_tokenizer_config.config)
     # tokenizer.one_token_stream = True
-    # tokenizer.config.one_token_stream_for_programs = True
-    # tokens = tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")
-    # decode = tokenizer.decode(tokens)
-    tokenizer.tokenize_dataset()
-    from miditok import REMI
-    # REMI().tokenize_dataset()
-    # decode.dump_midi("y.mid")
+    tokenizer.config.one_token_stream_for_programs = True
+    tokens = tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")
+    # print(tokens.ids)
+    import miditok
+    from pathlib import Path
+
+    _tokens = miditok.TokSequence(ids=tokens.ids, are_ids_encoded=True)
+    # import miditok
+    # miditok.pytorch_data.
+    decode = tokenizer.decode(tokens.ids)
+    tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/mel").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/mel").resolve())
+    tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/acc").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/acc").resolve())
+    tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/original").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/original").resolve())
+    # decode.dump_midi("x.mid")

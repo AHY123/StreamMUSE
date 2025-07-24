@@ -1,14 +1,14 @@
-from ..pl_base_model.config import PlBaseModelConfig, dataclass
+from ..pl_tokenzier_base_model.config import PlTokenizerBaseModelConfig, dataclass
 from ...network import CustomedRoformerConfig
-from ...tokenizer.Fns.config import FnsTokenizerConfig
+from ...tokenizer.fns.config import FnsTokenizerConfig
 from typing import Optional, Literal
 from pydantic import Field
 
 
 @dataclass
-class FnsM2ARoformerConfig(PlBaseModelConfig):
-    _target_: Literal["src.model.specific_model.fns_m2a_roformer.model.FnsM2ATransformer"] = (
-        "src.model.specific_model.fns_m2a_roformer.model.FnsM2ATransformer"
+class FnsM2ARoformerConfig(PlTokenizerBaseModelConfig):
+    _target_: Literal["src.model.fns_m2a_roformer.model.FnsM2ATransformer"] = (
+        "src.model.fns_m2a_roformer.model.FnsM2ATransformer"
     )
     local_encoder_network_config: CustomedRoformerConfig = Field(default_factory=lambda: CustomedRoformerConfig())
     global_network_config: CustomedRoformerConfig = Field(default_factory=lambda: CustomedRoformerConfig())
