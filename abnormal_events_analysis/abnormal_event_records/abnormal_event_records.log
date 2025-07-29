@@ -1,4 +1,0 @@
-2025-07-08 05:42:17,553 - INFO - [RANK 0] Training probing logger initialized. Abnormal event records will be saved to: ./logs/old_m2a_aria/1.0.18/abnormal_event_records
-2025-07-08 11:56:13,994 - WARNING - [RANK 0] Loss jump detected at step 23782: Current loss = 2.6637, Average loss over last 10 steps = 1.1766
-2025-07-08 11:56:16,921 - INFO - [RANK 0] Gradients saved to ./logs/old_m2a_aria/1.0.18/abnormal_event_records/global_step_23782_20250708_115615.pt
-2025-07-08 11:56:16,923 - INFO - [RANK 0] Batch data saved to ./logs/old_m2a_aria/1.0.18/abnormal_event_records/batch_data_global_step_23782_20250708_115616.pt
