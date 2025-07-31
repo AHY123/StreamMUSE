@@ -5,12 +5,13 @@ from typing import Optional, Any, Union
 import miditok
 import torch
 from ..base.datamodule import BaseDataModule, BaseDataset
-from .config import OldPtDatasetConfig,OldPtDataModuleConfig
-from ...model.old_m2a_roformer.model_io import OldM2ARoformerInput, OldM2ARoformerOutput
+from .config import MidiTokDatasetConfig,MidiTokDataModuleConfig
 import pytorch_lightning as pl
+from miditok import TokSequence
+from miditok.pytorch_data import DatasetJSON,DataCollator
 
-class OldPtDataset(BaseDataset):
-    def __init__(self, config: OldPtDatasetConfig):
+class MidiTokDataset(BaseDataset):
+    def __init__(self, config: MidiTokDatasetConfig):
         self.file_path = config.file_path
         self.target_length = config.target_length
         self.split_ratio = config.split_ratio
@@ -63,7 +64,7 @@ class OldPtDataset(BaseDataset):
         """返回数据集中有效歌曲片段的总数。"""
         return self.valid_song_count
 
-    def __getitem__(self, idx: int) -> OldM2ARoformerInput:
+    def __getitem__(self, idx: int) -> TokSequence:
         """
         根据索引 idx 获取单个样本（固定长度的片段及其音高偏移）。
         获取包含 input 和 target 的合并片段。
