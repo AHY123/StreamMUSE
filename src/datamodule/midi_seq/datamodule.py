@@ -9,8 +9,10 @@ from .config import MidiTokDatasetConfig,MidiTokDataModuleConfig
 import pytorch_lightning as pl
 from miditok import TokSequence
 from miditok.pytorch_data import DatasetJSON,DataCollator
+# from miditok.utils import split 
+from miditok.data_augmentation import augment_score
 
-class MidiTokDataset(BaseDataset):
+class MidiTokDataset(BaseDataset,DatasetJSON):
     def __init__(self, config: MidiTokDatasetConfig):
         self.file_path = config.file_path
         self.target_length = config.target_length
