@@ -524,10 +524,92 @@ class FnsM2ATransformer(PlBaseModel):
 
         return torch.stack(output_sequences, dim=0)
 
-    def postprocess(
+    def postprocess_to_all_program(
         self,
-    ): ...
+        token_ids: torch.Tensor,  # shape (batch_size, seq_len, fixed_sub_seq_len)
+    )->torch.Tensor:
+        """        Converts a tensor of token IDs back to a sequence of tokens, including
+        'Frame_None' tokens to indicate frame boundaries.
+        Args:
+            token_ids (torch.Tensor): Input tensor of token IDs, with shape (batch_size, seq_len, fixed_sub_seq_len).
+        Returns:
+            torch.Tensor: A tensor of token IDs with 'Frame_None' tokens added, with shape (batch_size, total_tokens).
+        """
+        assert token_ids.ndim == 3, f"token_ids.ndim must be 3, but got the shape {token_ids.shape}"
+        batch_size, seq_len, fixed_sub_seq_len = token_ids.shape
+        device = token_ids.device
+        frame_none_id = self.frame_none_id
+        pad_token_id = self.pad_token_id
+        output_sequences: list[torch.Tensor] = []
+        for i in range(batch_size):
+            single_sequence = token_ids[i]
+            # Create a list to hold the processed tokens for this sequence
+            processed_tokens: list[int] = []
+            for j in range(seq_len):
+                current_frame = single_sequence[j]
+                # Remove pad tokens from the current frame
+                current_frame_content = current_frame[current_frame != pad_token_id]
+                if current_frame_content.numel() > 0:
+                    processed_tokens.extend(current_frame_content.tolist())
+                # Always append Frame_None token after each frame
+                processed_tokens.append(frame_none_id)
 
+            # Convert the processed tokens back to a tensor
+            output_tensor = torch.tensor(processed_tokens, dtype=torch.long, device=device)
+            output_sequences.append(output_tensor)
+            # Ensure the output tensor is padded to the maximum length
+            if output_tensor.numel() < fixed_sub_seq_len:
+                output_tensor = F.pad(output_tensor, (0, fixed_sub_seq_len - output_tensor.numel()), value=pad_token_id)
+            elif output_tensor.numel() > fixed_sub_seq_len:
+                output_tensor = output_tensor[:fixed_sub_seq_len]
+            output_sequences[i] = output_tensor
+            # Ensure the output tensor is on the correct device
+            output_sequences[i] = output_sequences[i].to(device)
+            # print(f"Processed sequence {i}: {output_sequences[i]}")
+        # Stack all processed sequences into a single tensor
+        return torch.stack(output_sequences, dim=0)  # shape (batch_size, total_tokens) 
+        
+    def postprocess_with_program_id(self,token_ids: torch.Tensor, program_token_id: int) -> torch.Tensor:
+        """
+        Converts a tensor of token IDs back to a sequence of tokens, filtering by program_token_id.
+        Args:
+            token_ids (torch.Tensor): Input tensor of token IDs, with shape (batch_size, seq_len, fixed_sub_seq_len).
+            program_token_id (int): The program ID to filter for.
+        Returns:
+            torch.Tensor: A tensor of token IDs filtered by program_token_id, with shape (batch_size, total_tokens).
+        """
+        assert token_ids.ndim == 3, f"token_ids.ndim must be 3, but got the shape {token_ids.shape}"
+        batch_size, seq_len, fixed_sub_seq_len = token_ids.shape
+        device = token_ids.device
+        output_sequences: list[torch.Tensor] = []
+        for i in range(batch_size):
+            single_sequence = token_ids[i]
+            # Create a list to hold the processed tokens for this sequence
+            processed_tokens: list[int] = []
+            for j in range(seq_len):
+                current_frame = single_sequence[j]
+                # Filter tokens by program_token_id
+                current_frame_content = current_frame[current_frame == program_token_id]
+                if current_frame_content.numel() > 0:
+                    processed_tokens.extend(current_frame_content.tolist())
+                # Always append Frame_None token after each frame
+                processed_tokens.append(self.frame_none_id)
+
+            # Convert the processed tokens back to a tensor
+            output_tensor = torch.tensor(processed_tokens, dtype=torch.long, device=device)
+            output_sequences.append(output_tensor)
+            # Ensure the output tensor is padded to the maximum length
+            if output_tensor.numel() < fixed_sub_seq_len:
+                output_tensor = F.pad(output_tensor, (0, fixed_sub_seq_len - output_tensor.numel()), value=self.pad_token_id)
+            elif output_tensor.numel() > fixed_sub_seq_len:
+                output_tensor = output_tensor[:fixed_sub_seq_len]
+            output_sequences[i] = output_tensor
+            # Ensure the output tensor is on the correct device
+            output_sequences[i] = output_sequences[i].to(device)
+        # Stack all processed sequences into a single tensor
+        return torch.stack(output_sequences, dim=0)
+    
+    
 
 if __name__ == "__main__":
     from src.model.fns_m2a_roformer.config import FnsM2ARoformerConfig

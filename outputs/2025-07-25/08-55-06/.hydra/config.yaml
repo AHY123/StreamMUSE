@@ -1,0 +1,8 @@
+model:
+  network: a
+  _target_: src.model.old_m2a_roformer.model.OldM2ATransformer
+  local_encoder_network_config: ${network}
+  global_network_config: ${network}
+  local_decoder_network_config: ${network}
+  tokenizer_config: ${network}
+  sub_seq_len: 384

@@ -1,3 +1,4 @@
 defaults:
-    
+  - model: old_m2a_roformer
+  - _self_
   

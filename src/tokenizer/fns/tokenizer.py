@@ -30,7 +30,6 @@ class FnsTokenizer(MusicTokenizer):
             }
         )
 
-
     def _create_base_vocabulary(self) -> list[str]:
         r"""
         Create the vocabulary, as a list of string tokens.
@@ -159,6 +158,7 @@ class FnsTokenizer(MusicTokenizer):
         dic["Bar"] = {"Frame"}
 
         return dic
+    
     def _add_time_events(self, events: list[Event], time_division: int) -> list[list[Event]]:
         r"""
         Create the time events from a list of global and track events.
@@ -220,6 +220,7 @@ class FnsTokenizer(MusicTokenizer):
                     desc=f"Frame {frame_index} (at {current_tick} ticks)",
                 )
             )
+            
     def _tokens_to_score(
         self,
         tokens: TokSequence | list[TokSequence],
@@ -380,8 +381,8 @@ if __name__ == "__main__":
     tokenizer = FnsTokenizer(fns_tokenizer_config.config)
     # tokenizer.one_token_stream = True
     tokenizer.config.one_token_stream_for_programs = True
-    tokens = tokenizer.encode("datasets/Seperated-POP909-Dataset/original/001.mid")
-    # print(tokens.ids)
+    tokens = tokenizer.encode("/home/ubuntu/ugrip/formatted_dataset/POP909-Dataset/original/001.mid")
+    print(tokens.ids)
     import miditok
     from pathlib import Path
 
@@ -392,4 +393,4 @@ if __name__ == "__main__":
     tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/mel").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/mel").resolve())
     tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/acc").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/acc").resolve())
     tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/original").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/original").resolve())
-    # decode.dump_midi("x.mid")
+    decode.dump_midi("x.mid")

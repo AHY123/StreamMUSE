@@ -1,34 +1,26 @@
-from pydantic.dataclasses import dataclass
-from pydantic import Field
-from hydra import compose, initialize
-from typing import Optional
+import hydra
+from omegaconf import DictConfig, OmegaConf
+
+# @hydra.main 会读取 conf/config.yaml 并构建配置对象
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def test_configuration(cfg: DictConfig) -> None:
+    """
+    加载并打印由 Hydra 组合的配置.
+    """
+    print("--- Hydra Composed Configuration ---")
+    print(OmegaConf.to_yaml(cfg))
+
+    print("\n--- Instantiating Network Config Object ---")
+    try:
+        # 使用 hydra.utils.instantiate 根据 _target_ 创建对象
+        network_config_object = hydra.utils.instantiate(cfg.network)
+        print(f"Successfully instantiated: {type(network_config_object)}")
+        print(f"  - Num Hidden Layers: {network_config_object.num_hidden_layers}")
+        print(f"  - Intermediate Size: {network_config_object.intermediate_size}")
+        print(f"  - Max Position Embeddings (from base): {network_config_object.max_position_embeddings}")
+    except Exception as e:
+        print(f"Could not instantiate object: {e}")
 
 
-@dataclass
-class BaseConfig:
-    model_name: str = Field(default="")
-
-@dataclass
-class ConfigMixin:
-    _config:BaseConfig = Field(default_factory=BaseConfig)
-    
-class Model(ConfigMixin):
-    def __init__(self, config: Optional[BaseConfig] = None, **kwargs):
-        if config is None:
-            config = BaseConfig(**kwargs)
-        self._config = config
-        super().__init__(_config=self._config)
-        self.a = 1
-        
-if __name__ == "__main__":
-    config = BaseConfig(model_name="test_model")
-    model = Model(config)
-    print(model._config)
-    print(model)
-    print(model.a)
-    
-    model2 = Model(model_name="test_model")
-    print(model2._config)
-    print(model2)
-    print(model2.a)
-    
+# if __name__ == "__main__":
+test_configuration()

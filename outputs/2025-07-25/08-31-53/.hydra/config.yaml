@@ -1,0 +1,24 @@
+model:
+  _target_: src.model.old_m2a_roformer.model.OldM2ATransformer
+  local_encoder_network_config: ${network.roformer}
+  global_network_config: ${network.roformer}
+  local_decoder_network_config: ${network.roformer}
+  tokenizer_config: ${network.roformer}
+  sub_seq_len: 384
+network:
+  roformer:
+    _target_: transformers.models.roformer.configuration_roformer.RoFormerConfig
+    vocab_size: 50000
+    embedding_size: null
+    hidden_size: 768
+    hidden_act: gelu
+    hidden_dropout_prob: 0.1
+    attention_probs_dropout_prob: 0.1
+    max_position_embeddings: 1536
+    type_vocab_size: 2
+    initializer_range: 0.02
+    layer_norm_eps: 1.0e-12
+    pad_token_id: 0
+  num_hidden_layers: 4
+  num_attention_heads: 4
+  intermediate_size: 1024

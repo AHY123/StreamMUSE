@@ -4,6 +4,7 @@ from pydantic import model_validator
 from .logger.base import UnionLoggerConfig
 from .model import UnionModelConfig
 from .datamodule import UnionDataModuleConfig 
+from .callback import UnionCallbackConfig
 from typing import Union, Literal
 import yaml
 import os
@@ -65,6 +66,23 @@ class TrainerConfig:
     devices: Optional[Union[int, list[int], tuple[int]]] = Field(
         None, description="Number of devices to use for training. Default is None (use all available)."
     )
+    callbacks: list[UnionCallbackConfig] = Field(None, description="List of callback configurations.")
+    val_check_interval: Optional[float] = Field(None, description="How often to check the validation set. Can be an int (steps) or a float (fraction of epoch).")
+    check_val_every_n_epoch: Optional[int] = Field(1, description="Run validation every n epochs.")
+    
+    @model_validator(mode="after")
+    def validate(self) -> "TrainerConfig":
+        """
+        Validate the configuration after initialization.
+        """
+        if self.max_epochs <= 0:
+            raise ValueError("max_epochs must be a positive integer.")
+        if self.accelerator not in ["cpu", "gpu", "tpu", "ipu", "hpu", "auto"]:
+            raise ValueError("Invalid accelerator specified.")
+        if self.devices is not None and not isinstance(self.devices, (int, list, tuple)):
+            raise ValueError("devices must be an int or a list/tuple of ints.")
+        
+        return self
 
 @dataclass
 class ProjectConfig:
@@ -100,4 +118,49 @@ class ProjectConfig:
                 logger_config.name = self.name
             logger_config.version = unified_version
 
+        return self
+    
+    @model_validator(mode="after")
+    def validate_checkpoint_and_trainer_intervals(self) -> "ProjectConfig":
+        """
+        Ensures that ModelCheckpoint's step-based saving interval is compatible
+        with the Trainer's validation interval.
+        """
+        if not self.trainer or not self.trainer.callbacks:
+            return self
+
+        # 假设你的回调配置中有一个 'type' 或类似的字段来区分不同的回调
+        # 这里我们用 isinstance 来模拟，实际中你可能需要检查一个字段
+        # from .callback import ModelCheckpointConfig # 你可能需要这个导入
+        
+        # 获取 Trainer 的验证间隔（以步数为单位）
+        trainer_val_steps = self.trainer.val_check_interval
+        if not isinstance(trainer_val_steps, int) or trainer_val_steps <= 0:
+            # 如果 trainer 不是按 step 验证，则此检查不适用
+            return self
+
+        for callback_config in self.trainer.callbacks:
+            # 假设你的 ModelCheckpoint 配置类名为 ModelCheckpointConfig
+            # 你需要根据你的实现调整这个检查
+            if "ModelCheckpoint" not in callback_config.__class__.__name__:
+                continue
+
+            # 假设配置中有 monitor 和 every_n_train_steps 字段
+            monitor = getattr(callback_config, "monitor", None)
+            every_n_steps = getattr(callback_config, "every_n_train_steps", None)
+
+            # 检查是否监控验证指标并且是按步数保存
+            if monitor and "val_" in monitor and every_n_steps is not None:
+                if every_n_steps < trainer_val_steps:
+                    raise ValueError(
+                        f"ModelCheckpoint's 'every_n_train_steps' ({every_n_steps}) cannot be smaller than "
+                        f"Trainer's 'val_check_interval' ({trainer_val_steps}) when monitoring a validation metric ('{monitor}'). "
+                        "This would lead to checking stale validation metrics."
+                    )
+                if every_n_steps % trainer_val_steps != 0:
+                    import warnings
+                    warnings.warn(
+                        f"For best practice, ModelCheckpoint's 'every_n_train_steps' ({every_n_steps}) should be a multiple of "
+                        f"Trainer's 'val_check_interval' ({trainer_val_steps})."
+                    )
         return self
