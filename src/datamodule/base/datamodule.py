@@ -1,18 +1,23 @@
 import torch
 from torch.utils.data import Dataset
 from .. import UnionDatasetConfig, UnionDataModuleConfig
+from .config import BaseDatasetConfig, BaseDataModuleConfig
 import pytorch_lightning as pl
 import hydra
 
 
 class BaseDataset(Dataset):
-    def __init__(self, config: UnionDatasetConfig): ...
+    def __init__(self, config: BaseDatasetConfig):
+        self.config = config
+        self.stage = config.stage
+        self.data_range = config.data_range
+
     def __len__(self) -> int: ...
     def __getitem__(self, idx: int): ...
 
 
 class BaseDataModule(pl.LightningDataModule):
-    def __init__(self, config: UnionDataModuleConfig):
+    def __init__(self, config: BaseDataModuleConfig):
         super().__init__()
         self.config = config
 
@@ -32,11 +37,16 @@ class BaseDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
-            self.train_dataset, batch_size=self.config.train_config.batch_size, shuffle=True, collate_fn=self._collate_fn
+            self.train_dataset,
+            batch_size=self.config.train_config.batch_size,
+            shuffle=True,
+            collate_fn=self._collate_fn,
         )
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(self.val_dataset, batch_size=self.config.val_config.batch_size, shuffle=False, collate_fn=self._collate_fn)
+        return torch.utils.data.DataLoader(
+            self.val_dataset, batch_size=self.config.val_config.batch_size, shuffle=False, collate_fn=self._collate_fn
+        )
 
     def test_dataloader(self):
         return torch.utils.data.DataLoader(

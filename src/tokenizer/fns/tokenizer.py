@@ -19,7 +19,7 @@ class FnsTokenizer(MusicTokenizer):
 
     def __init__(self, tokenizer_config: TokenizerConfig):
         self.pitch_num = 0
-        self.duration_num =0
+        self.duration_num = 0
         super().__init__(tokenizer_config=tokenizer_config)
         # You can add any additional initialization here if needed
         self.track_name_to_program = dict(
@@ -92,7 +92,7 @@ class FnsTokenizer(MusicTokenizer):
         # program = track.program if not track.is_drum else -1
 
         # Get the program by the track's name
-        
+
         program = self.track_name_to_program[track.name]
 
         use_durations = program in self.config.use_note_duration_programs
@@ -158,7 +158,7 @@ class FnsTokenizer(MusicTokenizer):
         dic["Bar"] = {"Frame"}
 
         return dic
-    
+
     def _add_time_events(self, events: list[Event], time_division: int) -> list[list[Event]]:
         r"""
         Create the time events from a list of global and track events.
@@ -220,7 +220,7 @@ class FnsTokenizer(MusicTokenizer):
                     desc=f"Frame {frame_index} (at {current_tick} ticks)",
                 )
             )
-            
+
     def _tokens_to_score(
         self,
         tokens: TokSequence | list[TokSequence],
@@ -371,9 +371,8 @@ class FnsTokenizer(MusicTokenizer):
         for id_ in ids:
             event_str = self[id_]
             tokens.append(event_str if as_str else Event(*event_str.split("_")))
-        
-        return tokens
 
+        return tokens
 
 
 if __name__ == "__main__":
@@ -390,7 +389,14 @@ if __name__ == "__main__":
     # import miditok
     # miditok.pytorch_data.
     decode = tokenizer.decode(tokens.ids)
-    tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/mel").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/mel").resolve())
-    tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/acc").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/acc").resolve())
-    tokenizer.tokenize_dataset(Path("datasets/Seperated-POP909-Dataset/original").resolve(), Path("datasets/FNS-Seperated-POP909-Dataset/original").resolve())
+    tokenizer.tokenize_dataset(
+        Path("data/POP909-Dataset/mel").resolve(), Path("data/FNS-Seperated-POP909-Dataset/mel").resolve()
+    )
+    tokenizer.tokenize_dataset(
+        Path("data/POP909-Dataset/acc").resolve(), Path("data/FNS-Seperated-POP909-Dataset/acc").resolve()
+    )
+    tokenizer.tokenize_dataset(
+        Path("data/POP909-Dataset/original").resolve(),
+        Path("data/FNS-Seperated-POP909-Dataset/original").resolve(),
+    )
     decode.dump_midi("x.mid")

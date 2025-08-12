@@ -9,7 +9,7 @@ class FnsTokenizerConfig:
     FnsTokenizerConfig is a configuration class for the FnsTokenizer.
     It inherits from miditok.TokenizerConfig and can be used to customize the tokenizer's behavior.
     """
-    _target_: Literal["src.tokenizer.Fns.tokenizer.FnsTokenizer"] = "src.tokenizer.Fns.tokenizer.FnsTokenizer"
+    _target_: Literal["src.tokenizer.fns.tokenizer.FnsTokenizer"] = "src.tokenizer.fns.tokenizer.FnsTokenizer"
     config : TokenizerConfig = Field(TokenizerConfig())
     
     @model_validator(mode="after")

@@ -12,7 +12,7 @@ class BaseDatasetConfig(BaseConfig):
     batch_size: int = Field(32, description="Batch size for data loaders.")
     num_workers: int = Field(4, description="Number of workers for data loading.")
     transform: Optional[Any] = Field(None, description="Optional transform to apply to data.")
-    max_seq_len: Optional[int] = Field(384, description="Maximum sequence length for data. Default is 384.")
+    # max_seq_len: Optional[int] = Field(384, description="Maximum sequence length for data. Default is 384.")
     data_range: Optional[tuple[float]] = Field(
         (0.0, 1.0), description="Optional range for data split (e.g., (0.0, 1.0) for full range). Default is (0.0, 1.0)."
     )
