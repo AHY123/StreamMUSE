@@ -1,8 +1,7 @@
 defaults:
   - model: old_m2a_roformer
-  - logger:
-    - csv
-    - tensorboard
+  - loggers: 
+    - union
   - datamodule: fns
   - _self_
   
@@ -10,4 +9,3 @@ defaults:
 project: ...
 version: "1.0"
 save_dir: "logs"
-loggers: 

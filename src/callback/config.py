@@ -14,6 +14,8 @@ class ModelCheckpointCallbackConfig:
     mode: Literal["min", "max"] = Field("min", description="Mode for monitoring metric, either 'min' or 'max'.")
     save_top_k: int = Field(5, description="Number of top k checkpoints to save based on monitored metric.")
     save_last: bool = Field(True, description="Whether to save the last checkpoint.")
+    every_n_epochs: Optional[int] = Field(None, description="Frequency of saving checkpoints, in terms of epochs.")
+    every_n_steps: Optional[int] = Field(None, description="Frequency of saving checkpoints, in terms of steps. Optional if not needed.")
     
     @model_validator(mode="after")
     def post_init(self):

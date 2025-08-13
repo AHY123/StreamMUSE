@@ -2,7 +2,7 @@
 defaults:
   - _self_
 
-_target_: transformers.models.roformer.configuration_roformer.RoFormerConfig
+_target_: src.network.customed_roformer_network.CustomedRoformerNetwork
 vocab_size: 50000
 embedding_size: null
 hidden_size: 768

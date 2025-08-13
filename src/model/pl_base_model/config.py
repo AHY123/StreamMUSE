@@ -18,7 +18,7 @@ class PlBaseModelConfig(BaseConfig):
     Config for the Base model configuration.
     """
 
-    _target_: Literal["src.model.specific_model.pl_base_model.PlBaseModel"] = Field("src.model.specific_model.pl_base_model.PlBaseModel")
+    _target_: Literal["src.model.pl_base_model.PlBaseModel"] = Field("src.model.pl_base_model.PlBaseModel")
     optimizer_config: Optional[OptimizerConfig] = Field(default_factory=lambda: OptimizerConfig(), description="Configuration for the optimizer.")
     
     lr_scheduler_config: Optional[LRSchedulerConfig] = Field(

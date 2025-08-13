@@ -3,7 +3,7 @@ from .utils.base_config import BaseConfig, Field, dataclass, ConfigDict
 from pydantic import model_validator
 from .logger.base import UnionLoggerConfig
 from .model import UnionModelConfig
-from .datamodule import UnionDataModuleConfig 
+from .datamodule import UnionDataModuleConfig
 from .callback import UnionCallbackConfig
 from typing import Union, Literal
 import yaml
@@ -55,21 +55,27 @@ def get_next_version(base_dir: str, project_name: Optional[str] = None, version_
         return f"{version_prefix}.{next_version_num}"
     return f"version_{next_version_num}"
 
+
 @dataclass
 class TrainerConfig:
     """
     Config for the PyTorch Lightning Trainer configuration.
     """
+
     # _target_: str = Field("pytorch_lightning.Trainer", description="The class to instantiate for the PyTorch Lightning Trainer.")
     max_epochs: int = Field(10, description="Maximum number of epochs for training. Default is 10.")
-    accelerator: Optional[str] = Field("auto", description="Accelerator to use for training (e.g., 'cpu', 'gpu'). Default is 'auto'.")
+    accelerator: Optional[str] = Field(
+        "auto", description="Accelerator to use for training (e.g., 'cpu', 'gpu'). Default is 'auto'."
+    )
     devices: Optional[Union[int, list[int], tuple[int]]] = Field(
         None, description="Number of devices to use for training. Default is None (use all available)."
     )
-    callbacks: list[UnionCallbackConfig] = Field(None, description="List of callback configurations.")
-    val_check_interval: Optional[float] = Field(None, description="How often to check the validation set. Can be an int (steps) or a float (fraction of epoch).")
+    callbacks: list[UnionCallbackConfig] = Field([], description="List of callback configurations.")
+    val_check_interval: Optional[float] = Field(
+        None, description="How often to check the validation set. Can be an int (steps) or a float (fraction of epoch)."
+    )
     check_val_every_n_epoch: Optional[int] = Field(1, description="Run validation every n epochs.")
-    
+
     @model_validator(mode="after")
     def validate(self) -> "TrainerConfig":
         """
@@ -81,8 +87,9 @@ class TrainerConfig:
             raise ValueError("Invalid accelerator specified.")
         if self.devices is not None and not isinstance(self.devices, (int, list, tuple)):
             raise ValueError("devices must be an int or a list/tuple of ints.")
-        
+
         return self
+
 
 @dataclass
 class ProjectConfig:
@@ -97,7 +104,7 @@ class ProjectConfig:
     description: Optional[str] = Field(None, description="Description of the project.")
     loggers: list[UnionLoggerConfig] = Field(None, description="List of logger configurations.")
     model: UnionModelConfig = Field(..., description="Model configuration.")
-    datamodule: UnionDataModuleConfig = Field(..., description="Data module configuration.") # Changed type
+    datamodule: UnionDataModuleConfig = Field(..., description="Data module configuration.")  # Changed type
     trainer: TrainerConfig = Field(default=TrainerConfig(), description="Trainer configuration.")
     seed: Optional[int] = Field(42, description="Random seed for reproducibility.")
 
@@ -119,7 +126,7 @@ class ProjectConfig:
             logger_config.version = unified_version
 
         return self
-    
+
     @model_validator(mode="after")
     def validate_checkpoint_and_trainer_intervals(self) -> "ProjectConfig":
         """
@@ -132,7 +139,7 @@ class ProjectConfig:
         # 假设你的回调配置中有一个 'type' 或类似的字段来区分不同的回调
         # 这里我们用 isinstance 来模拟，实际中你可能需要检查一个字段
         # from .callback import ModelCheckpointConfig # 你可能需要这个导入
-        
+
         # 获取 Trainer 的验证间隔（以步数为单位）
         trainer_val_steps = self.trainer.val_check_interval
         if not isinstance(trainer_val_steps, int) or trainer_val_steps <= 0:
@@ -159,6 +166,7 @@ class ProjectConfig:
                     )
                 if every_n_steps % trainer_val_steps != 0:
                     import warnings
+
                     warnings.warn(
                         f"For best practice, ModelCheckpoint's 'every_n_train_steps' ({every_n_steps}) should be a multiple of "
                         f"Trainer's 'val_check_interval' ({trainer_val_steps})."
