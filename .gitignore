@@ -31,3 +31,8 @@ results/
 /app/results
 my-temp-space
 /app/logs
+*.gz
+aria-midi-v1-unique-ext/LICENSE.txt
+aria-midi-v1-unique-ext/metadata.json
+aria-midi-v1-unique-ext/tests.json
+.DS_Store
