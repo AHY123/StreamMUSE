@@ -618,6 +618,9 @@ if __name__ == "__main__":
 
     model_config = FnsM2ARoformerConfig()
     model = FnsM2ATransformer2(model_config)
+    model.load_from_checkpoint("...")
+    
+    FnsM2ATransformer2.load_from_checkpoint("...")
     # print(model.tokenizer.vocab)
     # print(model.tokenizer.pitch_num)
     # print(model.tokenizer.duration_num)

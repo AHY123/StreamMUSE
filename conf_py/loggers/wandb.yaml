@@ -1,0 +1,7 @@
+defaults:
+  - _self_
+
+_target_: pytorch_lightning.loggers.WandbLogger
+save_dir: "logs"
+version: "1.0"
+name: "wandb_logger"

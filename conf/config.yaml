@@ -3,6 +3,7 @@ defaults:
   - loggers: 
     - union
   - datamodule: fns
+  - trainer@trainer
   - _self_
   
 

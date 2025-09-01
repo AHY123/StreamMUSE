@@ -4,8 +4,7 @@ from omegaconf import DictConfig, OmegaConf
 from src.project_config import ProjectConfig
 from pytorch_lightning import seed_everything
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger, CSVLogger
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 import torch
 
 # from lightning.pytorch.utilities.seed import seed_everything

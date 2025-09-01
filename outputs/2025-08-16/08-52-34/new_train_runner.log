@@ -1,0 +1,17 @@
+[2025-08-16 08:52:34,610][__main__][INFO] - [N/A] Starting experiment setup...
+[2025-08-16 08:52:37,232][__main__][WARNING] - No loggers were configured or recognized. Defaulting to TensorBoardLogger.
+[2025-08-16 08:52:37,232][__main__][CRITICAL] - Fatal error setting up PyTorch Lightning Trainer: pytorch_lightning.trainer.trainer.Trainer() got multiple values for keyword argument 'callbacks'
+Traceback (most recent call last):
+  File "/home/ubuntu/ugrip/yuanhsin/StreamMUSE/new_train_runner.py", line 127, in setup_trainer
+    self.trainer = Trainer(
+                   ^^^^^^^^
+TypeError: pytorch_lightning.trainer.trainer.Trainer() got multiple values for keyword argument 'callbacks'
+[2025-08-16 08:52:37,232][__main__][CRITICAL] - [N/A] Fatal error during experiment setup: pytorch_lightning.trainer.trainer.Trainer() got multiple values for keyword argument 'callbacks'
+Traceback (most recent call last):
+  File "/home/ubuntu/ugrip/yuanhsin/StreamMUSE/new_train_runner.py", line 212, in run_experiment
+    self.setup_trainer()  # Trainer instantiated. self.trainer.is_global_zero is now reliable.
+    ^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/ugrip/yuanhsin/StreamMUSE/new_train_runner.py", line 127, in setup_trainer
+    self.trainer = Trainer(
+                   ^^^^^^^^
+TypeError: pytorch_lightning.trainer.trainer.Trainer() got multiple values for keyword argument 'callbacks'
