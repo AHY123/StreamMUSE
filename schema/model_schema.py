@@ -202,9 +202,78 @@ class NewM2ATransformerSchema(OldM2ATransformerSchema):
     model_name: str = Field("XinYue's + customed RoFormer", description="Name of the M2A Transformer model.")
     model_type: Literal["New-M2A-Transformer"] = Field("New-M2A-Transformer", description="Type of the model.")
     frame_shift: int = Field(4, description="Number of frame shift.")
-    
 
-ModelSchema = Union[M2AModelSchema, OldM2ATransformerSchema, OldM2ANomaskTransformerSchema,NewM2ATransformerSchema]
+
+class ContrastiveRewardModelSchema(BaseModelSchema):
+    """
+    Schema for Contrastive Reward Model configuration.
+    Implements dual-encoder architecture for global harmony assessment.
+    """
+    
+    model_name: str = Field("Contrastive-Reward-Model", description="Name of the Contrastive Reward Model.")
+    model_type: Literal["Contrastive-Reward-Model"] = Field("Contrastive-Reward-Model", description="Type of the model.")
+    
+    # Architecture parameters
+    hidden_size: int = Field(512, description="Hidden dimension for both melody and accompaniment encoders.")
+    num_layers: int = Field(6, description="Number of transformer layers for both encoders.")
+    num_attention_heads: int = Field(6, description="Number of attention heads for both encoders.")
+    intermediate_size: int = Field(2048, description="Intermediate size of the feed-forward network.")
+    
+    # Contrastive learning parameters
+    temperature: float = Field(0.07, description="Temperature parameter for InfoNCE loss.")
+    embedding_dim: int = Field(512, description="Output embedding dimension for similarity computation.")
+    
+    # Dropout parameters
+    hidden_dropout_prob: float = Field(0.1, description="Dropout probability for hidden layers.")
+    attention_probs_dropout_prob: float = Field(0.1, description="Dropout probability for attention weights.")
+    
+    ckpt_path: Optional[str] = Field(None, description="Path to checkpoint for resuming training or inference.")
+
+
+class DiscriminativeRewardModelSchema(BaseModelSchema):
+    """
+    Schema for Discriminative Reward Model configuration.
+    Implements single-encoder architecture for real/fake classification.
+    """
+    
+    model_name: str = Field("Discriminative-Reward-Model", description="Name of the Discriminative Reward Model.")
+    model_type: Literal["Discriminative-Reward-Model"] = Field("Discriminative-Reward-Model", description="Type of the model.")
+    
+    # Architecture parameters
+    hidden_size: int = Field(512, description="Hidden dimension for the transformer encoder.")
+    num_layers: int = Field(6, description="Number of transformer layers.")
+    num_attention_heads: int = Field(6, description="Number of attention heads.")
+    intermediate_size: int = Field(2048, description="Intermediate size of the feed-forward network.")
+    
+    # Classification parameters
+    pooling_strategy: Literal["cls", "mean"] = Field("cls", description="Global pooling strategy - 'cls' token or 'mean' pooling.")
+    num_classes: int = Field(2, description="Number of classes for binary classification (real/fake).")
+    
+    # Dropout parameters
+    hidden_dropout_prob: float = Field(0.1, description="Dropout probability for hidden layers.")
+    attention_probs_dropout_prob: float = Field(0.1, description="Dropout probability for attention weights.")
+    
+    ckpt_path: Optional[str] = Field(None, description="Path to checkpoint for resuming training or inference.")
+
+
+class MultiScaleEnsembleSchema(BaseModel):
+    """
+    Schema for Multi-Scale Ensemble configuration.
+    Manages multiple reward models at different temporal scales.
+    """
+    
+    scales: list[int] = Field([128, 256], description="List of frame lengths for different scale models.")
+    overlap_ratio: float = Field(0.5, description="Overlap ratio for sliding windows (0.5 = 50% overlap).")
+    aggregation_strategy: Literal["sum", "mean", "weighted"] = Field("sum", description="Strategy for aggregating rewards from different scales.")
+    weights: Optional[dict[int, float]] = Field(None, description="Weights for each scale when using 'weighted' aggregation.")
+    
+    def model_post_init(self, __context: Any) -> None:
+        # Set default equal weights if using weighted aggregation but no weights provided
+        if self.aggregation_strategy == "weighted" and self.weights is None:
+            self.weights = {scale: 1.0 / len(self.scales) for scale in self.scales}
+
+
+ModelSchema = Union[M2AModelSchema, OldM2ATransformerSchema, OldM2ANomaskTransformerSchema, NewM2ATransformerSchema, ContrastiveRewardModelSchema, DiscriminativeRewardModelSchema]
 # ModelSchema = OldM2ATransformerSchema
 
 
