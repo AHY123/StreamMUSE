@@ -79,7 +79,11 @@ class ContrastiveRewardDataset(Dataset):
             
         actual_length = min(self.lengths[melody_idx], self.lengths[accompaniment_idx], self.target_length)
         
-        return mel_seq, acc_seq, actual_length.item()
+        # Handle both tensor and int cases
+        if hasattr(actual_length, 'item'):
+            actual_length = actual_length.item()
+        
+        return mel_seq, acc_seq, actual_length
     
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """

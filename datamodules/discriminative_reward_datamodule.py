@@ -97,7 +97,11 @@ class DiscriminativeRewardDataset(Dataset):
             pad_len = self.target_length - len(acc_seq)
             acc_seq = torch.cat([acc_seq, torch.full((pad_len,), 3204)])  # PAD_TOKEN
             
-        return melody_seq, acc_seq, length.item()
+        # Handle both tensor and int cases
+        if hasattr(length, 'item'):
+            length = length.item()
+        
+        return melody_seq, acc_seq, length
     
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """
@@ -125,6 +129,8 @@ class DiscriminativeRewardDataset(Dataset):
             
             # Use minimum length for safety
             length = min(self.lengths[melody_idx], self.lengths[acc_idx], self.target_length)
+            if hasattr(length, 'item'):
+                length = length.item()
             label = 0  # Fake
         
         # Create interleaved sequence

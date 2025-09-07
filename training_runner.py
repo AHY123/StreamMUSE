@@ -352,7 +352,7 @@ if __name__ == "__main__":
     # torch.cuda.memory._record_memory_history() # start memory snapshot
 
     # Example usage
-    runner = ProjectRunner(config_path="schema/yaml/discriminative_reward_model_v1.0.yaml")
+    runner = ProjectRunner(config_path="schema/yaml/contrastive_reward_model_v1.0.yaml")
     # runner = ProjectRunner(config_path="logs/old_m2a_aria/1.0.2/old_m2a_transformer_aria_deduped_skyline_top2_0.5B-1.4.yaml")  # Use your specific config
 
     try:
