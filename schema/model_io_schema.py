@@ -100,10 +100,10 @@ class RewardOutput:
 # Batch collation functions
 def collate_contrastive_batch(batch_items) -> ContrastiveBatch:
     """Collate function for contrastive training batches."""
-    melody_seqs = torch.stack([item['melody'] for item in batch_items])
-    acc_seqs = torch.stack([item['accompaniment'] for item in batch_items])
-    labels = torch.tensor([item['label'] for item in batch_items])
-    seq_lens = torch.tensor([item['length'] for item in batch_items])
+    melody_seqs = torch.stack([item['melody'] for item in batch_items]).long()
+    acc_seqs = torch.stack([item['accompaniment'] for item in batch_items]).long()
+    labels = torch.tensor([item['label'] for item in batch_items]).long()
+    seq_lens = torch.tensor([item['length'] for item in batch_items]).long()
     
     return ContrastiveBatch(
         melody_sequences=melody_seqs,
@@ -115,10 +115,10 @@ def collate_contrastive_batch(batch_items) -> ContrastiveBatch:
 
 def collate_discriminative_batch(batch_items) -> DiscriminativeBatch:
     """Collate function for discriminative training batches."""
-    interleaved_seqs = torch.stack([item['sequence'] for item in batch_items])
-    labels = torch.tensor([item['label'] for item in batch_items])
-    attention_masks = torch.stack([item['mask'] for item in batch_items])
-    seq_lens = torch.tensor([item['length'] for item in batch_items])
+    interleaved_seqs = torch.stack([item['sequence'] for item in batch_items]).long()
+    labels = torch.tensor([item['label'] for item in batch_items]).long()
+    attention_masks = torch.stack([item['mask'] for item in batch_items]).float()
+    seq_lens = torch.tensor([item['length'] for item in batch_items]).long()
     
     return DiscriminativeBatch(
         interleaved_sequences=interleaved_seqs,
