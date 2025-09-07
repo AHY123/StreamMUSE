@@ -100,10 +100,15 @@ class DiscriminativeRewardModel(RewardModelBase):
         else:
             attention_mask = batch.attention_masks
         
+        # Convert to 4D attention mask for RoFormer: [batch_size, 1, 1, seq_len]
+        extended_attention_mask = attention_mask[:, None, None, :]
+        # Convert 1s and 0s to 0s and -inf for masking
+        extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
+        
         # Pass through encoder
         encoder_outputs = self.encoder(
             hidden_states=token_embeds,
-            attention_mask=attention_mask
+            attention_mask=extended_attention_mask
         )
         
         # Apply global pooling
@@ -153,10 +158,15 @@ class DiscriminativeRewardModel(RewardModelBase):
                 cls_mask = torch.ones(1, 1, device=attention_mask.device)
                 attention_mask = torch.cat([cls_mask, attention_mask], dim=1)  # [1, seq_len+1]
             
+            # Convert to 4D attention mask for RoFormer: [batch_size, 1, 1, seq_len]
+            extended_attention_mask = attention_mask[:, None, None, :]
+            # Convert 1s and 0s to 0s and -inf for masking
+            extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
+            
             # Pass through encoder
             encoder_outputs = self.encoder(
                 hidden_states=token_embeds,
-                attention_mask=attention_mask
+                attention_mask=extended_attention_mask
             )
             
             # Apply global pooling

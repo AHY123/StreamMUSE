@@ -49,10 +49,16 @@ class ContrastiveRewardModel(RewardModelBase):
         # Create attention mask (non-padding tokens)
         attention_mask = (melody_tokens != 3204).float()  # PAD_TOKEN = 3204
         
+        # Convert to 4D attention mask for RoFormer: [batch_size, 1, 1, seq_len]
+        # RoFormer expects: [batch_size, num_heads, seq_len, seq_len] or broadcastable
+        extended_attention_mask = attention_mask[:, None, None, :]
+        # Convert 1s and 0s to 0s and -inf for masking
+        extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
+        
         # Pass through encoder
         encoder_outputs = self.melody_encoder(
             hidden_states=melody_embeds,
-            attention_mask=attention_mask
+            attention_mask=extended_attention_mask
         )
         
         # Global pooling - use mean pooling over non-padding tokens
@@ -82,10 +88,16 @@ class ContrastiveRewardModel(RewardModelBase):
         # Create attention mask (non-padding tokens)
         attention_mask = (accompaniment_tokens != 3204).float()  # PAD_TOKEN = 3204
         
+        # Convert to 4D attention mask for RoFormer: [batch_size, 1, 1, seq_len]
+        # RoFormer expects: [batch_size, num_heads, seq_len, seq_len] or broadcastable
+        extended_attention_mask = attention_mask[:, None, None, :]
+        # Convert 1s and 0s to 0s and -inf for masking
+        extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
+        
         # Pass through encoder
         encoder_outputs = self.accompaniment_encoder(
             hidden_states=acc_embeds,
-            attention_mask=attention_mask
+            attention_mask=extended_attention_mask
         )
         
         # Global pooling - use mean pooling over non-padding tokens
