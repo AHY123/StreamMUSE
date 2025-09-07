@@ -52,6 +52,45 @@ class DiscriminativeRewardDataset(Dataset):
         # Return total samples including both real and fake sequences
         return int(self.num_sequences * (1 + self.negative_ratio))
     
+    def convert_polyphonic_to_tokens(self, polyphonic_seq):
+        """
+        Convert polyphonic sequence [seq_len, 12] to tokenized sequence [seq_len].
+        Takes the first non-padding note at each timestep.
+        """
+        seq_len = polyphonic_seq.shape[0]
+        tokens = []
+        
+        for t in range(seq_len):
+            frame = polyphonic_seq[t]  # Shape: [12] -> [4 notes * 3 features]
+            
+            # Reshape to [4, 3] for 4 notes with (program, pitch, duration)
+            notes = frame.reshape(4, 3)
+            
+            # Find first non-padding note (pitch != 255)
+            found_note = False
+            for note in notes:
+                program, pitch, duration = note[0], note[1], note[2] 
+                
+                if pitch.item() != 255:  # Not padding
+                    if pitch.item() == 254:  # EOS token
+                        tokens.append(3203)  # EOS
+                    else:
+                        # Convert (program, pitch, duration) to single token
+                        # Simple tokenization: use pitch as primary token
+                        if pitch.item() < 128:  # Valid MIDI pitch
+                            # Create composite token: program*128 + pitch (simplified)
+                            token = min(int(program.item()) * 128 + int(pitch.item()), 3201)
+                            tokens.append(token)
+                        else:
+                            tokens.append(3204)  # PAD
+                    found_note = True
+                    break
+            
+            if not found_note:
+                tokens.append(3204)  # PAD if no valid notes found
+        
+        return torch.tensor(tokens, dtype=torch.long)
+
     def create_interleaved_sequence(self, melody_tokens: torch.Tensor, accompaniment_tokens: torch.Tensor) -> torch.Tensor:
         """
         Create interleaved sequence from melody and accompaniment tokens.
@@ -85,23 +124,32 @@ class DiscriminativeRewardDataset(Dataset):
         start = self.start_indices[seq_idx]
         length = min(self.lengths[seq_idx], self.target_length)
         
-        # Get sequences
+        # Get polyphonic sequences
         melody_seq = self.melody_data[start:start + length]
         acc_seq = self.accompaniment_data[start:start + length]
         
-        # Pad if necessary
+        # Pad polyphonic sequences if necessary
         if len(melody_seq) < self.target_length:
             pad_len = self.target_length - len(melody_seq)
-            melody_seq = torch.cat([melody_seq, torch.full((pad_len,), 3204)])  # PAD_TOKEN
+            # Create padding with shape [pad_len, 12] filled with [254, 255, 255, ...] (EOS + padding)
+            mel_pad = torch.full((pad_len, 12), 255, dtype=melody_seq.dtype)
+            mel_pad[:, 0] = 254  # EOS token in first position
+            melody_seq = torch.cat([melody_seq, mel_pad])
         if len(acc_seq) < self.target_length:
             pad_len = self.target_length - len(acc_seq)
-            acc_seq = torch.cat([acc_seq, torch.full((pad_len,), 3204)])  # PAD_TOKEN
+            acc_pad = torch.full((pad_len, 12), 255, dtype=acc_seq.dtype)
+            acc_pad[:, 0] = 254  # EOS token in first position
+            acc_seq = torch.cat([acc_seq, acc_pad])
+        
+        # Convert polyphonic to token sequences
+        melody_tokens = self.convert_polyphonic_to_tokens(melody_seq)
+        acc_tokens = self.convert_polyphonic_to_tokens(acc_seq)
             
         # Handle both tensor and int cases
         if hasattr(length, 'item'):
             length = length.item()
         
-        return melody_seq, acc_seq, length
+        return melody_tokens, acc_tokens, length
     
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """

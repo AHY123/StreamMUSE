@@ -52,6 +52,45 @@ class ContrastiveRewardDataset(Dataset):
         # Return total samples including both positive and negative pairs
         return int(self.num_sequences * (1 + self.negative_sampling_ratio))
     
+    def convert_polyphonic_to_tokens(self, polyphonic_seq):
+        """
+        Convert polyphonic sequence [seq_len, 12] to tokenized sequence [seq_len].
+        Takes the first non-padding note at each timestep.
+        """
+        seq_len = polyphonic_seq.shape[0]
+        tokens = []
+        
+        for t in range(seq_len):
+            frame = polyphonic_seq[t]  # Shape: [12] -> [4 notes * 3 features]
+            
+            # Reshape to [4, 3] for 4 notes with (program, pitch, duration)
+            notes = frame.reshape(4, 3)
+            
+            # Find first non-padding note (pitch != 255)
+            found_note = False
+            for note in notes:
+                program, pitch, duration = note[0], note[1], note[2] 
+                
+                if pitch.item() != 255:  # Not padding
+                    if pitch.item() == 254:  # EOS token
+                        tokens.append(3203)  # EOS
+                    else:
+                        # Convert (program, pitch, duration) to single token
+                        # Simple tokenization: use pitch as primary token
+                        if pitch.item() < 128:  # Valid MIDI pitch
+                            # Create composite token: program*128 + pitch (simplified)
+                            token = min(int(program.item()) * 128 + int(pitch.item()), 3201)
+                            tokens.append(token)
+                        else:
+                            tokens.append(3204)  # PAD
+                    found_note = True
+                    break
+            
+            if not found_note:
+                tokens.append(3204)  # PAD if no valid notes found
+        
+        return torch.tensor(tokens, dtype=torch.long)
+
     def get_sequence_pair(self, melody_idx: int, accompaniment_idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
         """
         Get melody-accompaniment pair by indices.
@@ -71,11 +110,22 @@ class ContrastiveRewardDataset(Dataset):
         acc_start = self.start_indices[accompaniment_idx]
         acc_seq = self.accompaniment_data[acc_start:acc_start + self.target_length]
         
-        # Pad if necessary (though should not be needed with valid filtering)
+        # Pad polyphonic sequences if necessary
         if len(mel_seq) < self.target_length:
-            mel_seq = torch.cat([mel_seq, torch.full((self.target_length - len(mel_seq),), 3204)])  # PAD_TOKEN
+            pad_len = self.target_length - len(mel_seq)
+            # Create padding with shape [pad_len, 12] filled with [254, 255, 255, ...] (EOS + padding)
+            mel_pad = torch.full((pad_len, 12), 255, dtype=mel_seq.dtype)
+            mel_pad[:, 0] = 254  # EOS token in first position
+            mel_seq = torch.cat([mel_seq, mel_pad])
         if len(acc_seq) < self.target_length:
-            acc_seq = torch.cat([acc_seq, torch.full((self.target_length - len(acc_seq),), 3204)])  # PAD_TOKEN
+            pad_len = self.target_length - len(acc_seq)
+            acc_pad = torch.full((pad_len, 12), 255, dtype=acc_seq.dtype)
+            acc_pad[:, 0] = 254  # EOS token in first position
+            acc_seq = torch.cat([acc_seq, acc_pad])
+        
+        # Convert polyphonic to token sequences
+        mel_tokens = self.convert_polyphonic_to_tokens(mel_seq)
+        acc_tokens = self.convert_polyphonic_to_tokens(acc_seq)
             
         actual_length = min(self.lengths[melody_idx], self.lengths[accompaniment_idx], self.target_length)
         
@@ -83,7 +133,7 @@ class ContrastiveRewardDataset(Dataset):
         if hasattr(actual_length, 'item'):
             actual_length = actual_length.item()
         
-        return mel_seq, acc_seq, actual_length
+        return mel_tokens, acc_tokens, actual_length
     
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """
