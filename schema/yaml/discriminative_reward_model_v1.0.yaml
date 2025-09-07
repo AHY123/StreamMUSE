@@ -39,7 +39,7 @@ model:
   # Architecture parameters
   hidden_size: 512
   num_layers: 6
-  num_attention_heads: 6
+  num_attention_heads: 8
   intermediate_size: 2048
   
   # Classification parameters
