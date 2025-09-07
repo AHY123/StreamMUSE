@@ -20,11 +20,11 @@ class RewardModelBase(BasePyTorchLightningModel, ABC):
         self.num_attention_heads = model_schema.num_attention_heads
         self.intermediate_size = model_schema.intermediate_size
         
-        # Configure RoFormer for consistency with StreamMUSE
-        self.roformer_config = self._create_roformer_config()
-        
         # Tokenizer will be set up by child classes based on StreamMUSE tokenization
         self.tokenizer_vocab_size = 3205  # N_TOKENS from StreamMUSE (3202 normal + SOS/EOS/PAD)
+        
+        # Configure RoFormer for consistency with StreamMUSE
+        self.roformer_config = self._create_roformer_config()
     
     def _create_roformer_config(self) -> RoFormerConfig:
         """Create RoFormer configuration compatible with StreamMUSE."""
