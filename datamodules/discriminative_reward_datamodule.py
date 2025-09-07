@@ -58,7 +58,9 @@ class DiscriminativeRewardDataset(Dataset):
         This matches how main models handle polyphonic data.
         """
         # Simply flatten the polyphonic sequence like main models do
-        flat_tokens = polyphonic_seq.flatten().long()
+        # Ensure values are within valid range [0, 255] and convert to long
+        flat_tokens = polyphonic_seq.flatten()
+        flat_tokens = torch.clamp(flat_tokens, 0, 255).long()
         return flat_tokens
 
     def create_interleaved_sequence(self, melody_tokens: torch.Tensor, accompaniment_tokens: torch.Tensor) -> torch.Tensor:
@@ -79,6 +81,8 @@ class DiscriminativeRewardDataset(Dataset):
         
         # Simple interleaving: alternate tokens
         interleaved = torch.stack([melody_tokens, accompaniment_tokens], dim=1).flatten()
+        # Ensure proper dtype and range
+        interleaved = torch.clamp(interleaved, 0, 255).long()
         return interleaved
     
     def get_sequence_data(self, seq_idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:

@@ -58,7 +58,9 @@ class ContrastiveRewardDataset(Dataset):
         This matches how main models handle polyphonic data.
         """
         # Simply flatten the polyphonic sequence like main models do
-        flat_tokens = polyphonic_seq.flatten().long()
+        # Ensure values are within valid range [0, 255] and convert to long
+        flat_tokens = polyphonic_seq.flatten()
+        flat_tokens = torch.clamp(flat_tokens, 0, 255).long()
         return flat_tokens
 
     def get_sequence_pair(self, melody_idx: int, accompaniment_idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
