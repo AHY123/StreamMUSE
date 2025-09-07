@@ -64,7 +64,28 @@ class ProjectRunner:
 
     def setup_datamodule(self):
         try:
-            if self.config.dataset.tokenizer == "REMI":
+            # For reward models, use specialized datamodules based on model type
+            if self.config.model.model_type == "Contrastive-Reward-Model":
+                from datamodules.contrastive_reward_datamodule import ContrastiveRewardDataModule
+                
+                self.datamodule = ContrastiveRewardDataModule(
+                    train_data_path=self.config.dataset.train_config.file_path,
+                    batch_size=self.config.dataset.train_config.batch_size,
+                    num_workers=self.config.dataset.train_config.num_workers,
+                    target_length=self.config.dataset.train_config.target_length,
+                    train_split_ratio=self.config.dataset.train_config.split_ratio
+                )
+            elif self.config.model.model_type == "Discriminative-Reward-Model":
+                from datamodules.discriminative_reward_datamodule import DiscriminativeRewardDataModule
+                
+                self.datamodule = DiscriminativeRewardDataModule(
+                    train_data_path=self.config.dataset.train_config.file_path,
+                    batch_size=self.config.dataset.train_config.batch_size,
+                    num_workers=self.config.dataset.train_config.num_workers,
+                    target_length=self.config.dataset.train_config.target_length,
+                    train_split_ratio=self.config.dataset.train_config.split_ratio
+                )
+            elif self.config.dataset.tokenizer == "REMI":
                 self.datamodule = MelAccRemiJsonDataModule(
                     config=self.config.dataset,
                 )
@@ -114,6 +135,18 @@ class ProjectRunner:
                 from models.old_m2a_nomask_transformer import OldM2ANomaskTransformer
 
                 self.model = OldM2ANomaskTransformer(
+                    model_schema=self.config.model,
+                )
+            elif self.config.model.model_type == "Contrastive-Reward-Model":
+                from models.contrastive_reward_model import ContrastiveRewardModel
+
+                self.model = ContrastiveRewardModel(
+                    model_schema=self.config.model,
+                )
+            elif self.config.model.model_type == "Discriminative-Reward-Model":
+                from models.discriminative_reward_model import DiscriminativeRewardModel
+
+                self.model = DiscriminativeRewardModel(
                     model_schema=self.config.model,
                 )
             
@@ -319,7 +352,7 @@ if __name__ == "__main__":
     # torch.cuda.memory._record_memory_history() # start memory snapshot
 
     # Example usage
-    runner = ProjectRunner(config_path="schema/yaml/old_m2a_transformer_aria_unique_skyline_top2_0.5B-1.9.yaml")
+    runner = ProjectRunner(config_path="schema/yaml/discriminative_reward_model_v1.0.yaml")
     # runner = ProjectRunner(config_path="logs/old_m2a_aria/1.0.2/old_m2a_transformer_aria_deduped_skyline_top2_0.5B-1.4.yaml")  # Use your specific config
 
     try:
