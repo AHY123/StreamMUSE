@@ -47,7 +47,7 @@ class ContrastiveRewardModel(RewardModelBase):
         melody_embeds = self.melody_embedding(melody_tokens)  # [B, seq_len, hidden_size]
         
         # Create attention mask (non-padding tokens)
-        attention_mask = (melody_tokens != 3204).float()  # PAD_TOKEN = 3204
+        attention_mask = (melody_tokens != 255).float()  # PAD_TOKEN = 255 in polyphonic data
         
         # Convert to 4D attention mask for RoFormer: [batch_size, 1, 1, seq_len]
         # RoFormer expects: [batch_size, num_heads, seq_len, seq_len] or broadcastable
@@ -86,7 +86,7 @@ class ContrastiveRewardModel(RewardModelBase):
         acc_embeds = self.accompaniment_embedding(accompaniment_tokens)  # [B, seq_len, hidden_size]
         
         # Create attention mask (non-padding tokens)
-        attention_mask = (accompaniment_tokens != 3204).float()  # PAD_TOKEN = 3204
+        attention_mask = (accompaniment_tokens != 255).float()  # PAD_TOKEN = 255 in polyphonic data
         
         # Convert to 4D attention mask for RoFormer: [batch_size, 1, 1, seq_len]
         # RoFormer expects: [batch_size, num_heads, seq_len, seq_len] or broadcastable

@@ -52,44 +52,14 @@ class DiscriminativeRewardDataset(Dataset):
         # Return total samples including both real and fake sequences
         return int(self.num_sequences * (1 + self.negative_ratio))
     
-    def convert_polyphonic_to_tokens(self, polyphonic_seq):
+    def convert_polyphonic_to_flat_tokens(self, polyphonic_seq):
         """
-        Convert polyphonic sequence [seq_len, 12] to tokenized sequence [seq_len].
-        Takes the first non-padding note at each timestep.
+        Convert polyphonic sequence [seq_len, 12] to flat token sequence [seq_len*12].
+        This matches how main models handle polyphonic data.
         """
-        seq_len = polyphonic_seq.shape[0]
-        tokens = []
-        
-        for t in range(seq_len):
-            frame = polyphonic_seq[t]  # Shape: [12] -> [4 notes * 3 features]
-            
-            # Reshape to [4, 3] for 4 notes with (program, pitch, duration)
-            notes = frame.reshape(4, 3)
-            
-            # Find first non-padding note (pitch != 255)
-            found_note = False
-            for note in notes:
-                program, pitch, duration = note[0], note[1], note[2] 
-                
-                if pitch.item() != 255:  # Not padding
-                    if pitch.item() == 254:  # EOS token
-                        tokens.append(3203)  # EOS
-                    else:
-                        # Convert (program, pitch, duration) to single token
-                        # Simple tokenization: use pitch as primary token
-                        if pitch.item() < 128:  # Valid MIDI pitch
-                            # Create composite token: program*128 + pitch (simplified)
-                            token = min(int(program.item()) * 128 + int(pitch.item()), 3201)
-                            tokens.append(token)
-                        else:
-                            tokens.append(3204)  # PAD
-                    found_note = True
-                    break
-            
-            if not found_note:
-                tokens.append(3204)  # PAD if no valid notes found
-        
-        return torch.tensor(tokens, dtype=torch.long)
+        # Simply flatten the polyphonic sequence like main models do
+        flat_tokens = polyphonic_seq.flatten().long()
+        return flat_tokens
 
     def create_interleaved_sequence(self, melody_tokens: torch.Tensor, accompaniment_tokens: torch.Tensor) -> torch.Tensor:
         """
@@ -142,8 +112,8 @@ class DiscriminativeRewardDataset(Dataset):
             acc_seq = torch.cat([acc_seq, acc_pad])
         
         # Convert polyphonic to token sequences
-        melody_tokens = self.convert_polyphonic_to_tokens(melody_seq)
-        acc_tokens = self.convert_polyphonic_to_tokens(acc_seq)
+        melody_tokens = self.convert_polyphonic_to_flat_tokens(melody_seq)
+        acc_tokens = self.convert_polyphonic_to_flat_tokens(acc_seq)
             
         # Handle both tensor and int cases
         if hasattr(length, 'item'):
@@ -185,7 +155,7 @@ class DiscriminativeRewardDataset(Dataset):
         interleaved_seq = self.create_interleaved_sequence(melody_tokens, acc_tokens)
         
         # Create attention mask for non-padding tokens
-        attention_mask = (interleaved_seq != 3204).float()  # PAD_TOKEN = 3204
+        attention_mask = (interleaved_seq != 255).float()  # PAD_TOKEN = 255 in polyphonic data
         
         return {
             'sequence': interleaved_seq,

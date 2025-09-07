@@ -142,7 +142,7 @@ class DiscriminativeRewardModel(RewardModelBase):
             seq_batch = interleaved_sequence.unsqueeze(0)  # [1, seq_len]
             
             if attention_mask is None:
-                attention_mask = (seq_batch != 3204).float()  # PAD_TOKEN = 3204
+                attention_mask = (seq_batch != 255).float()  # PAD_TOKEN = 255 in polyphonic data
             else:
                 attention_mask = attention_mask.unsqueeze(0)  # [1, seq_len]
             
