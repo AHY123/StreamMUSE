@@ -31,7 +31,7 @@ def train_epoch(model, train_loader, optimizer, device, epoch):
         optimizer.zero_grad()
         
         # Forward pass with pitch shift
-        pitch_shifts = batch['pitch_shifts'].to(device)  # [batch_size]
+        pitch_shifts = batch['pitch_shifts'].to(device).squeeze(-1)  # [batch_size, 1] -> [batch_size]
         logits = model(sequences, pitch_shifts)  # [batch_size]
         
         # Binary cross-entropy loss
@@ -73,7 +73,7 @@ def validate(model, val_loader, device):
         for batch in val_loader:
             sequences = batch['sequences'].to(device)
             labels = batch['labels'].to(device)
-            pitch_shifts = batch['pitch_shifts'].to(device)
+            pitch_shifts = batch['pitch_shifts'].to(device).squeeze(-1)  # [batch_size, 1] -> [batch_size]
             
             logits = model(sequences, pitch_shifts)
             loss = F.binary_cross_entropy_with_logits(logits, labels)

@@ -137,12 +137,12 @@ class DiscriminativeDataset(Dataset):
         min_shift = torch.maximum(mel_range[0], acc_range[0])
         max_shift = torch.minimum(mel_range[1], acc_range[1])
         
-        # Generate random pitch shift within valid range
+        # Generate random pitch shift within valid range (same format as main model)
         if min_shift <= max_shift:
             pitch_shift = torch.randint(min_shift, max_shift + 1, (1,)).long()
         else:
             # If no valid range, use 0 (no shift)
-            pitch_shift = torch.tensor(0).long()
+            pitch_shift = torch.tensor([0]).long()
         
         # Create interleaved sequence [acc_0, mel_0, acc_1, mel_1, ...]
         from discriminative_model import create_interleaved_sequence
@@ -151,7 +151,7 @@ class DiscriminativeDataset(Dataset):
         return {
             'sequence': interleaved,  # [2*target_length, 12]
             'label': torch.tensor(label, dtype=torch.float32),
-            'pitch_shift': pitch_shift.item() if pitch_shift.dim() > 0 else pitch_shift  # Scalar pitch shift value
+            'pitch_shift': pitch_shift  # Keep as 1-element tensor like main model
         }
 
 
