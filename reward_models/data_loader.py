@@ -37,12 +37,39 @@ class DiscriminativeDataset(Dataset):
         self.acc_pitch_ranges = torch.load(acc_pitch_range_path, mmap=True)
         
         # Find valid sequences (both melody and acc have sufficient length)
+        # Be more conservative - ensure we have some buffer
         min_lengths = torch.minimum(self.melody_lengths, self.acc_lengths)
         valid_mask = min_lengths >= target_length
-        self.valid_indices = torch.where(valid_mask)[0]
+        
+        # Additional check: ensure the actual data shapes match the lengths
+        valid_indices_temp = torch.where(valid_mask)[0]
+        final_valid_indices = []
         
         print(f"Loaded {len(self.melody_data)} total sequences")
-        print(f"Found {len(self.valid_indices)} sequences with length >= {target_length}")
+        print(f"Initial filtering found {len(valid_indices_temp)} sequences with length >= {target_length}")
+        
+        # Validate each sequence
+        for idx in valid_indices_temp:
+            try:
+                mel_actual_len = self.melody_data[idx].shape[0]
+                acc_actual_len = self.acc_data[idx].shape[0]
+                mel_reported_len = int(self.melody_lengths[idx].item())
+                acc_reported_len = int(self.acc_lengths[idx].item())
+                
+                # Check if reported length matches actual length and is sufficient
+                if (mel_actual_len >= target_length and acc_actual_len >= target_length and
+                    mel_reported_len >= target_length and acc_reported_len >= target_length):
+                    final_valid_indices.append(idx)
+                    
+            except Exception as e:
+                print(f"Skipping sequence {idx}: {e}")
+                continue
+        
+        self.valid_indices = torch.tensor(final_valid_indices)
+        print(f"Final validation found {len(self.valid_indices)} usable sequences")
+        
+        if len(self.valid_indices) == 0:
+            raise ValueError("No valid sequences found! Check your data and target_length.")
         
         # Each valid sequence generates 2 samples: 1 real + 1 fake
         self.num_samples = len(self.valid_indices) * 2
