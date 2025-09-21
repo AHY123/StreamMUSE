@@ -21,9 +21,9 @@ class DiscriminativeDataset(Dataset):
         """
         self.target_length = target_length
         
-        # Load data
-        self.melody_data = torch.load(melody_path, mmap=True)  # [num_sequences, seq_len, 12]
-        self.acc_data = torch.load(acc_path, mmap=True)       # [num_sequences, seq_len, 12]
+        # Load concatenated data - all sequences are in one big tensor
+        self.melody_data = torch.load(melody_path, mmap=True)  # [total_frames, 12]
+        self.acc_data = torch.load(acc_path, mmap=True)       # [total_frames, 12]
         
         # Load lengths and pitch shift ranges
         melody_length_path = melody_path.replace('.pt', '.length.pt')
@@ -31,42 +31,27 @@ class DiscriminativeDataset(Dataset):
         melody_pitch_range_path = melody_path.replace('.pt', '.pitch_shift_range.pt')
         acc_pitch_range_path = acc_path.replace('.pt', '.pitch_shift_range.pt')
         
-        self.melody_lengths = torch.load(melody_length_path, mmap=True)
-        self.acc_lengths = torch.load(acc_length_path, mmap=True)
-        self.melody_pitch_ranges = torch.load(melody_pitch_range_path, mmap=True)
-        self.acc_pitch_ranges = torch.load(acc_pitch_range_path, mmap=True)
+        self.melody_lengths = torch.load(melody_length_path, mmap=True)  # [num_songs]
+        self.acc_lengths = torch.load(acc_length_path, mmap=True)        # [num_songs]
+        self.melody_pitch_ranges = torch.load(melody_pitch_range_path, mmap=True).reshape(-1, 2)  # [num_songs, 2]
+        self.acc_pitch_ranges = torch.load(acc_pitch_range_path, mmap=True).reshape(-1, 2)        # [num_songs, 2]
+        
+        # Calculate start indices for each song in the concatenated data
+        self.melody_starts = torch.zeros(len(self.melody_lengths), dtype=torch.long)
+        self.melody_starts[1:] = torch.cumsum(self.melody_lengths[:-1], dim=0)
+        
+        self.acc_starts = torch.zeros(len(self.acc_lengths), dtype=torch.long)
+        self.acc_starts[1:] = torch.cumsum(self.acc_lengths[:-1], dim=0)
         
         # Find valid sequences (both melody and acc have sufficient length)
-        # Be more conservative - ensure we have some buffer
         min_lengths = torch.minimum(self.melody_lengths, self.acc_lengths)
         valid_mask = min_lengths >= target_length
+        self.valid_indices = torch.where(valid_mask)[0]
         
-        # Additional check: ensure the actual data shapes match the lengths
-        valid_indices_temp = torch.where(valid_mask)[0]
-        final_valid_indices = []
-        
-        print(f"Loaded {len(self.melody_data)} total sequences")
-        print(f"Initial filtering found {len(valid_indices_temp)} sequences with length >= {target_length}")
-        
-        # Validate each sequence
-        for idx in valid_indices_temp:
-            try:
-                mel_actual_len = self.melody_data[idx].shape[0]
-                acc_actual_len = self.acc_data[idx].shape[0]
-                mel_reported_len = int(self.melody_lengths[idx].item())
-                acc_reported_len = int(self.acc_lengths[idx].item())
-                
-                # Check if reported length matches actual length and is sufficient
-                if (mel_actual_len >= target_length and acc_actual_len >= target_length and
-                    mel_reported_len >= target_length and acc_reported_len >= target_length):
-                    final_valid_indices.append(idx)
-                    
-            except Exception as e:
-                print(f"Skipping sequence {idx}: {e}")
-                continue
-        
-        self.valid_indices = torch.tensor(final_valid_indices)
-        print(f"Final validation found {len(self.valid_indices)} usable sequences")
+        print(f"Loaded {len(self.melody_lengths)} total songs")
+        print(f"Total melody frames: {len(self.melody_data)}")
+        print(f"Total acc frames: {len(self.acc_data)}")
+        print(f"Found {len(self.valid_indices)} songs with length >= {target_length}")
         
         if len(self.valid_indices) == 0:
             raise ValueError("No valid sequences found! Check your data and target_length.")
@@ -77,20 +62,27 @@ class DiscriminativeDataset(Dataset):
     def __len__(self):
         return self.num_samples
     
-    def get_sequence_segment(self, data, idx, length):
-        """Extract random segment of target_length from sequence"""
+    def get_sequence_segment(self, data, starts, idx, length):
+        """Extract random segment of target_length from concatenated sequence data"""
         available_length = int(length.item()) if hasattr(length, 'item') else int(length)
+        song_start = int(starts[idx].item())
         
         # Ensure we have enough length
         if available_length < self.target_length:
-            raise ValueError(f"Sequence {idx} has length {available_length} < target_length {self.target_length}")
+            raise ValueError(f"Song {idx} has length {available_length} < target_length {self.target_length}")
         
+        # Random start within the song
         if available_length == self.target_length:
-            start_idx = 0
+            segment_start = 0
         else:
-            start_idx = random.randint(0, available_length - self.target_length)
+            segment_start = random.randint(0, available_length - self.target_length)
         
-        segment = data[idx, start_idx:start_idx + self.target_length]
+        # Calculate absolute indices in the concatenated data
+        abs_start = song_start + segment_start
+        abs_end = abs_start + self.target_length
+        
+        # Extract segment from concatenated data
+        segment = data[abs_start:abs_end]
         
         # Validate segment
         if segment.shape[0] != self.target_length:
@@ -129,12 +121,12 @@ class DiscriminativeDataset(Dataset):
             acc_idx = self.valid_indices[fake_seq_idx]
             label = 0.0
         
-        # Extract segments
+        # Extract segments from concatenated data
         melody_segment = self.get_sequence_segment(
-            self.melody_data, mel_idx, self.melody_lengths[mel_idx]
+            self.melody_data, self.melody_starts, mel_idx, self.melody_lengths[mel_idx]
         )
         acc_segment = self.get_sequence_segment(
-            self.acc_data, acc_idx, self.acc_lengths[acc_idx]
+            self.acc_data, self.acc_starts, acc_idx, self.acc_lengths[acc_idx]
         )
         
         # Generate random pitch shift using per-sequence ranges (same as main model)
@@ -150,7 +142,7 @@ class DiscriminativeDataset(Dataset):
             pitch_shift = torch.randint(min_shift, max_shift + 1, (1,)).long()
         else:
             # If no valid range, use 0 (no shift)
-            pitch_shift = torch.tensor([0]).long()
+            pitch_shift = torch.tensor(0).long()
         
         # Create interleaved sequence [acc_0, mel_0, acc_1, mel_1, ...]
         from discriminative_model import create_interleaved_sequence
@@ -159,7 +151,7 @@ class DiscriminativeDataset(Dataset):
         return {
             'sequence': interleaved,  # [2*target_length, 12]
             'label': torch.tensor(label, dtype=torch.float32),
-            'pitch_shift': pitch_shift[0]  # Scalar pitch shift value
+            'pitch_shift': pitch_shift.item() if pitch_shift.dim() > 0 else pitch_shift  # Scalar pitch shift value
         }
 
 
