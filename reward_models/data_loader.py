@@ -100,7 +100,7 @@ class DiscriminativeDataset(Dataset):
         pitch_shift = torch.randint(-6, 7, (1,)).long()  # Random int in [-6, 6]
         
         # Create interleaved sequence [acc_0, mel_0, acc_1, mel_1, ...]
-        from .discriminative_model import create_interleaved_sequence
+        from discriminative_model import create_interleaved_sequence
         interleaved = create_interleaved_sequence(melody_segment, acc_segment)
         
         return {
