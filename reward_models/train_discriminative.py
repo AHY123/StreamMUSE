@@ -102,7 +102,7 @@ def main():
     parser.add_argument('--num_layers', type=int, default=6, help='Number of transformer layers')
     parser.add_argument('--num_heads', type=int, default=8, help='Number of attention heads')
     parser.add_argument('--device', default='cuda', help='Device to use')
-    parser.add_argument('--num_workers', type=int, default=4, help='Number of data loading workers')
+    parser.add_argument('--num_workers', type=int, default=0, help='Number of data loading workers')
     
     args = parser.parse_args()
     

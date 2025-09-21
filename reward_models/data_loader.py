@@ -25,12 +25,16 @@ class DiscriminativeDataset(Dataset):
         self.melody_data = torch.load(melody_path, mmap=True)  # [num_sequences, seq_len, 12]
         self.acc_data = torch.load(acc_path, mmap=True)       # [num_sequences, seq_len, 12]
         
-        # Load lengths
+        # Load lengths and pitch shift ranges
         melody_length_path = melody_path.replace('.pt', '.length.pt')
         acc_length_path = acc_path.replace('.pt', '.length.pt')
+        melody_pitch_range_path = melody_path.replace('.pt', '.pitch_shift_range.pt')
+        acc_pitch_range_path = acc_path.replace('.pt', '.pitch_shift_range.pt')
         
         self.melody_lengths = torch.load(melody_length_path, mmap=True)
         self.acc_lengths = torch.load(acc_length_path, mmap=True)
+        self.melody_pitch_ranges = torch.load(melody_pitch_range_path, mmap=True)
+        self.acc_pitch_ranges = torch.load(acc_pitch_range_path, mmap=True)
         
         # Find valid sequences (both melody and acc have sufficient length)
         min_lengths = torch.minimum(self.melody_lengths, self.acc_lengths)
@@ -48,13 +52,24 @@ class DiscriminativeDataset(Dataset):
     
     def get_sequence_segment(self, data, idx, length):
         """Extract random segment of target_length from sequence"""
-        available_length = length
+        available_length = int(length.item()) if hasattr(length, 'item') else int(length)
+        
+        # Ensure we have enough length
+        if available_length < self.target_length:
+            raise ValueError(f"Sequence {idx} has length {available_length} < target_length {self.target_length}")
+        
         if available_length == self.target_length:
             start_idx = 0
         else:
             start_idx = random.randint(0, available_length - self.target_length)
         
-        return data[idx, start_idx:start_idx + self.target_length]
+        segment = data[idx, start_idx:start_idx + self.target_length]
+        
+        # Validate segment
+        if segment.shape[0] != self.target_length:
+            raise ValueError(f"Extracted segment has wrong length: {segment.shape[0]} != {self.target_length}")
+        
+        return segment
     
     def __getitem__(self, idx):
         """
@@ -95,9 +110,20 @@ class DiscriminativeDataset(Dataset):
             self.acc_data, acc_idx, self.acc_lengths[acc_idx]
         )
         
-        # Generate random pitch shift (same as main model)
-        # Range typically [-6, 6] semitones for reasonable pitch shifts
-        pitch_shift = torch.randint(-6, 7, (1,)).long()  # Random int in [-6, 6]
+        # Generate random pitch shift using per-sequence ranges (same as main model)
+        mel_range = self.melody_pitch_ranges[mel_idx]  # [min, max]
+        acc_range = self.acc_pitch_ranges[acc_idx]     # [min, max]
+        
+        # Find the valid pitch shift range for both melody and accompaniment
+        min_shift = torch.maximum(mel_range[0], acc_range[0])
+        max_shift = torch.minimum(mel_range[1], acc_range[1])
+        
+        # Generate random pitch shift within valid range
+        if min_shift <= max_shift:
+            pitch_shift = torch.randint(min_shift, max_shift + 1, (1,)).long()
+        else:
+            # If no valid range, use 0 (no shift)
+            pitch_shift = torch.tensor([0]).long()
         
         # Create interleaved sequence [acc_0, mel_0, acc_1, mel_1, ...]
         from discriminative_model import create_interleaved_sequence

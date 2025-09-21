@@ -216,6 +216,11 @@ def create_interleaved_sequence(melody, accompaniment):
         interleaved: [2*seq_len, 12]
     """
     seq_len = min(melody.shape[0], accompaniment.shape[0])
+    
+    # Handle edge case of empty sequences
+    if seq_len == 0:
+        return torch.zeros(0, 12, dtype=melody.dtype, device=melody.device)
+    
     melody = melody[:seq_len]
     accompaniment = accompaniment[:seq_len]
     
