@@ -81,17 +81,37 @@ class DiscriminativeRewardModel(nn.Module):
             self.future_mask = torch.triu(torch.ones(dim, dim, dtype=torch.bool), diagonal=1).to(tensor.device)
         return self.future_mask[:dim, :dim]
     
+    def quantize_duration(self, raw_duration):
+        """
+        Quantize raw duration values to duration template indices.
+        Same logic as preprocessing pipeline.
+        """
+        # Convert numpy array to torch tensor for compatibility
+        duration_templates = torch.tensor(DURATION_TEMPLATES, device=raw_duration.device, dtype=raw_duration.dtype)
+        
+        # Create boundaries for quantization
+        boundaries = (duration_templates[1:] + duration_templates[:-1]) / 2
+        
+        # Find the closest template index for each duration
+        # Use searchsorted to find the insertion point, then adjust
+        indices = torch.searchsorted(boundaries, raw_duration.float())
+        
+        # Clamp to valid range [0, len(DURATION_TEMPLATES)-1]
+        indices = torch.clamp(indices, 0, len(DURATION_TEMPLATES) - 1)
+        
+        return indices.long()
+
     def preprocess(self, x, pitch_shift=None):
         """
         Preprocess polyphonic data exactly like main model.
-        Uses same duration template mapping as preprocessing pipeline.
+        Converts raw duration values to duration indices using templates.
         
         Input: [batch_size, seq_length, 12] polyphonic data
         Output: [batch_size, seq_length, 8] processed tokens
         """
         batch_size, seq_length, subseq_length = x.shape
         
-        # Reshape to [batch, seq, 4, 3] for (program, pitch, duration_index)
+        # Reshape to [batch, seq, 4, 3] for (program, pitch, raw_duration)
         x = x.long().view(batch_size, seq_length, subseq_length // 3, 3)
         
         # Create output tensor [batch, seq, 4, 2]
@@ -107,15 +127,17 @@ class DiscriminativeRewardModel(nn.Module):
         
         x_processed[:, :, :, 0] = 0  # program unchanged
         
-        # CRITICAL: Use same tokenization as main model
-        # x[:, :, :, 2] is duration_index (0-23), not raw duration value
+        # CRITICAL: Quantize raw durations to template indices
+        raw_durations = x[:, :, :, 2]
+        duration_indices = self.quantize_duration(raw_durations)
+        
         # Formula: pitch + duration_index * 128 + 2 + pitch_shift * is_not_drum
         if pitch_shift is None:
             pitch_shift = torch.zeros(batch_size, device=x.device)
         
         x_processed[:, :, :, 1] = (
             x[:, :, :, 1] +  # pitch (0-127)
-            x[:, :, :, 2] * 128 +  # duration_index (0-23) * 128
+            duration_indices * 128 +  # duration_index (0-23) * 128
             2 +  # offset
             pitch_shift.unsqueeze(1).unsqueeze(2) * is_not_drum  # pitch shift
         )
@@ -124,8 +146,8 @@ class DiscriminativeRewardModel(nn.Module):
         x_processed[pad_indices] = self.PAD_TOKEN
         x_processed[:, :, :, 0][eos_indices] = self.EOS_TOKEN
         
-        # No clamping needed - tokens should be in valid range with duration templates
-        # Max token = 127 + 23*128 + 2 + max_pitch_shift ≈ 3073 + pitch_shift < 3205
+        # Defensive clamping - should not be needed but adds safety
+        x_processed = torch.clamp(x_processed, 0, self.vocab_size - 1)
         
         # Flatten to [batch, seq, 8]
         return x_processed.view(batch_size, seq_length, subseq_length // 3 * 2)
