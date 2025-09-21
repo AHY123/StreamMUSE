@@ -63,6 +63,7 @@ class DiscriminativeDataset(Dataset):
         Returns:
             interleaved_sequence: [2*target_length, 12] 
             label: 0 (fake) or 1 (real)
+            pitch_shift: random pitch shift value
         """
         # Determine if this is a real or fake sample
         is_real = idx % 2 == 0
@@ -94,13 +95,18 @@ class DiscriminativeDataset(Dataset):
             self.acc_data, acc_idx, self.acc_lengths[acc_idx]
         )
         
+        # Generate random pitch shift (same as main model)
+        # Range typically [-6, 6] semitones for reasonable pitch shifts
+        pitch_shift = torch.randint(-6, 7, (1,)).long()  # Random int in [-6, 6]
+        
         # Create interleaved sequence [acc_0, mel_0, acc_1, mel_1, ...]
         from .discriminative_model import create_interleaved_sequence
         interleaved = create_interleaved_sequence(melody_segment, acc_segment)
         
         return {
             'sequence': interleaved,  # [2*target_length, 12]
-            'label': torch.tensor(label, dtype=torch.float32)
+            'label': torch.tensor(label, dtype=torch.float32),
+            'pitch_shift': pitch_shift[0]  # Scalar pitch shift value
         }
 
 
@@ -112,14 +118,16 @@ def collate_batch(batch):
         batch: List of samples from __getitem__
         
     Returns:
-        Batched sequences and labels
+        Batched sequences, labels, and pitch shifts
     """
-    sequences = torch.stack([item['sequence'] for item in batch])  # [batch_size, 2*seq_len, 12]
-    labels = torch.stack([item['label'] for item in batch])        # [batch_size]
+    sequences = torch.stack([item['sequence'] for item in batch])     # [batch_size, 2*seq_len, 12]
+    labels = torch.stack([item['label'] for item in batch])          # [batch_size]
+    pitch_shifts = torch.stack([item['pitch_shift'] for item in batch])  # [batch_size]
     
     return {
         'sequences': sequences,
-        'labels': labels
+        'labels': labels,
+        'pitch_shifts': pitch_shifts
     }
 
 

@@ -157,11 +157,13 @@ class DiscriminativeRewardModel(nn.Module):
         h = self.local_decoder(emb, attention_mask=self.buffered_future_mask(emb))[0]
         return h
     
-    def forward(self, x):
+    def forward(self, x, pitch_shift=None):
         """
         Forward pass through hierarchical architecture.
         
-        Input: [batch_size, seq_len, 12] interleaved melody-accompaniment
+        Input: 
+            x: [batch_size, seq_len, 12] interleaved melody-accompaniment
+            pitch_shift: [batch_size] pitch shift values for each sequence
         Output: [batch_size, 1] binary classification logits
         """
         batch_size, seq_len, subseq_len = x.shape
@@ -169,8 +171,8 @@ class DiscriminativeRewardModel(nn.Module):
         # Ensure even number of frames (interleaved)
         assert seq_len % 2 == 0, "Expected even number of frames (interleaved mel-acc)"
         
-        # Preprocess polyphonic data
-        x = self.preprocess(x)  # [batch, seq, 8]
+        # Preprocess polyphonic data with pitch shift
+        x = self.preprocess(x, pitch_shift)  # [batch, seq, 8]
         
         # Create token type embeddings (0=melody, 1=accompaniment)
         idx = torch.arange(seq_len, device=x.device)
