@@ -1,7 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from transformers.models.roformer.modeling_roformer import RoFormerEncoder, RoFormerConfig
+
+# Duration templates from preprocessing pipeline (same as main model)
+DURATION_TEMPLATES = np.array([1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096])
 
 
 class DiscriminativeRewardModel(nn.Module):
@@ -80,13 +84,14 @@ class DiscriminativeRewardModel(nn.Module):
     def preprocess(self, x, pitch_shift=None):
         """
         Preprocess polyphonic data exactly like main model.
+        Uses same duration template mapping as preprocessing pipeline.
         
         Input: [batch_size, seq_length, 12] polyphonic data
         Output: [batch_size, seq_length, 8] processed tokens
         """
         batch_size, seq_length, subseq_length = x.shape
         
-        # Reshape to [batch, seq, 4, 3] for (program, pitch, duration)
+        # Reshape to [batch, seq, 4, 3] for (program, pitch, duration_index)
         x = x.long().view(batch_size, seq_length, subseq_length // 3, 3)
         
         # Create output tensor [batch, seq, 4, 2]
@@ -102,20 +107,25 @@ class DiscriminativeRewardModel(nn.Module):
         
         x_processed[:, :, :, 0] = 0  # program unchanged
         
-        # Combine pitch and duration: pitch + duration*128 + offset + pitch_shift
+        # CRITICAL: Use same tokenization as main model
+        # x[:, :, :, 2] is duration_index (0-23), not raw duration value
+        # Formula: pitch + duration_index * 128 + 2 + pitch_shift * is_not_drum
         if pitch_shift is None:
             pitch_shift = torch.zeros(batch_size, device=x.device)
         
         x_processed[:, :, :, 1] = (
-            x[:, :, :, 1] + 
-            x[:, :, :, 2] * 128 + 
-            2 + 
-            pitch_shift.unsqueeze(1).unsqueeze(2) * is_not_drum
+            x[:, :, :, 1] +  # pitch (0-127)
+            x[:, :, :, 2] * 128 +  # duration_index (0-23) * 128
+            2 +  # offset
+            pitch_shift.unsqueeze(1).unsqueeze(2) * is_not_drum  # pitch shift
         )
         
         # Apply special tokens
         x_processed[pad_indices] = self.PAD_TOKEN
         x_processed[:, :, :, 0][eos_indices] = self.EOS_TOKEN
+        
+        # No clamping needed - tokens should be in valid range with duration templates
+        # Max token = 127 + 23*128 + 2 + max_pitch_shift ≈ 3073 + pitch_shift < 3205
         
         # Flatten to [batch, seq, 8]
         return x_processed.view(batch_size, seq_length, subseq_length // 3 * 2)
