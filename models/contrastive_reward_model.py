@@ -11,43 +11,60 @@ from typing import Tuple
 
 class ContrastiveRewardModel(RewardModelBase):
     """
-    Contrastive reward model for global harmony assessment.
-    Uses dual RoFormer encoders to learn melody-accompaniment relationships.
+    Contrastive reward model for global harmony assessment between melody and accompaniment.
+    
+    Architecture:
+    - Dual RoFormer encoders: separate processing for melody and accompaniment
+    - Contrastive learning with InfoNCE loss
+    - Global pooling to create sequence-level representations
+    - Cosine similarity for compatibility scoring
+    
+    Training Objective:
+    - Positive pairs: Real melody-accompaniment combinations
+    - Negative pairs: Random mismatched combinations
+    - InfoNCE loss maximizes similarity for positive pairs, minimizes for negative pairs
     """
     
     def __init__(self, model_schema: ContrastiveRewardModelSchema):
         super().__init__(model_schema)
         
-        self.temperature = model_schema.temperature
-        self.embedding_dim = model_schema.embedding_dim
+        # Contrastive learning parameters
+        self.temperature = model_schema.temperature  # Temperature scaling for InfoNCE loss
+        self.embedding_dim = model_schema.embedding_dim  # Final embedding dimension
         
-        # Create dual RoFormer encoders
+        # Dual RoFormer encoders for separate melody/accompaniment processing
         self.melody_encoder = RoFormerEncoder(self.roformer_config)
         self.accompaniment_encoder = RoFormerEncoder(self.roformer_config)
         
-        # Embedding layers for melody and accompaniment tokens
+        # Token embedding layers (separate for melody and accompaniment)
         self.melody_embedding = nn.Embedding(self.tokenizer_vocab_size, self.hidden_size)
         self.accompaniment_embedding = nn.Embedding(self.tokenizer_vocab_size, self.hidden_size)
         
-        # Projection layers to map encoder outputs to embedding space
+        # Projection layers to final embedding space for contrastive learning
         self.melody_projection = nn.Linear(self.hidden_size, self.embedding_dim)
         self.accompaniment_projection = nn.Linear(self.hidden_size, self.embedding_dim)
         
     def encode_melody(self, melody_tokens: torch.Tensor) -> torch.Tensor:
         """
-        Encode melody sequence to embedding vector.
+        Encode melody sequence to a single embedding vector using RoFormer encoder.
+        
+        Process:
+        1. Convert tokens to embeddings
+        2. Apply RoFormer encoder with attention masking
+        3. Global average pooling over sequence dimension
+        4. Project to final embedding space
         
         Args:
-            melody_tokens: [batch_size, seq_len]
+            melody_tokens: Flattened melody tokens [batch_size, seq_len]
             
         Returns:
-            torch.Tensor: [batch_size, embedding_dim]
+            torch.Tensor: Melody embeddings [batch_size, embedding_dim]
         """
-        # Create embeddings
+        # Convert tokens to embeddings
         melody_embeds = self.melody_embedding(melody_tokens)  # [B, seq_len, hidden_size]
         
-        # Create attention mask (non-padding tokens)
-        attention_mask = (melody_tokens != 255).float()  # PAD_TOKEN = 255 in polyphonic data
+        # Create attention mask for non-padding tokens (255 = PAD_TOKEN in polyphonic data)
+        attention_mask = (melody_tokens != 255).float()  # [B, seq_len]
         
         # Convert to 4D attention mask for RoFormer: [batch_size, 1, 1, seq_len]
         # RoFormer expects: [batch_size, num_heads, seq_len, seq_len] or broadcastable

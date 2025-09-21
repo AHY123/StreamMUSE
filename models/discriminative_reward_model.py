@@ -10,27 +10,42 @@ import time
 
 class DiscriminativeRewardModel(RewardModelBase):
     """
-    Discriminative reward model for local quality assessment.
-    Uses single RoFormer encoder to classify melody-accompaniment combinations as real or fake.
+    Discriminative reward model for binary classification of melody-accompaniment quality.
+    
+    Architecture:
+    - Single RoFormer encoder processing interleaved melody-accompaniment sequences
+    - Binary classification head for real/fake prediction
+    - Support for both CLS token and mean pooling strategies
+    - Sigmoid activation for probability output
+    
+    Training Objective:
+    - Real sequences: Actual melody-accompaniment pairs from training data
+    - Fake sequences: Generated or corrupted musical sequences
+    - Binary cross-entropy loss for real/fake classification
+    
+    Use Case:
+    - Quality filtering: identify low-quality generated accompaniments
+    - Reward signal: probability of being "real" as quality score
     """
     
     def __init__(self, model_schema: DiscriminativeRewardModelSchema):
         super().__init__(model_schema)
         
-        self.pooling_strategy = model_schema.pooling_strategy
-        self.num_classes = model_schema.num_classes
+        # Model configuration parameters
+        self.pooling_strategy = model_schema.pooling_strategy  # "cls" or "mean"
+        self.num_classes = model_schema.num_classes  # Should be 2 for binary classification
         
-        # Single RoFormer encoder for processing interleaved sequences
+        # Single RoFormer encoder for unified sequence processing
         self.encoder = RoFormerEncoder(self.roformer_config)
         
-        # Embedding layer for combined melody+accompaniment tokens
+        # Embedding layer for interleaved melody+accompaniment tokens
         self.token_embedding = nn.Embedding(self.tokenizer_vocab_size, self.hidden_size)
         
-        # CLS token embedding if using CLS pooling strategy
+        # CLS token for sequence-level representation (if using CLS pooling)
         if self.pooling_strategy == "cls":
             self.cls_token = nn.Parameter(torch.randn(1, 1, self.hidden_size))
             
-        # Classification head
+        # Binary classification head: hidden_size -> num_classes (2)
         self.classifier = nn.Linear(self.hidden_size, self.num_classes)
         self.dropout = nn.Dropout(self.model_schema.hidden_dropout_prob)
         

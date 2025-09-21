@@ -10,18 +10,27 @@ import os
 
 class ContrastiveRewardDataset(Dataset):
     """
-    Dataset for contrastive reward model training.
-    Creates positive and negative melody-accompaniment pairs.
+    Dataset for contrastive reward model training using melody-accompaniment pairs.
+    
+    Data Generation Strategy:
+    - Positive pairs: Real melody-accompaniment combinations from training data
+    - Negative pairs: Random melody-accompaniment mismatches for contrastive learning
+    - Configurable negative sampling ratio for balanced training
+    
+    Data Format:
+    - Input: Polyphonic MIDI data [seq_len, 12] → flattened to [seq_len * 12]
+    - Token range: 0-255 (uint8) with 255 as padding token
+    - Sequences truncated/padded to target_length for consistent batching
     """
     
     def __init__(self, data_path: str, target_length: int = 256, negative_sampling_ratio: float = 1.0):
         """
-        Initialize dataset.
+        Initialize contrastive dataset for melody-accompaniment pairs.
         
         Args:
-            data_path: Path to preprocessed .pt file containing melody and accompaniment data
-            target_length: Target sequence length for training
-            negative_sampling_ratio: Ratio of negative to positive samples
+            data_path: Path to preprocessed .pt file (expects accompaniment data)
+            target_length: Target sequence length after flattening (seq_len * 12)
+            negative_sampling_ratio: Ratio of negative to positive samples (1.0 = equal amounts)
         """
         self.data_path = data_path
         self.target_length = target_length
@@ -54,13 +63,30 @@ class ContrastiveRewardDataset(Dataset):
     
     def convert_polyphonic_to_flat_tokens(self, polyphonic_seq):
         """
-        Convert polyphonic sequence [seq_len, 12] to flat token sequence [seq_len*12].
-        This matches how main models handle polyphonic data.
+        Convert polyphonic sequence to flat token sequence for transformer input.
+        
+        Polyphonic data format: [seq_len, 12] where 12 represents:
+        - 4 simultaneous notes × 3 features each (program, pitch, duration)
+        - Each value in range [0, 255] with 255 as padding token
+        
+        Process:
+        1. Flatten: [seq_len, 12] → [seq_len * 12]
+        2. Clamp values to valid range [0, 255] for vocab_size=256
+        3. Convert to long tensor for embedding layer
+        
+        Args:
+            polyphonic_seq: Polyphonic sequence tensor [seq_len, 12]
+            
+        Returns:
+            torch.Tensor: Flattened token sequence [seq_len * 12] with dtype=long
         """
-        # Simply flatten the polyphonic sequence like main models do
-        # Ensure values are within valid range [0, 255] and convert to long
+        # Flatten polyphonic representation to 1D sequence
         flat_tokens = polyphonic_seq.flatten()
+        
+        # Ensure all token values are within vocabulary range [0, 255]
+        # This prevents CUDA assertion errors in embedding layer
         flat_tokens = torch.clamp(flat_tokens, 0, 255).long()
+        
         return flat_tokens
 
     def get_sequence_pair(self, melody_idx: int, accompaniment_idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:

@@ -137,15 +137,16 @@ class ProjectRunner:
                 self.model = OldM2ANomaskTransformer(
                     model_schema=self.config.model,
                 )
+            # Reward Model Support - Added for melody-accompaniment quality evaluation
             elif self.config.model.model_type == "Contrastive-Reward-Model":
                 from models.contrastive_reward_model import ContrastiveRewardModel
-
+                # Contrastive model uses dual encoders for harmony assessment
                 self.model = ContrastiveRewardModel(
                     model_schema=self.config.model,
                 )
             elif self.config.model.model_type == "Discriminative-Reward-Model":
                 from models.discriminative_reward_model import DiscriminativeRewardModel
-
+                # Discriminative model uses binary classification for quality scoring
                 self.model = DiscriminativeRewardModel(
                     model_schema=self.config.model,
                 )
