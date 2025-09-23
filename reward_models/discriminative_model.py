@@ -18,7 +18,7 @@ class DiscriminativeRewardModel(nn.Module):
     - Classification head: Binary real/fake prediction
     """
     
-    def __init__(self, hidden_size=512, num_layers=6, num_heads=8, vocab_size=3205):
+    def __init__(self, hidden_size=768, num_layers=12, num_heads=12, vocab_size=3205):
         super().__init__()
         
         self.hidden_size = hidden_size
@@ -33,10 +33,10 @@ class DiscriminativeRewardModel(nn.Module):
         self.local_config = RoFormerConfig(
             vocab_size=vocab_size,
             hidden_size=hidden_size,
-            num_hidden_layers=2,  # Local encoder is shallow
-            num_attention_heads=num_heads,
-            intermediate_size=hidden_size * 4,
-            max_position_embeddings=512,
+            num_hidden_layers=3,  # Local encoder is shallow
+            num_attention_heads=8,
+            intermediate_size=hidden_size * 1,
+            max_position_embeddings=1024,
             layer_norm_eps=1e-12,
             hidden_dropout_prob=0.1,
             attention_probs_dropout_prob=0.1,
@@ -49,7 +49,7 @@ class DiscriminativeRewardModel(nn.Module):
             num_hidden_layers=num_layers,
             num_attention_heads=num_heads,
             intermediate_size=hidden_size * 4,
-            max_position_embeddings=512,
+            max_position_embeddings=1024,
             layer_norm_eps=1e-12,
             hidden_dropout_prob=0.1,
             attention_probs_dropout_prob=0.1,
