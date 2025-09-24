@@ -123,10 +123,10 @@ def export_samples():
         
         try:
             # Export melody
-            tensor_to_midi(melody, output_dir / mel_filename, "Melody")
+            tensor_to_midi(melody, str(output_dir / mel_filename), "Melody")
             
             # Export accompaniment  
-            tensor_to_midi(accompaniment, output_dir / acc_filename, "Accompaniment")
+            tensor_to_midi(accompaniment, str(output_dir / acc_filename), "Accompaniment")
             
             print(f"  ✅ Exported: {mel_filename} & {acc_filename}")
             
