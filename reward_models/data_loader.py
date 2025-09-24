@@ -137,6 +137,10 @@ class DiscriminativeDataset(Dataset):
         min_shift = torch.maximum(mel_range[0], acc_range[0])
         max_shift = torch.minimum(mel_range[1], acc_range[1])
         
+        # Limit pitch shifts to reasonable range (±12 semitones = 1 octave)
+        min_shift = torch.clamp(min_shift, -12, 12)
+        max_shift = torch.clamp(max_shift, -12, 12)
+        
         # Generate random pitch shift within valid range (same format as main model)
         if min_shift <= max_shift:
             pitch_shift = torch.randint(min_shift, max_shift + 1, (1,)).long()
