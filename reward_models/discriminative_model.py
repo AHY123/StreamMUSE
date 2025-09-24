@@ -12,10 +12,13 @@ class DiscriminativeRewardModel(nn.Module):
     """
     Discriminative reward model for binary classification of melody-accompaniment quality.
     
-    Architecture mirrors the main StreamMUSE model:
+    Streamlined architecture (encoder-only):
     - Local encoder: Process polyphonic frames [seq_len, 12] -> frame representations
     - Global encoder: Process frame sequence -> final sequence embedding  
     - Classification head: Binary real/fake prediction
+    
+    Note: Removed local_decoder and final_decoder (used in generative model) 
+    since only encoder representations are needed for classification.
     """
     
     def __init__(self, hidden_size=768, num_layers=12, num_heads=12, vocab_size=3205):
@@ -61,13 +64,15 @@ class DiscriminativeRewardModel(nn.Module):
         
         # Encoder layers
         self.local_encoder = RoFormerEncoder(self.local_config)
-        self.local_decoder = RoFormerEncoder(self.local_config)
         self.global_encoder = RoFormerEncoder(self.global_config)
+        
+        # Note: local_decoder and final_decoder removed for discriminative task
+        # Only need encoder representations for classification
         
         # Global SOS token
         self.global_sos = nn.Parameter(torch.randn(hidden_size))
         
-        # Classification head
+        # Classification head (map from hidden_size to binary classification)
         self.classifier = nn.Linear(hidden_size, 1)  # Binary classification
         self.dropout = nn.Dropout(0.1)
         
@@ -146,9 +151,6 @@ class DiscriminativeRewardModel(nn.Module):
         x_processed[pad_indices] = self.PAD_TOKEN
         x_processed[:, :, :, 0][eos_indices] = self.EOS_TOKEN
         
-        # Defensive clamping - should not be needed but adds safety
-        x_processed = torch.clamp(x_processed, 0, self.vocab_size - 1)
-        
         # Flatten to [batch, seq, 8]
         return x_processed.view(batch_size, seq_length, subseq_length // 3 * 2)
     
@@ -179,15 +181,6 @@ class DiscriminativeRewardModel(nn.Module):
         
         return h[:, 0], emb[:, :-1]  # Return SOS representation and embeddings
     
-    def local_decode(self, h, emb):
-        """Local decoding step (simplified for classification)"""
-        batch_size, subseq_len, _ = emb.shape
-        h = h.view(batch_size, 1, -1)
-        emb = torch.cat([h, emb[:, 1:]], dim=1)
-        
-        # Apply autoregressive attention
-        h = self.local_decoder(emb, attention_mask=self.buffered_future_mask(emb))[0]
-        return h
     
     def forward(self, x, pitch_shift=None):
         """
@@ -198,7 +191,7 @@ class DiscriminativeRewardModel(nn.Module):
             pitch_shift: [batch_size] pitch shift values for each sequence
         Output: [batch_size, 1] binary classification logits
         """
-        batch_size, seq_len, subseq_len = x.shape
+        batch_size, seq_len = x.shape[:2]
         
         # Ensure even number of frames (interleaved)
         assert seq_len % 2 == 0, "Expected even number of frames (interleaved mel-acc)"
@@ -207,29 +200,30 @@ class DiscriminativeRewardModel(nn.Module):
         x = self.preprocess(x, pitch_shift)  # [batch, seq, 8]
         
         # Create token type embeddings (0=melody, 1=accompaniment)
+        # Data format: [acc_0, mel_0, acc_1, mel_1, ...] so even=acc, odd=mel
         idx = torch.arange(seq_len, device=x.device)
-        frame_type = (idx % 2 == 0).long()  # even=acc(1), odd=mel(0) -> need to flip
-        frame_type = 1 - frame_type  # Now: even=acc(1), odd=mel(0)
+        frame_type = (idx % 2 == 0).long()  # even indices = 1 (acc), odd indices = 0 (mel)
         
         token_type_ids = frame_type.unsqueeze(0).unsqueeze(-1).expand(batch_size, seq_len, x.shape[-1])
         sos_type = frame_type.unsqueeze(0).unsqueeze(-1).expand(batch_size, seq_len, 1)
         token_type_ids = torch.cat([sos_type, token_type_ids], dim=-1)
         
         # Local encoding
-        h, emb = self.local_encode(x, token_type_ids)
+        h, _ = self.local_encode(x, token_type_ids)  # Only need h, not emb
         h = h.view(batch_size, seq_len, -1)
         
-        # Global encoding preparation
+        # Global encoding preparation (same as main model)
         sos = self.global_sos.view(1, 1, -1).repeat(batch_size, 1, 1)
         h = torch.cat([sos, h[:, :-1]], dim=1)
         
-        # Global encoding with causal attention
-        h = self.global_encoder(h, attention_mask=self.buffered_future_mask(h))[0]
+        # Global encoding with causal attention AND interleaved positional encoding
+        h_global = self.global_encoder(h, attention_mask=self.buffered_future_mask(h), interleave_pos=True)[0]
         
-        # Global pooling - take final token representation
-        sequence_representation = h[:, -1]  # [batch_size, hidden_size]
+        # Use global representation directly for classification
+        # Take the final hidden state from global encoder as sequence representation
+        sequence_representation = h_global[:, -1]  # [batch_size, hidden_size]
         
-        # Classification
+        # Classification 
         sequence_representation = self.dropout(sequence_representation)
         logits = self.classifier(sequence_representation)  # [batch_size, 1]
         
