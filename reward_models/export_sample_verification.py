@@ -12,58 +12,10 @@ from pathlib import Path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from reward_models.data_loader import create_dataloaders
-import pretty_midi
 
-
-def tensor_to_midi(tensor_data, output_path, track_name="Track"):
-    """
-    Convert tensor data [seq_len, 12] back to MIDI.
-    Format: 4 notes per frame, each note = (program, pitch, duration)
-    """
-    # Reshape from [seq_len, 12] to [seq_len, 4, 3]
-    seq_len = tensor_data.shape[0]
-    notes_data = tensor_data.view(seq_len, 4, 3)
-    
-    # Create MIDI object
-    midi = pretty_midi.PrettyMIDI()
-    instrument = pretty_midi.Instrument(program=0, name=track_name)
-    
-    current_time = 0.0
-    time_per_frame = 0.125  # 8th note at 120 BPM = 0.125 seconds
-    
-    for frame_idx in range(seq_len):
-        frame_notes = notes_data[frame_idx]  # [4, 3]
-        
-        for note_idx in range(4):
-            program, pitch, duration_raw = frame_notes[note_idx]
-            
-            program = int(program.item())
-            pitch = int(pitch.item())
-            duration_raw = int(duration_raw.item())
-            
-            # Skip pad tokens and invalid notes
-            if pitch == 255 or program == 254 or pitch < 0 or pitch > 127:
-                continue
-                
-            # Convert raw duration to seconds (approximate)
-            if duration_raw == 0:
-                continue
-            duration_seconds = duration_raw * time_per_frame / 4.0  # Rough conversion
-            duration_seconds = max(0.1, min(2.0, duration_seconds))  # Clamp to reasonable range
-            
-            # Create MIDI note
-            note = pretty_midi.Note(
-                velocity=80,
-                pitch=pitch,
-                start=current_time,
-                end=current_time + duration_seconds
-            )
-            instrument.notes.append(note)
-        
-        current_time += time_per_frame
-    
-    midi.instruments.append(instrument)
-    midi.write(output_path)
+# Import the existing tested tensor_to_midi function
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "preprocess"))
+from preprocess_midi2pt_dataset import tensor_to_midi
 
 
 def export_samples():
@@ -122,11 +74,11 @@ def export_samples():
         acc_filename = f"sample_{i:02d}_{label_str}_accompaniment_shift{pitch_shift:+d}.mid"
         
         try:
-            # Export melody
-            tensor_to_midi(melody, str(output_dir / mel_filename), "Melody")
+            # Export melody (use program 0 = piano for melody)
+            tensor_to_midi(melody, str(output_dir / mel_filename), tempo=120.0, instrument_program=0)
             
-            # Export accompaniment  
-            tensor_to_midi(accompaniment, str(output_dir / acc_filename), "Accompaniment")
+            # Export accompaniment (use program 1 = bright piano for accompaniment)
+            tensor_to_midi(accompaniment, str(output_dir / acc_filename), tempo=120.0, instrument_program=1)
             
             print(f"  ✅ Exported: {mel_filename} & {acc_filename}")
             
@@ -174,11 +126,4 @@ def export_samples():
 
 
 if __name__ == "__main__":
-    # Check if pretty_midi is available
-    try:
-        import pretty_midi
-    except ImportError:
-        print("❌ pretty_midi not found. Install with: pip install pretty_midi")
-        sys.exit(1)
-    
     export_samples()
