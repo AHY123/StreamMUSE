@@ -1,5 +1,5 @@
 from m2a_transformer import RoFormerSymbolicTransformer, EOS_TOKEN, PAD_TOKEN
-from StreamMUSE.preprocess.preprocess_midi2pt_dataset import preprocess_midi, DURATION_TEMPLATES
+from preprocess.preprocess_midi2pt_dataset import preprocess_midi, DURATION_TEMPLATES
 import torch
 import pretty_midi
 import os
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="process midi folder(s) into usable tensors for the task")
 
     parser.add_argument("--model_path", type=str, help="path to model checkpoint")
-    parser.add_argument("--prompt_len", type=int, default=75, help="length of prompt")
+    parser.add_argument("--prompt_len", type=int, default=150, help="length of prompt")
     parser.add_argument("--n_samples", type=int, default=2, help="number of samples")
     parser.add_argument("--temperature", type=float, default=1.0, help="temperature")
 
@@ -145,10 +145,6 @@ if __name__ == "__main__":
     models =util.module_from_spec(spec)
     spec.loader.exec_module(models)
     model = models.OldPtM2ANew.load_from_checkpoint(model_path, model_size=args.model_size, map_location=device)
-    # if "small" in model_path:
-    #     model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, large=False)
-    # else:
-    #     model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, large=True)
     model.save_name = os.path.basename(model_path)
     model.cuda()
     model.eval()
