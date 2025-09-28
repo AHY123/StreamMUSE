@@ -137,11 +137,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model_path = args.model_path
-
-    if "small" in model_path:
-        model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, large=False)
-    else:
-        model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, large=True)
+    import sys
+    sys.path.insert(0, "/home/ubuntu/ugrip/yuanhsin/Training-Framework")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    from importlib import util
+    spec= util.spec_from_file_location("src.model.old_pt_m2a_new_.model.OldPtM2ANew","/home/ubuntu/ugrip/yuanhsin/Training-Framework/src/model/old_pt_m2a_new_/model.py")
+    models =util.module_from_spec(spec)
+    spec.loader.exec_module(models)
+    model = models.OldPtM2ANew.load_from_checkpoint(model_path, model_size=args.model_size, map_location=device)
+    # if "small" in model_path:
+    #     model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, large=False)
+    # else:
+    #     model = RoFormerSymbolicTransformer.load_from_checkpoint(model_path, large=True)
     model.save_name = os.path.basename(model_path)
     model.cuda()
     model.eval()
