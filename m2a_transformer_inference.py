@@ -79,7 +79,7 @@ def decode_output(outputs, save_path, tempo=120.0, prompt=True, single=False):
                 # 编码公式：pitch + duration * 128
                 pitch = pitch_duration % 128
                 duration = pitch_duration // 128
-
+                print(f"Note @ {time_step}, {i}: program={program}, pitch={pitch}, duration={duration}")
                 # 验证program值（0=伴奏，1=旋律）
                 if program != 0 and program != 1:
                     print("Invalid program:", program, "@", time_step, i)
@@ -248,8 +248,8 @@ def continuation(model, midi_path, prompt_length=100, generation_length=384, tem
     # 保存生成结果
     for i in range(n_samples):
         # 提取第i个样本的输出
-        # output是列表，每个元素形状为 [n_samples, subseq_len]
-        # 提取第i个样本：[n_samples, subseq_len] -> [1, subseq_len]
+        # output是列表，每个元素形状为 [n_samples, n*subseq_len]
+        # 提取第i个样本：[n_samples, n*subseq_len] -> [1, n*subseq_len]
         output_i = [output[j][i : i + 1, :] for j in range(len(output))]
 
         # 解码并保存MIDI文件
@@ -266,14 +266,12 @@ if __name__ == "__main__":
 
     parser.add_argument("--model_path", type=str, help="模型检查点文件路径")
     parser.add_argument("--prompt_len", type=int, default=150, help="提示长度（帧数）")
-    parser.add_argument("--n_samples", type=int, default=2, help="生成样本数量")
+    parser.add_argument("--n_samples", type=int, default=1, help="生成样本数量")
     parser.add_argument("--temperature", type=float, default=1.0, help="采样温度")
 
     args = parser.parse_args()
 
     # 设置模型路径（硬编码，可通过命令行参数覆盖）
-    model_path = args.model_path
-    model_path = "/home/ubuntu/ugrip/yuanhsin/Training-Framework/output/m2a_new_Yuan/target_length=384/0.0.6/checkpoints/last.ckpt"
 
     # 添加模块搜索路径
     import sys
@@ -283,17 +281,17 @@ if __name__ == "__main__":
     # 设置计算设备
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # 注释掉的动态模块加载代码（已替换为直接导入）
-    # from importlib import util
-    # spec= util.spec_from_file_location("src.model.old_pt_m2a_new_.model.OldPtM2ANew","/home/ubuntu/ugrip/yuanhsin/Training-Framework/src/model/old_pt_m2a_new_/model.py")
-    # models =util.module_from_spec(spec)
-    # spec.loader.exec_module(models)
-
+    # # 导入并加载模型
+    # from src.model.old_pt_m2a_new_.model import OldPtM2ANew
+    # model_path = args.model_path
+    # model_path = "/home/ubuntu/ugrip/yuanhsin/Training-Framework/output/m2a_new_Yuan/target_length=384/0.0.6/checkpoints/val/epoch=9-val/epoch/loss=0.3673.ckpt"
+    # model = OldPtM2ANew.load_from_checkpoint(checkpoint_path=model_path, map_location=device)
     # 导入并加载模型
-    from src.model.old_pt_m2a_new_.model import OldPtM2ANew
+    from src.model.old_pt_m2a_transformer_with_att.model import OldPtM2ATransformerWithAttention
 
-    model = OldPtM2ANew.load_from_checkpoint(checkpoint_path=model_path, map_location=device)
-
+    model_path = args.model_path
+    model_path = "/home/ubuntu/ugrip/yuanhsin/Training-Framework/output/m2a_with_att/dropout_prob=0.3-target_length=384/0.0.0/checkpoints/epoch=743-step=150288.ckpt"
+    model = OldPtM2ATransformerWithAttention.load_from_checkpoint(checkpoint_path=model_path, map_location=device)
     # 设置模型属性和状态
     model.save_name = os.path.basename(model_path)  # 用于生成文件名
     model.cuda()  # 移动到GPU
