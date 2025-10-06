@@ -17,6 +17,16 @@ from datetime import datetime
 from discriminative_model import DiscriminativeRewardModel
 from data_loader import create_dataloaders
 
+# Import for MIDI export (with fallback)
+try:
+    import sys
+    sys.path.append('..')
+    from preprocess.preprocess_midi2pt_dataset import tensor_to_midi
+    MIDI_EXPORT_AVAILABLE = True
+except ImportError:
+    MIDI_EXPORT_AVAILABLE = False
+    print("Warning: MIDI export not available - install required dependencies")
+
 
 def setup_logging(output_dir):
     """Setup logging configuration"""
@@ -49,6 +59,57 @@ def setup_logging(output_dir):
     logger.addHandler(file_handler)
     
     return logger
+
+
+def export_samples(train_loader, export_dir, num_samples=8):
+    """Export first few samples as MIDI files for verification"""
+    if not MIDI_EXPORT_AVAILABLE:
+        print("MIDI export not available - skipping sample export")
+        return
+    
+    os.makedirs(export_dir, exist_ok=True)
+    print(f"Exporting {num_samples} samples to {export_dir}...")
+    
+    # Get first batch
+    batch = next(iter(train_loader))
+    sequences = batch['sequences']  # [batch_size, 2*seq_len, 12]
+    labels = batch['labels']        # [batch_size]
+    pitch_shifts = batch['pitch_shifts']  # [batch_size]
+    
+    # Export up to num_samples
+    actual_samples = min(num_samples, sequences.shape[0])
+    
+    for i in range(actual_samples):
+        sequence = sequences[i]  # [2*seq_len, 12]
+        label = labels[i].item()
+        pitch_shift = pitch_shifts[i].item()
+        
+        # Split interleaved sequence back to melody and accompaniment
+        # Interleaved format: [acc_0, mel_0, acc_1, mel_1, ...]
+        melody = sequence[1::2]      # Odd indices: mel_0, mel_1, ...
+        accompaniment = sequence[0::2]  # Even indices: acc_0, acc_1, ...
+        
+        # Create descriptive filename
+        label_str = "REAL" if label == 1.0 else "FAKE"
+        filename_base = f"sample_{i:02d}_{label_str}_shift{pitch_shift:+d}"
+        
+        mel_path = os.path.join(export_dir, f"{filename_base}_melody.mid")
+        acc_path = os.path.join(export_dir, f"{filename_base}_accompaniment.mid")
+        
+        try:
+            # Export melody and accompaniment as separate MIDI files
+            tensor_to_midi(melody, mel_path, tempo=120.0, instrument_program=0)  # Piano
+            tensor_to_midi(accompaniment, acc_path, tempo=120.0, instrument_program=1)  # Electric Piano
+            
+            print(f"  ✅ Exported sample {i}: {label_str} (pitch shift: {pitch_shift:+d})")
+            
+        except Exception as e:
+            print(f"  ❌ Failed to export sample {i}: {e}")
+    
+    print(f"Sample export completed. Check files in: {export_dir}")
+    print(f"Listen to verify:")
+    print(f"  - REAL samples: melody and accompaniment should sound musically coherent")
+    print(f"  - FAKE samples: melody and accompaniment should sound mismatched/incoherent")
 
 
 def train_epoch(model, train_loader, optimizer, scheduler, device, epoch, logger):
@@ -155,6 +216,8 @@ def main():
     parser.add_argument('--quality_filter_mode', default='resample', choices=['resample', 'strict'], 
                        help='Quality filtering mode: resample (same samples, retry) or strict (fewer high-quality samples)')
     parser.add_argument('--train_split', type=float, default=0.9, help='Train/validation split ratio')
+    parser.add_argument('--export_samples', action='store_true', help='Export first few samples as MIDI for verification')
+    parser.add_argument('--export_dir', default='./sample_exports', help='Directory to export sample MIDI files')
     
     # Logging arguments (wandb removed for simplicity)
     
@@ -197,6 +260,12 @@ def main():
     )
     
     logger.info(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
+    
+    # Export samples for verification if requested
+    if args.export_samples:
+        logger.info("Exporting sample MIDI files for verification...")
+        export_samples(train_loader, args.export_dir, num_samples=8)
+        logger.info(f"Samples exported to: {args.export_dir}")
     
     # Create optimizer and scheduler (same as main model)
     total_steps = len(train_loader) * args.epochs
