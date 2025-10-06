@@ -12,7 +12,6 @@ import os
 import time
 import logging
 from pathlib import Path
-import wandb
 from datetime import datetime
 
 from discriminative_model import DiscriminativeRewardModel
@@ -97,15 +96,7 @@ def train_epoch(model, train_loader, optimizer, scheduler, device, epoch, logger
             logger.info(f'Epoch {epoch}, Batch {batch_idx}/{len(train_loader)}, '
                        f'Loss: {loss.item():.4f}, Acc: {batch_acc:.2f}%, LR: {current_lr:.6f}')
             
-            # Log to wandb (only if wandb is initialized)
-            if not args.no_wandb:
-                wandb.log({
-                    'train/batch_loss': loss.item(),
-                    'train/batch_accuracy': batch_acc,
-                    'train/learning_rate': current_lr,
-                    'train/epoch': epoch,
-                    'train/batch': batch_idx
-                })
+            # Wandb logging removed for simplicity
     
     avg_loss = total_loss / len(train_loader)
     accuracy = 100. * correct / total
@@ -165,12 +156,7 @@ def main():
                        help='Quality filtering mode: resample (same samples, retry) or strict (fewer high-quality samples)')
     parser.add_argument('--train_split', type=float, default=0.9, help='Train/validation split ratio')
     
-    # Logging and wandb arguments
-    parser.add_argument('--wandb_project', default='discriminative-reward-model', help='Wandb project name')
-    parser.add_argument('--wandb_entity', default=None, help='Wandb entity/team name')
-    parser.add_argument('--wandb_name', default=None, help='Wandb run name')
-    parser.add_argument('--wandb_tags', nargs='+', default=[], help='Wandb tags')
-    parser.add_argument('--no_wandb', action='store_true', help='Disable wandb logging')
+    # Logging arguments (wandb removed for simplicity)
     
     args = parser.parse_args()
     
@@ -179,20 +165,7 @@ def main():
     
     # Setup logging
     logger = setup_logging(args.output_dir)
-    
-    # Setup wandb
-    if not args.no_wandb:
-        wandb_name = args.wandb_name or f"discriminative-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-        wandb.init(
-            project=args.wandb_project,
-            entity=args.wandb_entity,
-            name=wandb_name,
-            tags=args.wandb_tags,
-            config=vars(args)
-        )
-        logger.info(f"Initialized wandb with project: {args.wandb_project}, run: {wandb_name}")
-    else:
-        logger.info("Wandb logging disabled")
+    logger.info("Wandb logging disabled for simplicity")
     
     # Set device
     device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
@@ -252,17 +225,7 @@ def main():
         logger.info(f"  Time: {epoch_time:.2f}s, Current LR: {current_lr:.6f}")
         logger.info("-" * 60)
         
-        # Log to wandb
-        if not args.no_wandb:
-            wandb.log({
-                'epoch': epoch + 1,
-                'train/epoch_loss': train_loss,
-                'train/epoch_accuracy': train_acc,
-                'val/loss': val_loss,
-                'val/accuracy': val_acc,
-                'epoch_time': epoch_time,
-                'learning_rate': current_lr
-            })
+        # Wandb logging removed for simplicity
         
         # Save checkpoint
         if val_acc > best_val_acc:
@@ -299,15 +262,7 @@ def main():
     # Training completed
     logger.info(f"Training completed! Best validation accuracy: {best_val_acc:.2f}%")
     
-    # Log final summary to wandb
-    if not args.no_wandb:
-        wandb.log({
-            'final/best_val_accuracy': best_val_acc,
-            'final/total_epochs': args.epochs,
-            'final/model_parameters': model_params
-        })
-        wandb.finish()
-        logger.info("Wandb logging finished")
+    # Training completed - wandb logging removed for simplicity
 
 
 if __name__ == '__main__':
