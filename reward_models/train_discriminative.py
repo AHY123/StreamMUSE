@@ -289,6 +289,7 @@ def main():
     parser.add_argument('--export_samples', action='store_true', help='Export first few samples as MIDI for verification')
     parser.add_argument('--export_dir', default='./sample_exports', help='Directory to export sample MIDI files')
     parser.add_argument('--disable_pitch_shifts', action='store_true', help='Disable pitch shifts for debugging (matches debug overfitting test)')
+    parser.add_argument('--overfit_mode', action='store_true', help='Overfit on fixed samples like debug test (no train/val split, no shuffling)')
     
     # Logging arguments (wandb removed for simplicity)
     
@@ -318,20 +319,51 @@ def main():
     # Create dataloaders
     logger.info("Creating dataloaders...")
     logger.info(f"Using quality filter mode: {args.quality_filter_mode}")
-    logger.info(f"Train/validation split: {args.train_split:.1%}")
     
-    train_loader, val_loader = create_dataloaders(
-        melody_path=args.melody_path,
-        acc_path=args.acc_path,
-        batch_size=args.batch_size,
-        target_length=args.target_length,
-        train_split=args.train_split,
-        num_workers=args.num_workers,
-        quality_filter_mode=args.quality_filter_mode,
-        disable_pitch_shifts=args.disable_pitch_shifts
-    )
+    if args.overfit_mode:
+        logger.info("OVERFIT MODE: Using fixed samples like debug test (no train/val split)")
+        # Create a single dataset and use first batch as fixed samples
+        from data_loader import DiscriminativeDataset
+        dataset = DiscriminativeDataset(
+            args.melody_path, args.acc_path, args.target_length, 
+            args.quality_filter_mode, args.disable_pitch_shifts
+        )
+        
+        # Get fixed samples (like debug test)
+        fixed_samples = []
+        fixed_labels = []
+        num_fixed = min(10, len(dataset))  # Up to 10 samples
+        
+        for i in range(num_fixed):
+            sample = dataset[i]
+            fixed_samples.append(sample['sequence'])
+            fixed_labels.append(sample['label'])
+        
+        # Create fixed tensors
+        fixed_sequences = torch.stack(fixed_samples)
+        fixed_labels_tensor = torch.stack(fixed_labels)
+        
+        logger.info(f"Fixed overfitting dataset: {len(fixed_samples)} samples")
+        logger.info(f"Labels: {fixed_labels_tensor.tolist()}")
+        
+        # Create dummy dataloaders (won't be used in overfit mode)
+        train_loader = val_loader = None
+        
+    else:
+        logger.info(f"Train/validation split: {args.train_split:.1%}")
+        train_loader, val_loader = create_dataloaders(
+            melody_path=args.melody_path,
+            acc_path=args.acc_path,
+            batch_size=args.batch_size,
+            target_length=args.target_length,
+            train_split=args.train_split,
+            num_workers=args.num_workers,
+            quality_filter_mode=args.quality_filter_mode,
+            disable_pitch_shifts=args.disable_pitch_shifts
+        )
     
-    logger.info(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
+    if not args.overfit_mode:
+        logger.info(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
     
     # Export samples for verification if requested
     if args.export_samples:
@@ -349,11 +381,39 @@ def main():
     for epoch in range(args.epochs):
         start_time = time.time()
         
-        # Train
-        train_loss, train_acc = train_epoch(model, train_loader, optimizer, scheduler, device, epoch, logger)
-        
-        # Validate
-        val_loss, val_acc = validate(model, val_loader, device, logger)
+        if args.overfit_mode:
+            # OVERFIT MODE: Train on fixed samples like debug test
+            model.train()
+            optimizer.zero_grad()
+            
+            # Move fixed data to device
+            sequences = fixed_sequences.to(device)
+            labels = fixed_labels_tensor.to(device)
+            pitch_shifts = torch.zeros(sequences.shape[0], device=device)  # All zeros like debug
+            
+            # Forward pass
+            logits = model(sequences, pitch_shifts)
+            loss = F.binary_cross_entropy_with_logits(logits, labels)
+            
+            # Backward pass
+            loss.backward()
+            optimizer.step()
+            
+            # Calculate accuracy
+            with torch.no_grad():
+                probs = torch.sigmoid(logits)
+                predictions = (probs > 0.5).float()
+                correct = (predictions == labels).sum().item()
+                accuracy = 100.0 * correct / len(labels)
+            
+            train_loss = train_acc = val_loss = val_acc = accuracy / 100.0
+            
+            logger.info(f"Epoch {epoch+1}: Fixed samples - Loss: {loss.item():.4f}, Accuracy: {accuracy:.2f}%")
+            
+        else:
+            # NORMAL MODE: Train/val split
+            train_loss, train_acc = train_epoch(model, train_loader, optimizer, scheduler, device, epoch, logger)
+            val_loss, val_acc = validate(model, val_loader, device, logger)
         
         epoch_time = time.time() - start_time
         current_lr = scheduler.get_last_lr()[0] if scheduler is not None else optimizer.param_groups[0]['lr']
