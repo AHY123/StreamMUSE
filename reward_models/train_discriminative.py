@@ -17,15 +17,20 @@ from datetime import datetime
 from discriminative_model import DiscriminativeRewardModel
 from data_loader import create_dataloaders
 
-# Import for MIDI export (with fallback)
+# Import for MIDI export
 try:
     import sys
-    sys.path.append('..')
+    import os
+    # Add the parent directory to path to find preprocess module
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, parent_dir)
     from preprocess.preprocess_midi2pt_dataset import tensor_to_midi
     MIDI_EXPORT_AVAILABLE = True
-except ImportError:
+    print("✅ MIDI export available")
+except ImportError as e:
     MIDI_EXPORT_AVAILABLE = False
-    print("Warning: MIDI export not available - install required dependencies")
+    print(f"❌ MIDI export not available: {e}")
+    print("Will export tensor analysis only")
 
 
 def setup_logging(output_dir):
@@ -62,11 +67,7 @@ def setup_logging(output_dir):
 
 
 def export_samples(train_loader, export_dir, num_samples=8):
-    """Export first few samples as MIDI files for verification"""
-    if not MIDI_EXPORT_AVAILABLE:
-        print("MIDI export not available - skipping sample export")
-        return
-    
+    """Export first few samples for verification"""
     os.makedirs(export_dir, exist_ok=True)
     print(f"Exporting {num_samples} samples to {export_dir}...")
     
@@ -79,37 +80,102 @@ def export_samples(train_loader, export_dir, num_samples=8):
     # Export up to num_samples
     actual_samples = min(num_samples, sequences.shape[0])
     
-    for i in range(actual_samples):
-        sequence = sequences[i]  # [2*seq_len, 12]
-        label = labels[i].item()
-        pitch_shift = pitch_shifts[i].item()
-        
-        # Split interleaved sequence back to melody and accompaniment
-        # Interleaved format: [acc_0, mel_0, acc_1, mel_1, ...]
-        melody = sequence[1::2]      # Odd indices: mel_0, mel_1, ...
-        accompaniment = sequence[0::2]  # Even indices: acc_0, acc_1, ...
-        
-        # Create descriptive filename
-        label_str = "REAL" if label == 1.0 else "FAKE"
-        filename_base = f"sample_{i:02d}_{label_str}_shift{pitch_shift:+d}"
-        
-        mel_path = os.path.join(export_dir, f"{filename_base}_melody.mid")
-        acc_path = os.path.join(export_dir, f"{filename_base}_accompaniment.mid")
-        
-        try:
-            # Export melody and accompaniment as separate MIDI files
-            tensor_to_midi(melody, mel_path, tempo=120.0, instrument_program=0)  # Piano
-            tensor_to_midi(accompaniment, acc_path, tempo=120.0, instrument_program=1)  # Electric Piano
-            
-            print(f"  ✅ Exported sample {i}: {label_str} (pitch shift: {pitch_shift:+d})")
-            
-        except Exception as e:
-            print(f"  ❌ Failed to export sample {i}: {e}")
+    # Create analysis file
+    analysis_file = os.path.join(export_dir, "sample_analysis.txt")
     
-    print(f"Sample export completed. Check files in: {export_dir}")
-    print(f"Listen to verify:")
-    print(f"  - REAL samples: melody and accompaniment should sound musically coherent")
-    print(f"  - FAKE samples: melody and accompaniment should sound mismatched/incoherent")
+    with open(analysis_file, "w") as f:
+        f.write("TRAINING SAMPLE ANALYSIS\n")
+        f.write("=" * 50 + "\n\n")
+        
+        for i in range(actual_samples):
+            sequence = sequences[i]  # [2*seq_len, 12]
+            label = labels[i].item()
+            pitch_shift = pitch_shifts[i].item()
+            
+            # Split interleaved sequence back to melody and accompaniment
+            # Interleaved format: [acc_0, mel_0, acc_1, mel_1, ...]
+            melody = sequence[1::2]      # Odd indices: mel_0, mel_1, ...
+            accompaniment = sequence[0::2]  # Even indices: acc_0, acc_1, ...
+            
+            # Analyze content
+            mel_notes = count_musical_notes(melody)
+            acc_notes = count_musical_notes(accompaniment)
+            
+            # Get unique pitches to check for key/harmony coherence
+            mel_pitches = get_unique_pitches(melody)
+            acc_pitches = get_unique_pitches(accompaniment)
+            
+            label_str = "REAL" if label == 1.0 else "FAKE"
+            
+            f.write(f"Sample {i}: {label_str} (pitch_shift: {pitch_shift:+d})\n")
+            f.write(f"  Melody: {mel_notes} notes, pitches: {sorted(mel_pitches)[:10]}...\n")
+            f.write(f"  Accompaniment: {acc_notes} notes, pitches: {sorted(acc_pitches)[:10]}...\n")
+            
+            # Check for pitch overlap (real pairs should have similar pitches)
+            pitch_overlap = len(set(mel_pitches) & set(acc_pitches))
+            f.write(f"  Pitch overlap: {pitch_overlap} common pitches\n")
+            
+            # Save raw tensors for inspection
+            tensor_file = os.path.join(export_dir, f"sample_{i:02d}_{label_str}.pt")
+            torch.save({
+                'melody': melody,
+                'accompaniment': accompaniment,
+                'label': label,
+                'pitch_shift': pitch_shift
+            }, tensor_file)
+            
+            f.write(f"  Saved tensor: {tensor_file}\n")
+            
+            # Export MIDI files if available
+            if MIDI_EXPORT_AVAILABLE:
+                try:
+                    mel_path = os.path.join(export_dir, f"sample_{i:02d}_{label_str}_melody.mid")
+                    acc_path = os.path.join(export_dir, f"sample_{i:02d}_{label_str}_accompaniment.mid")
+                    
+                    tensor_to_midi(melody, mel_path, tempo=120.0, instrument_program=0)  # Piano
+                    tensor_to_midi(accompaniment, acc_path, tempo=120.0, instrument_program=1)  # Electric Piano
+                    
+                    f.write(f"  Exported MIDI: {mel_path}, {acc_path}\n")
+                    
+                except Exception as e:
+                    f.write(f"  MIDI export failed: {e}\n")
+            else:
+                f.write(f"  MIDI export not available\n")
+            
+            f.write("-" * 30 + "\n")
+            
+            print(f"  Sample {i}: {label_str}, mel={mel_notes} notes, acc={acc_notes} notes, overlap={pitch_overlap}")
+    
+    print(f"Sample analysis completed. Check: {analysis_file}")
+    print(f"Key insights to look for:")
+    print(f"  - REAL samples should have similar pitch ranges in melody and accompaniment")
+    print(f"  - FAKE samples should have different/clashing pitch ranges")
+    print(f"  - If both look similar, the fake generation logic has issues")
+
+
+def count_musical_notes(tensor):
+    """Count non-empty musical notes in a tensor"""
+    # tensor shape: [seq_len, 12] -> [seq_len, 4, 3]
+    notes = tensor.view(tensor.shape[0], 4, 3)
+    count = 0
+    for frame_idx in range(notes.shape[0]):
+        for note_idx in range(notes.shape[1]):
+            pitch = notes[frame_idx, note_idx, 1]
+            if pitch not in [254, 255]:  # Not EOS or PAD
+                count += 1
+    return count
+
+
+def get_unique_pitches(tensor):
+    """Get unique pitches from a tensor"""
+    notes = tensor.view(tensor.shape[0], 4, 3)
+    pitches = set()
+    for frame_idx in range(notes.shape[0]):
+        for note_idx in range(notes.shape[1]):
+            pitch = notes[frame_idx, note_idx, 1].item()
+            if pitch not in [254, 255]:  # Not EOS or PAD
+                pitches.add(pitch)
+    return list(pitches)
 
 
 def train_epoch(model, train_loader, optimizer, scheduler, device, epoch, logger):
