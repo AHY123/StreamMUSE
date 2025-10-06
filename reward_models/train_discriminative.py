@@ -97,14 +97,15 @@ def train_epoch(model, train_loader, optimizer, scheduler, device, epoch, logger
             logger.info(f'Epoch {epoch}, Batch {batch_idx}/{len(train_loader)}, '
                        f'Loss: {loss.item():.4f}, Acc: {batch_acc:.2f}%, LR: {current_lr:.6f}')
             
-            # Log to wandb
-            wandb.log({
-                'train/batch_loss': loss.item(),
-                'train/batch_accuracy': batch_acc,
-                'train/learning_rate': current_lr,
-                'train/epoch': epoch,
-                'train/batch': batch_idx
-            })
+            # Log to wandb (only if wandb is initialized)
+            if not args.no_wandb:
+                wandb.log({
+                    'train/batch_loss': loss.item(),
+                    'train/batch_accuracy': batch_acc,
+                    'train/learning_rate': current_lr,
+                    'train/epoch': epoch,
+                    'train/batch': batch_idx
+                })
     
     avg_loss = total_loss / len(train_loader)
     accuracy = 100. * correct / total
@@ -152,12 +153,12 @@ def main():
     parser.add_argument('--acc_path', required=True, help='Path to accompaniment .pt file')
     parser.add_argument('--output_dir', default='./checkpoints', help='Output directory for checkpoints')
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size')
-    parser.add_argument('--target_length', type=int, default=384, help='Sequence length')
+    parser.add_argument('--target_length', type=int, default=384, help='Sequence length in frames (16 frames = 1 bar, so 384 = 24 bars)')
     parser.add_argument('--epochs', type=int, default=50, help='Number of epochs')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
-    parser.add_argument('--hidden_size', type=int, default=512, help='Hidden size')
-    parser.add_argument('--num_layers', type=int, default=6, help='Number of transformer layers')
-    parser.add_argument('--num_heads', type=int, default=8, help='Number of attention heads')
+    parser.add_argument('--hidden_size', type=int, default=768, help='Hidden size (default matches main model)')
+    parser.add_argument('--num_layers', type=int, default=12, help='Number of transformer layers (default matches main model)')
+    parser.add_argument('--num_heads', type=int, default=12, help='Number of attention heads (default matches main model)')
     parser.add_argument('--device', default='cuda', help='Device to use')
     parser.add_argument('--num_workers', type=int, default=0, help='Number of data loading workers')
     parser.add_argument('--quality_filter_mode', default='resample', choices=['resample', 'strict'], 
