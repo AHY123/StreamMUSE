@@ -346,6 +346,13 @@ def main():
         logger.info(f"Fixed overfitting dataset: {len(fixed_samples)} samples")
         logger.info(f"Labels: {fixed_labels_tensor.tolist()}")
         
+        # Debug: Print sample checksums to verify they're truly fixed
+        sample_checksums = []
+        for i, seq in enumerate(fixed_sequences):
+            checksum = seq.sum().item()
+            sample_checksums.append(checksum)
+        logger.info(f"Sample checksums (should be same each run): {sample_checksums[:5]}...")
+        
         # Create dummy dataloaders (won't be used in overfit mode)
         train_loader = val_loader = None
         
