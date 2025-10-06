@@ -67,7 +67,7 @@ def train_epoch(model, train_loader, optimizer, scheduler, device, epoch, logger
         optimizer.zero_grad()
         
         # Forward pass with pitch shift
-        pitch_shifts = batch['pitch_shifts'].to(device).squeeze(-1)  # [batch_size, 1] -> [batch_size]
+        pitch_shifts = batch['pitch_shifts'].to(device)  # Already [batch_size] from our updated data_loader
         logits = model(sequences, pitch_shifts)  # [batch_size]
         
         # Binary cross-entropy loss
@@ -127,7 +127,7 @@ def validate(model, val_loader, device, logger):
         for batch in val_loader:
             sequences = batch['sequences'].to(device)
             labels = batch['labels'].to(device)
-            pitch_shifts = batch['pitch_shifts'].to(device).squeeze(-1)  # [batch_size, 1] -> [batch_size]
+            pitch_shifts = batch['pitch_shifts'].to(device)  # Already [batch_size] from our updated data_loader
             
             logits = model(sequences, pitch_shifts)
             loss = F.binary_cross_entropy_with_logits(logits, labels)
@@ -160,6 +160,9 @@ def main():
     parser.add_argument('--num_heads', type=int, default=8, help='Number of attention heads')
     parser.add_argument('--device', default='cuda', help='Device to use')
     parser.add_argument('--num_workers', type=int, default=0, help='Number of data loading workers')
+    parser.add_argument('--quality_filter_mode', default='resample', choices=['resample', 'strict'], 
+                       help='Quality filtering mode: resample (same samples, retry) or strict (fewer high-quality samples)')
+    parser.add_argument('--train_split', type=float, default=0.9, help='Train/validation split ratio')
     
     # Logging and wandb arguments
     parser.add_argument('--wandb_project', default='discriminative-reward-model', help='Wandb project name')
@@ -206,12 +209,17 @@ def main():
     
     # Create dataloaders
     logger.info("Creating dataloaders...")
+    logger.info(f"Using quality filter mode: {args.quality_filter_mode}")
+    logger.info(f"Train/validation split: {args.train_split:.1%}")
+    
     train_loader, val_loader = create_dataloaders(
         melody_path=args.melody_path,
         acc_path=args.acc_path,
         batch_size=args.batch_size,
         target_length=args.target_length,
-        num_workers=args.num_workers
+        train_split=args.train_split,
+        num_workers=args.num_workers,
+        quality_filter_mode=args.quality_filter_mode
     )
     
     logger.info(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
