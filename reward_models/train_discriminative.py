@@ -288,6 +288,7 @@ def main():
     parser.add_argument('--train_split', type=float, default=0.9, help='Train/validation split ratio')
     parser.add_argument('--export_samples', action='store_true', help='Export first few samples as MIDI for verification')
     parser.add_argument('--export_dir', default='./sample_exports', help='Directory to export sample MIDI files')
+    parser.add_argument('--disable_pitch_shifts', action='store_true', help='Disable pitch shifts for debugging (matches debug overfitting test)')
     
     # Logging arguments (wandb removed for simplicity)
     
@@ -326,7 +327,8 @@ def main():
         target_length=args.target_length,
         train_split=args.train_split,
         num_workers=args.num_workers,
-        quality_filter_mode=args.quality_filter_mode
+        quality_filter_mode=args.quality_filter_mode,
+        disable_pitch_shifts=args.disable_pitch_shifts
     )
     
     logger.info(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")

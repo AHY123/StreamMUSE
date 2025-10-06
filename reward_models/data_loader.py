@@ -11,7 +11,7 @@ class DiscriminativeDataset(Dataset):
     """
     
     def __init__(self, melody_path: str, acc_path: str, target_length: int = 384, 
-                 quality_filter_mode: str = "resample"):
+                 quality_filter_mode: str = "resample", disable_pitch_shifts: bool = False):
         """
         Initialize dataset.
         
@@ -25,6 +25,7 @@ class DiscriminativeDataset(Dataset):
         """
         self.target_length = target_length
         self.quality_filter_mode = quality_filter_mode
+        self.disable_pitch_shifts = disable_pitch_shifts
         
         # Load concatenated data - all sequences are in one big tensor
         self.melody_data = torch.load(melody_path, mmap=True)  # [total_frames, 12]
@@ -479,24 +480,29 @@ class DiscriminativeDataset(Dataset):
                     self.acc_data, self.acc_starts, acc_idx, self.acc_lengths[acc_idx]
                 )
         
-        # Generate random pitch shift using per-sequence ranges (same as main model)
-        mel_range = self.melody_pitch_ranges[mel_idx]  # [min, max]
-        acc_range = self.acc_pitch_ranges[acc_idx]     # [min, max]
-        
-        # Find the valid pitch shift range for both melody and accompaniment
-        min_shift = torch.maximum(mel_range[0], acc_range[0])
-        max_shift = torch.minimum(mel_range[1], acc_range[1])
-        
-        # Limit pitch shifts to reasonable range (±6 semitones = half octave)
-        min_shift = torch.clamp(min_shift, -6, 6)
-        max_shift = torch.clamp(max_shift, -6, 6)
-        
-        # Generate random pitch shift within valid range (same format as main model)
-        if min_shift <= max_shift:
-            pitch_shift = torch.randint(min_shift, max_shift + 1, (1,)).long()
-        else:
-            # If no valid range, use 0 (no shift)
+        # Generate pitch shift (can be disabled for debugging)
+        if self.disable_pitch_shifts:
+            # DEBUG MODE: No pitch shifts (matches debug overfitting test)
             pitch_shift = torch.tensor([0]).long()
+        else:
+            # NORMAL MODE: Generate random pitch shift using per-sequence ranges
+            mel_range = self.melody_pitch_ranges[mel_idx]  # [min, max]
+            acc_range = self.acc_pitch_ranges[acc_idx]     # [min, max]
+            
+            # Find the valid pitch shift range for both melody and accompaniment
+            min_shift = torch.maximum(mel_range[0], acc_range[0])
+            max_shift = torch.minimum(mel_range[1], acc_range[1])
+            
+            # Limit pitch shifts to reasonable range (±6 semitones = half octave)
+            min_shift = torch.clamp(min_shift, -6, 6)
+            max_shift = torch.clamp(max_shift, -6, 6)
+            
+            # Generate random pitch shift within valid range (same format as main model)
+            if min_shift <= max_shift:
+                pitch_shift = torch.randint(min_shift, max_shift + 1, (1,)).long()
+            else:
+                # If no valid range, use 0 (no shift)
+                pitch_shift = torch.tensor([0]).long()
         
         # Create interleaved sequence [acc_0, mel_0, acc_1, mel_1, ...]
         try:
@@ -541,7 +547,8 @@ def collate_batch(batch):
 
 def create_dataloaders(melody_path: str, acc_path: str, batch_size: int = 8, 
                       target_length: int = 384, train_split: float = 0.9, 
-                      num_workers: int = 4, quality_filter_mode: str = "resample"):
+                      num_workers: int = 4, quality_filter_mode: str = "resample",
+                      disable_pitch_shifts: bool = False):
     """
     Create train and validation dataloaders.
     
@@ -558,7 +565,7 @@ def create_dataloaders(melody_path: str, acc_path: str, batch_size: int = 8,
         train_loader, val_loader
     """
     # Create full dataset
-    full_dataset = DiscriminativeDataset(melody_path, acc_path, target_length, quality_filter_mode)
+    full_dataset = DiscriminativeDataset(melody_path, acc_path, target_length, quality_filter_mode, disable_pitch_shifts)
     
     # Split into train/val
     total_sequences = len(full_dataset.valid_indices)
@@ -566,12 +573,12 @@ def create_dataloaders(melody_path: str, acc_path: str, batch_size: int = 8,
     val_size = total_sequences - train_size
     
     # Create train dataset with subset of valid indices
-    train_dataset = DiscriminativeDataset(melody_path, acc_path, target_length, quality_filter_mode)
+    train_dataset = DiscriminativeDataset(melody_path, acc_path, target_length, quality_filter_mode, disable_pitch_shifts)
     train_dataset.valid_indices = full_dataset.valid_indices[:train_size]
     train_dataset.num_samples = len(train_dataset.valid_indices) * 2
     
     # Create val dataset with remaining indices
-    val_dataset = DiscriminativeDataset(melody_path, acc_path, target_length, quality_filter_mode)
+    val_dataset = DiscriminativeDataset(melody_path, acc_path, target_length, quality_filter_mode, disable_pitch_shifts)
     val_dataset.valid_indices = full_dataset.valid_indices[train_size:]
     val_dataset.num_samples = len(val_dataset.valid_indices) * 2
     
