@@ -209,7 +209,8 @@ def train_epoch(model, train_loader, optimizer, scheduler, device, epoch, logger
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         
         optimizer.step()
-        scheduler.step()  # OneCycleLR steps per batch
+        if scheduler is not None:
+            scheduler.step()  # Only step if scheduler exists
         
         # Statistics
         total_loss += loss.item()
@@ -219,7 +220,7 @@ def train_epoch(model, train_loader, optimizer, scheduler, device, epoch, logger
         
         # Log training progress
         if batch_idx % 50 == 0:
-            current_lr = scheduler.get_last_lr()[0]
+            current_lr = scheduler.get_last_lr()[0] if scheduler is not None else optimizer.param_groups[0]['lr']
             batch_acc = 100. * correct / total if total > 0 else 0
             
             # Log to console and file
@@ -336,12 +337,11 @@ def main():
         export_samples(train_loader, args.export_dir, num_samples=8)
         logger.info(f"Samples exported to: {args.export_dir}")
     
-    # Create optimizer and scheduler (same as main model)
-    total_steps = len(train_loader) * args.epochs
-    optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
-    scheduler = OneCycleLR(optimizer, max_lr=args.lr, total_steps=total_steps, pct_start=0.005)
+    # Create optimizer (simple Adam like in debug - no scheduler for now)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = None  # Remove problematic OneCycleLR scheduler
     
-    logger.info(f"Starting training for {args.epochs} epochs ({total_steps} total steps)...")
+    logger.info(f"Starting training for {args.epochs} epochs...")
     best_val_acc = 0
     
     for epoch in range(args.epochs):
@@ -354,7 +354,7 @@ def main():
         val_loss, val_acc = validate(model, val_loader, device, logger)
         
         epoch_time = time.time() - start_time
-        current_lr = scheduler.get_last_lr()[0]
+        current_lr = scheduler.get_last_lr()[0] if scheduler is not None else optimizer.param_groups[0]['lr']
         
         # Log epoch summary
         logger.info(f"Epoch {epoch+1}/{args.epochs} Summary:")
