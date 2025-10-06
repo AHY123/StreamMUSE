@@ -21,10 +21,13 @@ from data_loader import create_dataloaders
 try:
     import sys
     import os
-    # Add the parent directory to path to find preprocess module
+    # Add both parent directory and preprocess directory to path
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    preprocess_dir = os.path.join(parent_dir, 'preprocess')
     sys.path.insert(0, parent_dir)
-    from preprocess.preprocess_midi2pt_dataset import tensor_to_midi
+    sys.path.insert(0, preprocess_dir)
+    
+    from preprocess_midi2pt_dataset import tensor_to_midi
     MIDI_EXPORT_AVAILABLE = True
     print("✅ MIDI export available")
 except ImportError as e:
