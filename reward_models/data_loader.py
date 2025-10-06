@@ -149,7 +149,16 @@ class DiscriminativeDataset(Dataset):
             pitch_shift = torch.tensor([0]).long()
         
         # Create interleaved sequence [acc_0, mel_0, acc_1, mel_1, ...]
-        from discriminative_model import create_interleaved_sequence
+        try:
+            from reward_models.discriminative_model import create_interleaved_sequence
+        except ImportError:
+            # Fallback for debugging - avoid heavy transformer imports
+            import sys
+            import os
+            debug_scripts_path = os.path.join(os.path.dirname(__file__), "debug_scripts")
+            if debug_scripts_path not in sys.path:
+                sys.path.append(debug_scripts_path)
+            from simple_interleave import create_interleaved_sequence
         interleaved = create_interleaved_sequence(melody_segment, acc_segment)
         
         return {
