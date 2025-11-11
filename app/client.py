@@ -112,7 +112,8 @@ def save_prompt_midi(
     try:
         # 确定 mel 和 acc 文件路径
         mel_file_path = original_file_path
-        acc_file_path = original_file_path.replace("mel", "acc")
+        # acc_file_path = original_file_path.replace("mel", "acc")
+        acc_file_path = "acc-poly-pattern/c_major_poly_stride.mid"
 
         print(f"处理 Melody 文件: {mel_file_path}")
         print(f"处理 Accompaniment 文件: {acc_file_path}")
@@ -226,14 +227,18 @@ def inject_music_to_server(
             "injection_length_ticks": injection_length_ticks,
         }
 
-        print(f"注入音乐: {injection_file_path} (前 {injection_length_ticks} ticks)")
+        # print(f"注入音乐: {injection_file_path} (前 {injection_length_ticks} ticks)")
+        print(f"injecting music: {injection_file_path} (first {injection_length_ticks} ticks)")
         response = requests.post(injection_url, json=request_data)
         response.raise_for_status()
 
         result = response.json()
         if result["success"]:
+            # print(
+            #     f"✓ 注入成功: {result['melody_notes_injected']} 旋律音符, {result['accompaniment_notes_injected']} 伴奏音符"
+            # )
             print(
-                f"✓ 注入成功: {result['melody_notes_injected']} 旋律音符, {result['accompaniment_notes_injected']} 伴奏音符"
+            f"✓ Injection successful: {result['melody_notes_injected']} melody notes, {result['accompaniment_notes_injected']} accompaniment notes"
             )
             return result["injection_length_ticks"]
         else:
