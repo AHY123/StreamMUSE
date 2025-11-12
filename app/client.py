@@ -531,7 +531,7 @@ def tick_loop(
         for event in scheduled_events:
             if event.get("source") == "model":
                 is_hit = True
-                this_backup_level = event.get("backup_level", 0)
+                this_backup_level = event.get("backup_level", -1)
                 if event.get("is_placeholder", False):
                     continue  # Skip placeholder notes
             if event.get("type") == "note_off":
