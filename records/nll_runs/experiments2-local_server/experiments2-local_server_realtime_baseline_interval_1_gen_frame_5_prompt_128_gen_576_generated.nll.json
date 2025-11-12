@@ -1,0 +1,10 @@
+{
+  "Barn Dance 1_0.mid": {
+    "total_nll": 2430.67626953125,
+    "avg_nll": 0.9494829177856445,
+    "total_tokens": 2560
+  },
+  "Barn Dance 1_1.mid": {
+    "error": "MIDI file shorter than window: frames=43, window=128"
+  }
+}

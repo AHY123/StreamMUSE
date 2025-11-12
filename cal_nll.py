@@ -333,9 +333,18 @@ if __name__ == '__main__':
 
     start_call_nll_dir(ckpt_path=ckpt_path, midi_dir=midi_dir, window=args.window, offset=args.offset, save_path=save_json_path, model_size=args.model_size, device=args.device)
 
-# midi dir ~/stanleyz/StreamMUSE/experiments/realtime/prompt_75_gen_384/generated_without_prompt
 # ckpt_path /home/ubuntu/stanleyz/shared_models/ModelBaseline/cp_transformer_909+ac+1k7_trackemb_interleavepos_v0.2_large_batch_40_schedule.epoch\=00.val_loss\=0.90296.ckpt
 # save_json_path records/nll_results.json
 # window 384
 # offset 128
 # device 'cuda:0'
+
+
+# python3 cal_nll.py \
+#   --midi_dir ~/stanleyz/StreamMUSE/experiments/realtime/prompt_75_gen_384/generated_without_prompt \
+#   --ckpt_path '/home/ubuntu/ugrip/shared_models/ModelBaseline/cp_transformer_909+ac+1k7_trackemb_interleavepos_v0.2_large_batch_40_schedule.epoch=00.val_loss=0.90296.ckpt' \
+#   --save_json_path records/nll_results.json \
+#   --window 128 \
+#   --offset 32 \
+#   --device 'cuda:0' \
+#   --model_size '0.12B'

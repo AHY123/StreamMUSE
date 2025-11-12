@@ -1,0 +1,322 @@
+{
+  "Barn Dance 1_0.mid.mid": {
+    "total_nll": 6619.9384765625,
+    "avg_nll": 1.2929567098617554,
+    "total_tokens": 5120
+  },
+  "Barn Dance 1_1.mid.mid": {
+    "total_nll": 6670.5126953125,
+    "avg_nll": 1.3028345108032227,
+    "total_tokens": 5120
+  },
+  "Beaux of Oakhill_2.mid.mid": {
+    "total_nll": 8178.90673828125,
+    "avg_nll": 1.5974427461624146,
+    "total_tokens": 5120
+  },
+  "Black Tulip Hornpipe_0.mid.mid": {
+    "total_nll": 7231.953125,
+    "avg_nll": 1.4124908447265625,
+    "total_tokens": 5120
+  },
+  "Black Tulip Hornpipe_2.mid.mid": {
+    "total_nll": 8017.6455078125,
+    "avg_nll": 1.565946340560913,
+    "total_tokens": 5120
+  },
+  "Castles in the Air_1.mid.mid": {
+    "total_nll": 7140.14306640625,
+    "avg_nll": 1.3945591449737549,
+    "total_tokens": 5120
+  },
+  "Chestnut Reel_4.mid.mid": {
+    "total_nll": 8334.9228515625,
+    "avg_nll": 1.627914547920227,
+    "total_tokens": 5120
+  },
+  "City of Savannah_0.mid.mid": {
+    "total_nll": 7279.22802734375,
+    "avg_nll": 1.4217242002487183,
+    "total_tokens": 5120
+  },
+  "City of Savannah_4.mid.mid": {
+    "total_nll": 5119.20556640625,
+    "avg_nll": 0.9998447895050049,
+    "total_tokens": 5120
+  },
+  "Colosseu_4.mid.mid": {
+    "total_nll": 7334.7919921875,
+    "avg_nll": 1.4325766563415527,
+    "total_tokens": 5120
+  },
+  "Down the Glen_2.mid.mid": {
+    "total_nll": 7710.5634765625,
+    "avg_nll": 1.5059694051742554,
+    "total_tokens": 5120
+  },
+  "Espresso Polka_1.mid.mid": {
+    "total_nll": 8118.5595703125,
+    "avg_nll": 1.5856561660766602,
+    "total_tokens": 5120
+  },
+  "Fisher's Hornpipe_0.mid.mid": {
+    "total_nll": 7326.9951171875,
+    "avg_nll": 1.4310537576675415,
+    "total_tokens": 5120
+  },
+  "Flapjack_0.mid.mid": {
+    "total_nll": 6849.5439453125,
+    "avg_nll": 1.3378015756607056,
+    "total_tokens": 5120
+  },
+  "Fradley Reel_4.mid.mid": {
+    "total_nll": 7003.1064453125,
+    "avg_nll": 1.3677942752838135,
+    "total_tokens": 5120
+  },
+  "Gilderoy_4.mid.mid": {
+    "total_nll": 9436.720703125,
+    "avg_nll": 1.8431096076965332,
+    "total_tokens": 5120
+  },
+  "Gipsy's Hornpipe_3.mid.mid": {
+    "total_nll": 7743.8544921875,
+    "avg_nll": 1.5124715566635132,
+    "total_tokens": 5120
+  },
+  "Greencastle Hornpipe_0.mid.mid": {
+    "total_nll": 8527.3466796875,
+    "avg_nll": 1.6654974222183228,
+    "total_tokens": 5120
+  },
+  "Greencastle Hornpipe_2.mid.mid": {
+    "total_nll": 7769.96240234375,
+    "avg_nll": 1.5175708532333374,
+    "total_tokens": 5120
+  },
+  "Greencastle Hornpipe_3.mid.mid": {
+    "total_nll": 5299.75634765625,
+    "avg_nll": 1.0351086854934692,
+    "total_tokens": 5120
+  },
+  "Greencastle Hornpipe_4.mid.mid": {
+    "total_nll": 9493.5576171875,
+    "avg_nll": 1.854210615158081,
+    "total_tokens": 5120
+  },
+  "Hopwas Hornpipe_0.mid.mid": {
+    "total_nll": 7963.953125,
+    "avg_nll": 1.5554596185684204,
+    "total_tokens": 5120
+  },
+  "Hopwas Hornpipe_1.mid.mid": {
+    "total_nll": 7930.099609375,
+    "avg_nll": 1.5488475561141968,
+    "total_tokens": 5120
+  },
+  "Humours of California_0.mid.mid": {
+    "total_nll": 7528.259765625,
+    "avg_nll": 1.4703632593154907,
+    "total_tokens": 5120
+  },
+  "Humours of California_4.mid.mid": {
+    "total_nll": 9822.07421875,
+    "avg_nll": 1.918373942375183,
+    "total_tokens": 5120
+  },
+  "Kitty O'Niel_3.mid.mid": {
+    "total_nll": 7038.9580078125,
+    "avg_nll": 1.3747965097427368,
+    "total_tokens": 5120
+  },
+  "Londonderry Hornpipe_2.mid.mid": {
+    "total_nll": 6955.4736328125,
+    "avg_nll": 1.3584909439086914,
+    "total_tokens": 5120
+  },
+  "Man from Newry_2.mid.mid": {
+    "total_nll": 8528.9775390625,
+    "avg_nll": 1.6658159494400024,
+    "total_tokens": 5120
+  },
+  "Mrs Willis_2.mid.mid": {
+    "total_nll": 7454.36083984375,
+    "avg_nll": 1.4559297561645508,
+    "total_tokens": 5120
+  },
+  "Navvie on the Line_4.mid.mid": {
+    "total_nll": 8729.8603515625,
+    "avg_nll": 1.7050508260726929,
+    "total_tokens": 5120
+  },
+  "Proudlocks's Variation_3.mid.mid": {
+    "total_nll": 7688.56005859375,
+    "avg_nll": 1.5016719102859497,
+    "total_tokens": 5120
+  },
+  "Spanish Dance_4.mid.mid": {
+    "total_nll": 7310.24560546875,
+    "avg_nll": 1.4277822971343994,
+    "total_tokens": 5120
+  },
+  "The Cuckoo_1.mid.mid": {
+    "total_nll": 8295.6455078125,
+    "avg_nll": 1.6202433109283447,
+    "total_tokens": 5120
+  },
+  "The Dance of the Polygon_2.mid.mid": {
+    "total_nll": 7989.1376953125,
+    "avg_nll": 1.5603785514831543,
+    "total_tokens": 5120
+  },
+  "The Dance of the Polygon_3.mid.mid": {
+    "total_nll": 7815.044921875,
+    "avg_nll": 1.5263760089874268,
+    "total_tokens": 5120
+  },
+  "src_002_116.mid.mid": {
+    "total_nll": 8926.0634765625,
+    "avg_nll": 1.7433717250823975,
+    "total_tokens": 5120
+  },
+  "src_002_214.mid.mid": {
+    "total_nll": 8482.40234375,
+    "avg_nll": 1.6567192077636719,
+    "total_tokens": 5120
+  },
+  "src_002_238.mid.mid": {
+    "total_nll": 7223.97216796875,
+    "avg_nll": 1.4109320640563965,
+    "total_tokens": 5120
+  },
+  "src_002_308.mid.mid": {
+    "total_nll": 7161.25244140625,
+    "avg_nll": 1.3986821174621582,
+    "total_tokens": 5120
+  },
+  "src_002_410.mid.mid": {
+    "total_nll": 7545.5302734375,
+    "avg_nll": 1.4737364053726196,
+    "total_tokens": 5120
+  },
+  "src_002_436.mid.mid": {
+    "total_nll": 6477.68798828125,
+    "avg_nll": 1.2651734352111816,
+    "total_tokens": 5120
+  },
+  "src_002_462.mid.mid": {
+    "total_nll": 7920.8193359375,
+    "avg_nll": 1.5470349788665771,
+    "total_tokens": 5120
+  },
+  "src_003_518.mid.mid": {
+    "total_nll": 7514.07861328125,
+    "avg_nll": 1.334175944328308,
+    "total_tokens": 5632
+  },
+  "src_003_579.mid.mid": {
+    "total_nll": 4888.52197265625,
+    "avg_nll": 0.9547894597053528,
+    "total_tokens": 5120
+  },
+  "src_003_586.mid.mid": {
+    "total_nll": 7436.408203125,
+    "avg_nll": 1.4524234533309937,
+    "total_tokens": 5120
+  },
+  "src_003_655.mid.mid": {
+    "total_nll": 6878.6630859375,
+    "avg_nll": 1.3434888124465942,
+    "total_tokens": 5120
+  },
+  "src_003_746.mid.mid": {
+    "total_nll": 5021.224609375,
+    "avg_nll": 0.9807079434394836,
+    "total_tokens": 5120
+  },
+  "src_004_1011.mid.mid": {
+    "total_nll": 7319.66943359375,
+    "avg_nll": 1.429623007774353,
+    "total_tokens": 5120
+  },
+  "src_004_1034.mid.mid": {
+    "total_nll": 5828.75537109375,
+    "avg_nll": 1.138428807258606,
+    "total_tokens": 5120
+  },
+  "src_004_1037.mid.mid": {
+    "total_nll": 6855.22998046875,
+    "avg_nll": 1.3389121294021606,
+    "total_tokens": 5120
+  },
+  "src_004_1193.mid.mid": {
+    "total_nll": 7474.33251953125,
+    "avg_nll": 1.4598305225372314,
+    "total_tokens": 5120
+  },
+  "src_004_1342.mid.mid": {
+    "total_nll": 6905.1328125,
+    "avg_nll": 1.348658800125122,
+    "total_tokens": 5120
+  },
+  "src_004_1366.mid.mid": {
+    "total_nll": 6634.02587890625,
+    "avg_nll": 1.295708179473877,
+    "total_tokens": 5120
+  },
+  "src_004_1379.mid.mid": {
+    "total_nll": 5625.421875,
+    "avg_nll": 1.0987151861190796,
+    "total_tokens": 5120
+  },
+  "src_004_1411.mid.mid": {
+    "total_nll": 8090.1806640625,
+    "avg_nll": 1.580113410949707,
+    "total_tokens": 5120
+  },
+  "src_004_1436.mid.mid": {
+    "total_nll": 6629.97802734375,
+    "avg_nll": 1.2949175834655762,
+    "total_tokens": 5120
+  },
+  "src_004_1639.mid.mid": {
+    "total_nll": 8408.29296875,
+    "avg_nll": 1.642244815826416,
+    "total_tokens": 5120
+  },
+  "src_004_1675.mid.mid": {
+    "total_nll": 9646.962890625,
+    "avg_nll": 1.8841724395751953,
+    "total_tokens": 5120
+  },
+  "src_004_1691.mid.mid": {
+    "total_nll": 6925.9091796875,
+    "avg_nll": 1.3527166843414307,
+    "total_tokens": 5120
+  },
+  "src_004_1734.mid.mid": {
+    "total_nll": 7093.7958984375,
+    "avg_nll": 1.3855069875717163,
+    "total_tokens": 5120
+  },
+  "src_004_814.mid.mid": {
+    "total_nll": 10675.9716796875,
+    "avg_nll": 2.085150718688965,
+    "total_tokens": 5120
+  },
+  "src_004_890.mid.mid": {
+    "total_nll": 7618.576171875,
+    "avg_nll": 1.488003134727478,
+    "total_tokens": 5120
+  },
+  "src_004_973.mid.mid": {
+    "total_nll": 7912.79833984375,
+    "avg_nll": 1.5454684495925903,
+    "total_tokens": 5120
+  },
+  "src_004_980.mid.mid": {
+    "total_nll": 10286.70703125,
+    "avg_nll": 2.009122371673584,
+    "total_tokens": 5120
+  }
+}

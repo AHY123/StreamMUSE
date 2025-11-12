@@ -1,0 +1,142 @@
+{
+  "Barn Dance 1_0.mid": {
+    "total_nll": 6108.4892578125,
+    "avg_nll": 1.9884405136108398,
+    "total_tokens": 3072
+  },
+  "Barn Dance 1_1.mid": {
+    "total_nll": 6416.96337890625,
+    "avg_nll": 2.088855266571045,
+    "total_tokens": 3072
+  },
+  "Beaux of Oakhill_2.mid": {
+    "total_nll": 5639.05908203125,
+    "avg_nll": 1.835631251335144,
+    "total_tokens": 3072
+  },
+  "Black Tulip Hornpipe_0.mid": {
+    "total_nll": 5833.80859375,
+    "avg_nll": 1.8990261554718018,
+    "total_tokens": 3072
+  },
+  "Black Tulip Hornpipe_2.mid": {
+    "total_nll": 6560.32080078125,
+    "avg_nll": 2.1355209350585938,
+    "total_tokens": 3072
+  },
+  "Castles in the Air_1.mid": {
+    "total_nll": 5420.080078125,
+    "avg_nll": 1.7643489837646484,
+    "total_tokens": 3072
+  },
+  "Chestnut Reel_4.mid": {
+    "total_nll": 6146.52294921875,
+    "avg_nll": 2.000821352005005,
+    "total_tokens": 3072
+  },
+  "City of Savannah_0.mid": {
+    "total_nll": 4776.5625,
+    "avg_nll": 1.8658447265625,
+    "total_tokens": 2560
+  },
+  "City of Savannah_4.mid": {
+    "total_nll": 7263.7890625,
+    "avg_nll": 2.3645145893096924,
+    "total_tokens": 3072
+  },
+  "Colosseu_4.mid": {
+    "total_nll": 6735.744140625,
+    "avg_nll": 2.192625045776367,
+    "total_tokens": 3072
+  },
+  "Down the Glen_2.mid": {
+    "total_nll": 5409.5341796875,
+    "avg_nll": 1.760915994644165,
+    "total_tokens": 3072
+  },
+  "Espresso Polka_1.mid": {
+    "total_nll": 6013.30810546875,
+    "avg_nll": 1.9574570655822754,
+    "total_tokens": 3072
+  },
+  "Fisher's Hornpipe_0.mid": {
+    "total_nll": 6492.4775390625,
+    "avg_nll": 2.113436698913574,
+    "total_tokens": 3072
+  },
+  "Flapjack_0.mid": {
+    "total_nll": 5933.9638671875,
+    "avg_nll": 1.9316288232803345,
+    "total_tokens": 3072
+  },
+  "Fradley Reel_4.mid": {
+    "total_nll": 6212.421875,
+    "avg_nll": 2.022272825241089,
+    "total_tokens": 3072
+  },
+  "Gilderoy_4.mid": {
+    "total_nll": 6086.46337890625,
+    "avg_nll": 1.981270670890808,
+    "total_tokens": 3072
+  },
+  "Gipsy's Hornpipe_3.mid": {
+    "total_nll": 6251.12451171875,
+    "avg_nll": 2.0348713397979736,
+    "total_tokens": 3072
+  },
+  "Greencastle Hornpipe_0.mid": {
+    "total_nll": 4744.904296875,
+    "avg_nll": 1.544565200805664,
+    "total_tokens": 3072
+  },
+  "Greencastle Hornpipe_2.mid": {
+    "total_nll": 5686.85302734375,
+    "avg_nll": 1.851189136505127,
+    "total_tokens": 3072
+  },
+  "Greencastle Hornpipe_3.mid": {
+    "total_nll": 7468.2646484375,
+    "avg_nll": 2.4310755729675293,
+    "total_tokens": 3072
+  },
+  "Greencastle Hornpipe_4.mid": {
+    "total_nll": 6874.2216796875,
+    "avg_nll": 2.2377023696899414,
+    "total_tokens": 3072
+  },
+  "Hopwas Hornpipe_0.mid": {
+    "total_nll": 5925.47900390625,
+    "avg_nll": 1.9288668632507324,
+    "total_tokens": 3072
+  },
+  "Hopwas Hornpipe_1.mid": {
+    "total_nll": 6217.4736328125,
+    "avg_nll": 2.0239171981811523,
+    "total_tokens": 3072
+  },
+  "Humours of California_0.mid": {
+    "total_nll": 5944.486328125,
+    "avg_nll": 1.935054063796997,
+    "total_tokens": 3072
+  },
+  "Humours of California_4.mid": {
+    "total_nll": 7117.8515625,
+    "avg_nll": 2.3170089721679688,
+    "total_tokens": 3072
+  },
+  "Kitty O'Niel_3.mid": {
+    "total_nll": 4411.89453125,
+    "avg_nll": 1.7233963012695312,
+    "total_tokens": 2560
+  },
+  "Londonderry Hornpipe_2.mid": {
+    "total_nll": 5848.537109375,
+    "avg_nll": 1.9038207530975342,
+    "total_tokens": 3072
+  },
+  "Man from Newry_2.mid": {
+    "total_nll": 3682.96337890625,
+    "avg_nll": 1.4386576414108276,
+    "total_tokens": 2560
+  }
+}

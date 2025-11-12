@@ -34,3 +34,4 @@ prep_samples/
 inference_benchmark/temp/
 inference_benchmark/inputs/
 inference_benchmark/outputs/
+/experiments*/
