@@ -1027,6 +1027,16 @@ class InferenceEngineLekai:
                 self.last_generated_beat = current_beat
                 pass
 
+        # 4. Update Active Pitches (CRITICAL for Decoder Continuity)
+        # Scan history to find notes that sustain past this beat
+        beat_end_tick = (current_beat + 1) * self.ticks_per_beat
+        active_pitches = set()
+        # Optimization: Scan only likely candidates? For now, full history scan is safe/fast enough for MIDI
+        for note in self.accompaniment_history:
+            if note["tick"] <= beat_end_tick and (note["tick"] + note["duration"]) > beat_end_tick:
+                active_pitches.add(note["pitch"])
+        self._active_acc_pitches = active_pitches
+
         if torch.cuda.is_available():
             torch.cuda.synchronize()
 
