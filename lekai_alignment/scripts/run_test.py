@@ -155,6 +155,36 @@ def process_single_file(engine, input_midi_path, output_path, input_acc_midi_pat
     all_generated_notes = []
 
     # Loop
+    all_events = []
+
+    # 1. Add Prompt Events (GT events before prompt boundary)
+    if prompt_beats > 0 and input_acc_midi_path and acc_notes:
+        prompt_end_tick = prompt_beats * ticks_per_beat
+        # Convert ALL GT notes to events
+        gt_events = notes_to_events(acc_notes)
+        # Filter events that happen within the prompt window
+        # Fix for Over-Merging:
+        # We MUST include Note-Off events that happen EXACTLY at the boundary (tick == prompt_end_tick)
+        # otherwise notes ending at the boundary became "stuck on".
+        # But Note-On at the boundary must be excluded (belongs to next generated beat).
+        prompt_events = []
+        for e in gt_events:
+            if e["type"] == "note_on":
+                if e["tick"] < prompt_end_tick:
+                    prompt_events.append(e)
+            else:  # note_off
+                if e["tick"] <= prompt_end_tick:
+                    prompt_events.append(e)
+
+        all_events.extend(prompt_events)
+        p_on = sum(1 for e in prompt_events if e["type"] == "note_on")
+        p_off = sum(1 for e in prompt_events if e["type"] == "note_off")
+        print(f"  [DEBUG] Prompt Events: {len(prompt_events)} (On={p_on}, Off={p_off})")
+        if prompt_events:
+            print(f"  [DEBUG] Last Prompt Event: {prompt_events[-1]}")
+
+    gen_event_count = 0
+
     for beat in range(total_beats):
         start_tick = beat * ticks_per_beat
         end_tick = (beat + 1) * ticks_per_beat
@@ -164,8 +194,6 @@ def process_single_file(engine, input_midi_path, output_path, input_acc_midi_pat
         if beat < prompt_beats and input_acc_midi_path:
             new_acc_notes = [n for n in acc_notes if start_tick <= n["tick"] < end_tick]
 
-            # Prompting Logic: Inject GT Acc
-            # print(f"  [Prompt] Beat {beat}: Injecting GT Acc")
             engine.inject_context_beat(
                 melody_notes=new_mel_notes,
                 acc_notes=new_acc_notes,
@@ -173,9 +201,6 @@ def process_single_file(engine, input_midi_path, output_path, input_acc_midi_pat
                 bpm=bpm,
                 time_sig=time_sig,
             )
-            # Add to generated list for output (so the file is complete)
-            if new_acc_notes:
-                all_generated_notes.extend(new_acc_notes)
 
         else:
             # Generation
@@ -189,9 +214,13 @@ def process_single_file(engine, input_midi_path, output_path, input_acc_midi_pat
                 )
 
                 if generated_events:
-                    # Convert events to notes immediately for this beat
-                    beat_notes = events_to_notes(generated_events)
-                    all_generated_notes.extend(beat_notes)
+                    # Accumulate events (they are already absolute tick shifted if engine correct,
+                    # but wait, generate_accompaniment generally returns ABSOLUTE ticks relative to generation_start_tick?
+                    # The engine code returns:
+                    # rel_events = pianoroll_to_events(..., start_tick=generation_start_tick)
+                    # So yes, they are absolute.
+                    all_events.extend(generated_events)
+                    gen_event_count += len(generated_events)
 
             except Exception as e:
                 print(f"Error at beat {beat}: {e}")
@@ -202,8 +231,20 @@ def process_single_file(engine, input_midi_path, output_path, input_acc_midi_pat
 
     # Save Result
     if output_path:
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        save_midi(all_generated_notes, melody_notes, output_path, bpm=bpm)
+        try:
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            print(f"  [DEBUG] Converting {len(all_events)} events to notes...")
+
+            # Convert ALL accumulated events to notes at once
+            final_gen_notes = events_to_notes(all_events)
+            print(f"  [DEBUG] Generated {len(final_gen_notes)} notes.")
+
+            save_midi(final_gen_notes, melody_notes, output_path, bpm=bpm)
+        except Exception as e:
+            print(f"CRITICAL ERROR Saving MIDI: {e}")
+            import traceback
+
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
