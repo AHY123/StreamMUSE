@@ -37,6 +37,7 @@ class InferenceEngineLekai:
         generation_length_frames=2,  # Unused
         model_max_seq_len_frames=384,  # Unused
         inference_mode="sliding_window",  # "sliding_window" or "stateful"
+        delay_beats=-1,
     ):
         # Check if the checkpoint file exists
         if not os.path.exists(checkpoint_path):
@@ -114,6 +115,15 @@ class InferenceEngineLekai:
         # Track active accompaniment pitches across beats for proper note_off generation
         # at beat boundaries (when a note ends exactly at the beat boundary)
         self._active_acc_pitches = set()
+
+        self._active_acc_pitches = set()
+
+        self.delay_beats = delay_beats
+        self.sequence_start_beat = 0  # Default to 0
+
+    def set_sequence_start_beat(self, beat):
+        """Set the logical start beat of the sequence (for skipping silence)."""
+        self.sequence_start_beat = beat
 
     def _get_mel_pianoroll_for_beat(self, beat_start_tick: int, beat_end_tick: int):
         """Build melody pianoroll for a single beat directly from event stream.
@@ -394,23 +404,30 @@ class InferenceEngineLekai:
         input_ids = None
         past_key_values_to_use = None
 
+        # New Stagger Logic (delay_beats = -1)
+        # If delay_beats == -1:
+        #   Beat 0: Inject PAD, Generate Acc[0]
+        #   Beat t: Inject Mel[t-1], Generate Acc[t]
+
+        use_stagger = self.delay_beats == -1
+
         if need_reset:
             # --- Sliding Window / Warmup Logic ---
             # Reconstruct the sequence from scratch
-            # Pattern: [BOS, TimeSig, BPM, PAD, Bar, Bar] -> (A0, M0) -> (A1, M1) ...
 
-            context_beats = 32  # Lookback
-            start_beat = max(0, current_beat - context_beats)
+            context_beats = 32
+            start_beat = max(self.sequence_start_beat, current_beat - context_beats)
 
             # Construct Prompt Sequence
             bpm_val = bpm
             bpm_token = encode_bpm(bpm_val) + self.config.bpm_offset_id
 
-            # Map Time Sig to Token
+            # Map Time Sig
             time_sig_map = {(4, 4): 0, (2, 4): 1, (3, 4): 2, (6, 8): 3, (2, 2): 4}
             ts_idx = time_sig_map.get(time_sig, 0)
             time_sig_token = ts_idx + self.config.time_sig_offset_id
 
+            # Initial Tokens
             seq = [
                 torch.tensor([self.config.bos_token_id], dtype=torch.long),
                 torch.tensor([time_sig_token], dtype=torch.long),
@@ -421,87 +438,124 @@ class InferenceEngineLekai:
             pad_marker = 173
             seq.append(torch.tensor([pad_marker], dtype=torch.long))
 
+            # Rebuild History
             for b in range(start_beat, current_beat):
-                # Add Bar tokens at start of measure
+                # Prepare Bars (4 tokens: 2 for Acc, 2 for Mel)
+                # In interleaved sequence, typically Acc_Bar + Mel_Bar at boundaries
+                bars = []
                 if b % 4 == 0:
-                    seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))  # Acc Bar
-                    seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))  # Mel Bar
+                    bars.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                    bars.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                    bars.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                    bars.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
 
-                # Get Mel tokens for beat b (event stream -> pianoroll)
-                beat_start_tick = b * self.ticks_per_beat
-                beat_end_tick = (b + 1) * self.ticks_per_beat
-                mel_pr_b = self._get_mel_pianoroll_for_beat(
-                    beat_start_tick=beat_start_tick,
-                    beat_end_tick=beat_end_tick,
-                )
-                mel_tokens = self._get_tokens_for_beat_pianoroll(
-                    mel_pr_b,
-                    end_marker_id=self.tokenizer.end_marker_part0,
-                )
-                seq.append(mel_tokens)
+                mel_tokens_b = None
+                if use_stagger:
+                    if b == self.sequence_start_beat:
+                        mel_tokens_b = torch.tensor([pad_marker], dtype=torch.long)
+                    else:
+                        beat_start_tick = (b - 1) * self.ticks_per_beat
+                        beat_end_tick = b * self.ticks_per_beat
+                        mel_pr_prev = self._get_mel_pianoroll_for_beat(beat_start_tick, beat_end_tick)
+                        mel_tokens_b = self._get_tokens_for_beat_pianoroll(mel_pr_prev, self.tokenizer.end_marker_part0)
+                else:
+                    beat_start_tick = b * self.ticks_per_beat
+                    beat_end_tick = (b + 1) * self.ticks_per_beat
+                    mel_pr_b = self._get_mel_pianoroll_for_beat(beat_start_tick, beat_end_tick)
+                    mel_tokens_b = self._get_tokens_for_beat_pianoroll(mel_pr_b, self.tokenizer.end_marker_part0)
 
-                # Get Acc tokens for beat b
-                acc_notes_b = [n for n in self.accompaniment_history if beat_start_tick <= n["tick"] < beat_end_tick]
+                # Append
+                if use_stagger:
+                    # Mel[b-1] -> Bars -> Acc[b]
+                    seq.append(mel_tokens_b)
+                    if bars:
+                        seq.extend(bars)
+                else:
+                    # Bars -> Mel[b] -> Acc[b]
+                    if bars:
+                        seq.extend(bars)
+                    seq.append(mel_tokens_b)
+
+                # Acc[b]
+                b_start = b * self.ticks_per_beat
+                b_end = (b + 1) * self.ticks_per_beat
+                acc_notes_b = [n for n in self.accompaniment_history if b_start <= n["tick"] < b_end]
                 acc_tokens = self._get_tokens_for_beat(acc_notes_b, b, end_marker_id=self.tokenizer.end_marker_part1)
                 seq.append(acc_tokens)
 
-            # Now we are at current_beat.
-            # We need to prepare input for generating Acc[current_beat].
-            # Training data order from PianoDataset.py: Mel -> Acc (part0 -> part1)
-            # So we inject Mel[current_beat] FIRST, then generate Acc[current_beat].
-
-            # 1. Bar tokens if new measure
+            # --- Current Beat Preparation ---
+            bars_curr = []
             if current_beat % 4 == 0:
-                seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
-                seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
 
-            # 2. Inject Mel[current_beat]
-            beat_start_tick = current_beat * self.ticks_per_beat
-            beat_end_tick = (current_beat + 1) * self.ticks_per_beat
-            mel_pr_curr = self._get_mel_pianoroll_for_beat(
-                beat_start_tick=beat_start_tick,
-                beat_end_tick=beat_end_tick,
-            )
-            mel_tokens_curr = self._get_tokens_for_beat_pianoroll(
-                mel_pr_curr,
-                end_marker_id=self.tokenizer.end_marker_part0,
-            )
-            seq.append(mel_tokens_curr)
+            mel_tokens_curr = None
+            if use_stagger:
+                if current_beat == self.sequence_start_beat:
+                    mel_tokens_curr = torch.tensor([pad_marker], dtype=torch.long)
+                else:
+                    beat_start_tick = (current_beat - 1) * self.ticks_per_beat
+                    beat_end_tick = current_beat * self.ticks_per_beat
+                    mel_pr_prev = self._get_mel_pianoroll_for_beat(beat_start_tick, beat_end_tick)
+                    mel_tokens_curr = self._get_tokens_for_beat_pianoroll(mel_pr_prev, self.tokenizer.end_marker_part0)
+            else:
+                beat_start_tick = current_beat * self.ticks_per_beat
+                beat_end_tick = (current_beat + 1) * self.ticks_per_beat
+                mel_pr_curr = self._get_mel_pianoroll_for_beat(beat_start_tick, beat_end_tick)
+                mel_tokens_curr = self._get_tokens_for_beat_pianoroll(mel_pr_curr, self.tokenizer.end_marker_part0)
 
-            # 3. Now ready to generate Acc[current_beat]
+            # Append
+            if use_stagger:
+                seq.append(mel_tokens_curr)
+                if bars_curr:
+                    seq.extend(bars_curr)
+            else:
+                if bars_curr:
+                    seq.extend(bars_curr)
+                seq.append(mel_tokens_curr)
+
+            # 3. Ready to generate Acc[current_beat]
             input_ids = torch.cat(seq).unsqueeze(0).to(device)
-            past_key_values_to_use = None  # Reset cache
+            past_key_values_to_use = None
 
         else:
             # --- Stateful Incremental Logic ---
-            # We are continuing from Acc[current_beat - 1].
-            # The last generation produced Acc[current_beat - 1].
-            # The sequence so far (in model's mind) ends with Acc[current_beat - 1].
-
-            # We need to feed:
-            # 1. Bar tokens (if new measure)
-            # 2. Mel[current_beat]
-            # Then generate Acc[current_beat]
-
             seq = []
 
-            # 1. Bar tokens if new measure
+            bars_curr = []
             if current_beat % 4 == 0:
-                seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
-                seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
 
-            # 2. Mel[current_beat]
-            beat_start_tick = current_beat * self.ticks_per_beat
-            beat_end_tick = (current_beat + 1) * self.ticks_per_beat
-            mel_pr_curr = self._get_mel_pianoroll_for_beat(
-                beat_start_tick=beat_start_tick,
-                beat_end_tick=beat_end_tick,
-            )
-            mel_tokens_curr = self._get_tokens_for_beat_pianoroll(
-                mel_pr_curr,
-                end_marker_id=self.tokenizer.end_marker_part0,
-            )
-            seq.append(mel_tokens_curr)
+            mel_tokens_curr = None
+            if use_stagger:
+                pad_marker = 173
+                if current_beat == self.sequence_start_beat:
+                    mel_tokens_curr = torch.tensor([pad_marker], dtype=torch.long)
+                else:
+                    beat_start_tick = (current_beat - 1) * self.ticks_per_beat
+                    beat_end_tick = current_beat * self.ticks_per_beat
+                    mel_pr_prev = self._get_mel_pianoroll_for_beat(beat_start_tick, beat_end_tick)
+                    mel_tokens_curr = self._get_tokens_for_beat_pianoroll(mel_pr_prev, self.tokenizer.end_marker_part0)
+            else:
+                beat_start_tick = current_beat * self.ticks_per_beat
+                beat_end_tick = (current_beat + 1) * self.ticks_per_beat
+                mel_pr_curr = self._get_mel_pianoroll_for_beat(beat_start_tick, beat_end_tick)
+                mel_tokens_curr = self._get_tokens_for_beat_pianoroll(mel_pr_curr, self.tokenizer.end_marker_part0)
+
+            # Append
+            if use_stagger:
+                seq.append(mel_tokens_curr)
+                if bars_curr:
+                    seq.extend(bars_curr)
+            else:
+                if bars_curr:
+                    seq.extend(bars_curr)
+                seq.append(mel_tokens_curr)
 
             input_ids = torch.cat(seq).unsqueeze(0).to(device)
             past_key_values_to_use = self.past_key_values
@@ -621,6 +675,360 @@ class InferenceEngineLekai:
             postprocess_start_time,
             pr,  # Return the pianoroll for debugging
         )
+
+    def inject_context_beat(
+        self,
+        melody_notes,
+        acc_notes,
+        generation_start_tick,
+        bpm=120,
+        time_sig=(4, 4),
+    ):
+        """
+        Injects a full beat (Melody + GT Accompaniment) into the model state without generation.
+        Used for prompting/prefixing.
+        """
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+
+        # 1. Update History
+        abs_events = self._normalize_melody_input(melody_notes, generation_start_tick)
+        self.melody_event_history.extend(abs_events)
+
+        absolute_generation_start_tick = generation_start_tick + self.injection_offset_ticks
+
+        # Add Acc notes to history
+        if acc_notes:
+            absolute_acc_notes = []
+            for note in acc_notes:
+                absolute_note = note.copy()
+                absolute_note["tick"] = note["tick"] + self.injection_offset_ticks
+                absolute_acc_notes.append(absolute_note)
+            self.accompaniment_history.extend(absolute_acc_notes)
+
+        # 2. Prepare Context
+        current_beat = absolute_generation_start_tick // self.ticks_per_beat
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # Determine reset
+        need_reset = True
+        if self.inference_mode == "stateful":
+            if self.past_key_values is not None and current_beat == self.last_generated_beat + 1:
+                need_reset = False
+            else:
+                self.past_key_values = None
+                self.last_generated_acc_tokens = None
+
+        input_ids = None
+
+        use_stagger = self.delay_beats == -1
+
+        # Helper to build Mel Tokens
+        def get_mel_tokens(b):
+            beat_start_tick = b * self.ticks_per_beat
+            beat_end_tick = (b + 1) * self.ticks_per_beat
+            mel_pr = self._get_mel_pianoroll_for_beat(beat_start_tick, beat_end_tick)
+            return self._get_tokens_for_beat_pianoroll(mel_pr, self.tokenizer.end_marker_part0)
+
+        # Helper to build Acc Tokens (GT)
+        def get_acc_tokens(b):
+            b_start = b * self.ticks_per_beat
+            b_end = (b + 1) * self.ticks_per_beat
+            # Filter from history since we just added them
+            acc_notes_b = [n for n in self.accompaniment_history if b_start <= n["tick"] < b_end]
+            return self._get_tokens_for_beat(acc_notes_b, b, end_marker_id=self.tokenizer.end_marker_part1)
+
+        seq = []
+        pad_marker = 173
+
+        if need_reset:
+            # Reconstruct Full Context + Current Beat
+            context_beats = 32
+            start_beat = max(self.sequence_start_beat, current_beat - context_beats)
+
+            bpm_token = encode_bpm(bpm) + self.config.bpm_offset_id
+            time_sig_map = {(4, 4): 0, (2, 4): 1, (3, 4): 2, (6, 8): 3, (2, 2): 4}
+            ts_idx = time_sig_map.get(time_sig, 0)
+            time_sig_token = ts_idx + self.config.time_sig_offset_id
+
+            seq = [
+                torch.tensor([self.config.bos_token_id], dtype=torch.long),
+                torch.tensor([time_sig_token], dtype=torch.long),
+                torch.tensor([bpm_token], dtype=torch.long),
+                torch.tensor([pad_marker], dtype=torch.long),  # Start PAD
+            ]
+
+            # History
+            for b in range(start_beat, current_beat):
+                if b % 4 == 0:
+                    seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                    seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+
+                if use_stagger:
+                    if b == self.sequence_start_beat:
+                        seq.append(torch.tensor([pad_marker], dtype=torch.long))
+                    else:
+                        seq.append(get_mel_tokens(b - 1))
+                else:
+                    seq.append(get_mel_tokens(b))
+
+                seq.append(get_acc_tokens(b))
+
+            # Current Beat (Injection target)
+            if current_beat % 4 == 0:
+                seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+
+            # Mel Part
+            if use_stagger:
+                if current_beat == self.sequence_start_beat:
+                    seq.append(torch.tensor([pad_marker], dtype=torch.long))
+                else:
+                    seq.append(get_mel_tokens(current_beat - 1))
+            else:
+                seq.append(get_mel_tokens(current_beat))
+
+            # Acc Part (GT) - This is what we are injecting!
+            seq.append(get_acc_tokens(current_beat))
+
+            input_ids = torch.cat(seq).unsqueeze(0).to(device)
+            self.past_key_values = None  # Reset cache as we are feeding full context
+
+        else:
+            # Stateful Increment
+            # Previous state ends at Acc[current_beat-1]
+
+            if current_beat % 4 == 0:
+                seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                seq.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+
+            # Mel Part
+            if use_stagger:
+                if current_beat == self.sequence_start_beat:
+                    seq.append(torch.tensor([pad_marker], dtype=torch.long))
+                else:
+                    seq.append(get_mel_tokens(current_beat - 1))
+            else:
+                seq.append(get_mel_tokens(current_beat))
+
+            # Acc Part (GT)
+            seq.append(get_acc_tokens(current_beat))
+
+            input_ids = torch.cat(seq).unsqueeze(0).to(device)
+            # Use existing past_key_values
+
+        # 3. Forward Pass (No Generation)
+        with torch.no_grad():
+            outputs = self.model(
+                input_ids=input_ids,
+                past_key_values=self.past_key_values,
+                use_cache=True,
+            )
+            # Update State
+            if self.inference_mode == "stateful":
+                self.past_key_values = outputs.past_key_values
+                self.last_generated_beat = current_beat
+                pass
+
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+
+    def inject_context_beat(
+        self,
+        melody_notes,
+        acc_notes,
+        generation_start_tick,
+        bpm=120,
+        time_sig=(4, 4),
+    ):
+        """
+        Injects a full beat (Melody + GT Accompaniment) into the model state without generation.
+        Used for prompting/prefixing.
+        """
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+
+        # 1. Update History
+        abs_events = self._normalize_melody_input(melody_notes, generation_start_tick)
+        self.melody_event_history.extend(abs_events)
+
+        absolute_generation_start_tick = generation_start_tick + self.injection_offset_ticks
+
+        # Add Acc notes to history
+        if acc_notes:
+            absolute_acc_notes = []
+            for note in acc_notes:
+                absolute_note = note.copy()
+                absolute_note["tick"] = note["tick"] + self.injection_offset_ticks
+                absolute_acc_notes.append(absolute_note)
+            self.accompaniment_history.extend(absolute_acc_notes)
+
+        # 2. Prepare Context
+        current_beat = absolute_generation_start_tick // self.ticks_per_beat
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # Determine reset
+        need_reset = True
+        if self.inference_mode == "stateful":
+            if self.past_key_values is not None and current_beat == self.last_generated_beat + 1:
+                need_reset = False
+            else:
+                self.past_key_values = None
+                self.last_generated_acc_tokens = None
+
+        input_ids = None
+
+        use_stagger = self.delay_beats == -1
+
+        # Helper to build Mel Tokens
+        def get_mel_tokens(b):
+            beat_start_tick = b * self.ticks_per_beat
+            beat_end_tick = (b + 1) * self.ticks_per_beat
+            mel_pr = self._get_mel_pianoroll_for_beat(beat_start_tick, beat_end_tick)
+            return self._get_tokens_for_beat_pianoroll(mel_pr, self.tokenizer.end_marker_part0)
+
+        # Helper to build Acc Tokens (GT)
+        def get_acc_tokens(b):
+            b_start = b * self.ticks_per_beat
+            b_end = (b + 1) * self.ticks_per_beat
+            # Filter from history since we just added them
+            acc_notes_b = [n for n in self.accompaniment_history if b_start <= n["tick"] < b_end]
+            return self._get_tokens_for_beat(acc_notes_b, b, end_marker_id=self.tokenizer.end_marker_part1)
+
+        seq = []
+        pad_marker = 173
+
+        if need_reset:
+            # Reconstruct Full Context + Current Beat
+            context_beats = 32
+            start_beat = max(self.sequence_start_beat, current_beat - context_beats)
+
+            bpm_token = encode_bpm(bpm) + self.config.bpm_offset_id
+            time_sig_map = {(4, 4): 0, (2, 4): 1, (3, 4): 2, (6, 8): 3, (2, 2): 4}
+            ts_idx = time_sig_map.get(time_sig, 0)
+            time_sig_token = ts_idx + self.config.time_sig_offset_id
+
+            seq = [
+                torch.tensor([self.config.bos_token_id], dtype=torch.long),
+                torch.tensor([time_sig_token], dtype=torch.long),
+                torch.tensor([bpm_token], dtype=torch.long),
+                torch.tensor([pad_marker], dtype=torch.long),  # Start PAD
+            ]
+
+            # History
+            for b in range(start_beat, current_beat):
+                bars = []
+                if b % 4 == 0:
+                    bars.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                    bars.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                    bars.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                    bars.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+
+                mel_token = None
+                if use_stagger:
+                    if b == self.sequence_start_beat:
+                        mel_token = torch.tensor([pad_marker], dtype=torch.long)
+                    else:
+                        mel_token = get_mel_tokens(b - 1)
+                else:
+                    mel_token = get_mel_tokens(b)
+
+                # Append in correct order
+                if use_stagger:
+                    seq.append(mel_token)
+                    if bars:
+                        seq.extend(bars)
+                else:
+                    if bars:
+                        seq.extend(bars)
+                    seq.append(mel_token)
+
+                seq.append(get_acc_tokens(b))
+
+            # Current Beat (Injection target)
+            bars_curr = []
+            if current_beat % 4 == 0:
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+
+            mel_curr = None
+            if use_stagger:
+                if current_beat == self.sequence_start_beat:
+                    mel_curr = torch.tensor([pad_marker], dtype=torch.long)
+                else:
+                    mel_curr = get_mel_tokens(current_beat - 1)
+            else:
+                mel_curr = get_mel_tokens(current_beat)
+
+            # Append in correct order
+            if use_stagger:
+                seq.append(mel_curr)
+                if bars_curr:
+                    seq.extend(bars_curr)
+            else:
+                if bars_curr:
+                    seq.extend(bars_curr)
+                seq.append(mel_curr)
+
+            # Acc Part (GT) - This is what we are injecting!
+            seq.append(get_acc_tokens(current_beat))
+
+            input_ids = torch.cat(seq).unsqueeze(0).to(device)
+            self.past_key_values = None  # Reset cache as we are feeding full context
+
+        else:
+            # Stateful Increment
+            # Previous state ends at Acc[current_beat-1]
+
+            bars_curr = []
+            if current_beat % 4 == 0:
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+                bars_curr.append(torch.tensor([self.config.bar_token_id], dtype=torch.long))
+
+            mel_curr = None
+            if use_stagger:
+                if current_beat == self.sequence_start_beat:
+                    mel_curr = torch.tensor([pad_marker], dtype=torch.long)
+                else:
+                    mel_curr = get_mel_tokens(current_beat - 1)
+            else:
+                mel_curr = get_mel_tokens(current_beat)
+
+            # Append in correct order
+            if use_stagger:
+                seq.append(mel_curr)
+                if bars_curr:
+                    seq.extend(bars_curr)
+            else:
+                if bars_curr:
+                    seq.extend(bars_curr)
+                seq.append(mel_curr)
+
+            # Acc Part (GT)
+            seq.append(get_acc_tokens(current_beat))
+
+            input_ids = torch.cat(seq).unsqueeze(0).to(device)
+            # Use existing past_key_values
+
+        # 3. Forward Pass (No Generation)
+        with torch.no_grad():
+            outputs = self.model(
+                input_ids=input_ids,
+                past_key_values=self.past_key_values,
+                use_cache=True,
+            )
+            # Update State
+            if self.inference_mode == "stateful":
+                self.past_key_values = outputs.past_key_values
+                self.last_generated_beat = current_beat
+                pass
+
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
 
 
 # ================================================================================
