@@ -1,0 +1,46 @@
+找到 51 个有效的npz文件
+找到 51 个文件（未使用长度缓存）
+使用训练集: 49 个文件 (49/51)
+Loading LLaMA model from: rt/RT_Accompaniment/checkpoints/epoch_4_1104_1204/model.safetensors (Mode: stateful)
+Model loaded successfully.
+Comparing on Sample Index 0: 99545.npz
+
+--- Constructing V2 Sequence (First 4 Beats) ---
+
+--- Simulating V2 Token Generation ---
+V2 Simulation reached generation start.
+V2 Simulation generated 38 token chunks.
+
+--- Generating Engine Tokens ---
+Extracting Notes from V2 Data...
+解压后beat数量: 88
+Part pianoroll形状: (2, 88, 352)
+解压后beat数量: 88
+Part pianoroll形状: (2, 88, 352)
+Extracted 238 Mel notes, 217 Acc notes.
+
+--- Walking through Beats ---
+Captured 16 forward passes.
+
+V2 Total Tokens: 166
+Engine Total Tokens: 480
+
+--- DETAILED COMPARISON ---
+Mismatch at 0: V2=257 vs Engine=169
+  Ctx V2: [257, 259, 267, 173, 173]
+  Ctx Eng: [169, 169, 169, 169, 169]
+Mismatch at 1: V2=259 vs Engine=169
+  Ctx V2: [257, 259, 267, 173, 173, 173]
+  Ctx Eng: [169, 169, 169, 169, 169, 169]
+Mismatch at 2: V2=267 vs Engine=169
+  Ctx V2: [257, 259, 267, 173, 173, 173, 255]
+  Ctx Eng: [169, 169, 169, 169, 169, 169, 169]
+Mismatch at 3: V2=173 vs Engine=169
+  Ctx V2: [257, 259, 267, 173, 173, 173, 255, 173]
+  Ctx Eng: [169, 169, 169, 169, 169, 169, 169, 169]
+Mismatch at 4: V2=173 vs Engine=169
+  Ctx V2: [257, 259, 267, 173, 173, 173, 255, 173, 169]
+  Ctx Eng: [169, 169, 169, 169, 169, 169, 169, 169, 169]
+Length Mismatch! V2=166, Eng=480
+
+FAILED! Found 162 mismatches.

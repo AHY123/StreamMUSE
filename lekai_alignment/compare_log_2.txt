@@ -1,0 +1,14 @@
+找到 51 个有效的npz文件
+找到 51 个文件（未使用长度缓存）
+使用训练集: 49 个文件 (49/51)
+Traceback (most recent call last):
+  File "/home/ubuntu/ugrip/yuanhsin/streamMuse3/lekai_alignment/scripts/compare_tokens.py", line 445, in <module>
+    compare_tokens(args.npz_dir, args.model)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/ugrip/yuanhsin/streamMuse3/lekai_alignment/scripts/compare_tokens.py", line 84, in compare_tokens
+    engine = InferenceEngineLekai(
+        model_path=model_path,
+    ...<2 lines>...
+        inference_mode="stateful",
+    )
+TypeError: InferenceEngineLekai.__init__() got an unexpected keyword argument 'model_path'
