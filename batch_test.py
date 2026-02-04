@@ -21,13 +21,13 @@ SERVER_URL = "http://localhost:8988/generate_accompaniment"
 # Test Dimensions
 TEMPOS = [90, 120]
 PROMPT_LENGTHS_TICKS = [0, 16]  # 0 = no prompt, 16 = 1 bar (assuming 4 ticks/beat, 4/4)
-GENERATION_LENGTHS_TICKS = [128, 256]  # 32 beats (8 bars * 4)
+GENERATION_LENGTHS_TICKS = [128, 384]  # 32 beats (8 bars * 4)
 
 # Sampling Configurations
 SAMPLING_CONFIGS = [
     {"temperature": 1.1, "top_k": 10, "top_p": 0.95, "name": "t1.1_k10"},
-    {"temperature": 1.0, "top_k": 50, "top_p": 0.95, "name": "t1.0_k50"},
-    {"temperature": 0.9, "top_k": 5, "top_p": 0.90, "name": "t0.9_k5"},
+    # {"temperature": 1.0, "top_k": 50, "top_p": 0.95, "name": "t1.0_k50"},
+    # {"temperature": 0.9, "top_k": 5, "top_p": 0.90, "name": "t0.9_k5"},
     {"temperature": 0.0, "top_k": 1, "top_p": 0.0, "name": "t0.0_k1"},
 ]
 
