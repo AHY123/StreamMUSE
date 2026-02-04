@@ -97,9 +97,7 @@ class StreamMUSEConfig:
         return True
 
 
-_USER_EVENT_DEBUG_PATH = os.path.join(
-    tempfile.gettempdir(), "streammuse_user_events.jsonl"
-)
+_USER_EVENT_DEBUG_PATH = os.path.join(tempfile.gettempdir(), "streammuse_user_events.jsonl")
 
 
 def _debug_log_user_event(event: dict):
@@ -159,16 +157,10 @@ def save_prompt_midi(
 
         # 转换客户端 ticks 到 MIDI ticks
         midi_ticks_per_client_tick = prompt_midi.ticks_per_beat / client_ticks_per_beat
-        injection_length_midi_ticks = int(
-            injection_length_ticks * midi_ticks_per_client_tick
-        )
+        injection_length_midi_ticks = int(injection_length_ticks * midi_ticks_per_client_tick)
 
-        print(
-            f"客户端 ticks: {injection_length_ticks}, MIDI ticks: {injection_length_midi_ticks}"
-        )
-        print(
-            f"MIDI文件 ticks_per_beat: {prompt_midi.ticks_per_beat}, 客户端 ticks_per_beat: {client_ticks_per_beat}"
-        )
+        print(f"客户端 ticks: {injection_length_ticks}, MIDI ticks: {injection_length_midi_ticks}")
+        print(f"MIDI文件 ticks_per_beat: {prompt_midi.ticks_per_beat}, 客户端 ticks_per_beat: {client_ticks_per_beat}")
 
         # 处理文件列表
         files_to_process = [("melody", mel_file_path), ("accompaniment", acc_file_path)]
@@ -189,9 +181,7 @@ def save_prompt_midi(
                     new_track = mido.MidiTrack()
                     # 设置轨道名称
                     track_name = f"{file_type}_track_{track_idx}"
-                    new_track.append(
-                        mido.MetaMessage("track_name", name=track_name, time=0)
-                    )
+                    new_track.append(mido.MetaMessage("track_name", name=track_name, time=0))
 
                     current_time = 0
 
@@ -213,9 +203,7 @@ def save_prompt_midi(
                                 "end_of_track",
                             ]:
                                 # 重要的结束消息，调整时间后添加
-                                adjusted_time = (
-                                    injection_length_midi_ticks - current_time
-                                )
+                                adjusted_time = injection_length_midi_ticks - current_time
                                 adjusted_msg = msg.copy(time=adjusted_time)
                                 new_track.append(adjusted_msg)
                             break
@@ -245,9 +233,7 @@ def save_prompt_midi(
 
 
 # 添加注入功能函数
-def inject_music_to_server(
-    server_base_url: str, injection_file_path: str, injection_length_ticks: int
-):
+def inject_music_to_server(server_base_url: str, injection_file_path: str, injection_length_ticks: int):
     """
     向服务器注入音乐
     """
@@ -357,6 +343,7 @@ def tick_loop(
     generation_interval_ticks: int,
     generation_length_ticks: int = None,  # total generation length, for experiments
     current_tick_ref: dict = None,  # Optional shared tick reference for MIDI file input
+    sampling_params: dict = None,  # New: Sampling parameters
 ):
     """
     Main tick loop for the client. (main thread)
@@ -367,6 +354,9 @@ def tick_loop(
     number_of_hit = 0
     total_backup_level = 0
 
+    if sampling_params is None:
+        sampling_params = {}
+
     # New state variables
     notes_for_next_request = []
     last_inference_timings = {}  # To persist timing info for display
@@ -376,19 +366,12 @@ def tick_loop(
     while True:
         tick_count += 1
 
-        if (
-            generation_length_ticks is not None
-            and tick_count >= generation_length_ticks
-        ):
-            print(
-                f"Reached generation_length {generation_length_ticks} ticks — stopping tick loop."
-            )
+        if generation_length_ticks is not None and tick_count >= generation_length_ticks:
+            print(f"Reached generation_length {generation_length_ticks} ticks — stopping tick loop.")
             print(
                 f"hit rate: {number_of_hit}/{generation_length_ticks} = {number_of_hit / generation_length_ticks:.2%}"
             )
-            print(
-                f"average backup level: {total_backup_level / number_of_hit if number_of_hit > 0 else 0:.2f}"
-            )
+            print(f"average backup level: {total_backup_level / number_of_hit if number_of_hit > 0 else 0:.2f}")
             # 可在此放置清理/通知逻辑，例如向其他队列放置终止事件
             return
 
@@ -407,6 +390,7 @@ def tick_loop(
             request_data = {
                 "melody_notes": notes_for_next_request,
                 "generation_start_tick": generation_start_tick,
+                **sampling_params,  # Spread sampling params
             }
             inference_request_queue.put((request_data, request_data.copy()))
             notes_for_next_request = []
@@ -459,9 +443,7 @@ def tick_loop(
 
         # --- 2. Handle Inference Responses ---
         while not inference_response_queue.empty():
-            response_data, round_trip_time, request_data = (
-                inference_response_queue.get()
-            )
+            response_data, round_trip_time, request_data = inference_response_queue.get()
 
             if response_data:
                 # --- Log the complete inference event ---
@@ -479,9 +461,7 @@ def tick_loop(
 
                 # Calculate total network latency (accurate)
                 # This is the time spent on the network for both the request and response.
-                timings["total_network_latency"] = (
-                    round_trip_time - server_processing_duration
-                )
+                timings["total_network_latency"] = round_trip_time - server_processing_duration
 
                 all_timing_data.append(timings)
 
@@ -490,12 +470,8 @@ def tick_loop(
                 newly_generated_notes = response_data["accompaniment"]
 
                 # DEBUG: Log what server returned
-                note_on_count = sum(
-                    1 for n in newly_generated_notes if n.get("type") == "note_on"
-                )
-                note_off_count = sum(
-                    1 for n in newly_generated_notes if n.get("type") == "note_off"
-                )
+                note_on_count = sum(1 for n in newly_generated_notes if n.get("type") == "note_on")
+                note_off_count = sum(1 for n in newly_generated_notes if n.get("type") == "note_off")
                 if newly_generated_notes:
                     print(
                         f"  [DEBUG] Server returned {len(newly_generated_notes)} events: {note_on_count} note_on, {note_off_count} note_off"
@@ -519,19 +495,13 @@ def tick_loop(
                 if newly_generated_notes:
                     # Find the first tick where the new generation actually places a note.
                     # This prevents clearing old notes if there's a gap before the new music starts.
-                    first_new_note_tick = min(
-                        note["tick"] for note in newly_generated_notes
-                    )
+                    first_new_note_tick = min(note["tick"] for note in newly_generated_notes)
 
-                    ticks_to_clean = [
-                        t for t in playback_schedule if t >= first_new_note_tick
-                    ]
+                    ticks_to_clean = [t for t in playback_schedule if t >= first_new_note_tick]
                     for tick in ticks_to_clean:
                         # Filter out events sourced from the model, keep user events
                         playback_schedule[tick] = [
-                            event
-                            for event in playback_schedule[tick]
-                            if event.get("source") != "model"
+                            event for event in playback_schedule[tick] if event.get("source") != "model"
                         ]
                         # If the tick is now empty, remove it from the schedule
                         if not playback_schedule[tick]:
@@ -549,9 +519,7 @@ def tick_loop(
                         normalized_note.setdefault("type", "note_on")
 
                         # Tag as a model-originated event
-                        playback_schedule[note["tick"]].append(
-                            {**normalized_note, "source": "model"}
-                        )
+                        playback_schedule[note["tick"]].append({**normalized_note, "source": "model"})
 
                 # Store timings for display, making them persistent
                 last_inference_timings = timings
@@ -609,9 +577,7 @@ def tick_loop(
             if event.get("type") != "note_on":
                 # Ignore non-note events (e.g. placeholders or future extensions)
                 continue
-            audio_output_handler.on(
-                event["pitch"], audio_output_handler.accompaniment_velocity
-            )
+            audio_output_handler.on(event["pitch"], audio_output_handler.accompaniment_velocity)
             # Record to MIDI with current tick for accurate timing
             event_for_midi = dict(event)
             event_for_midi["tick"] = tick_count
@@ -624,9 +590,7 @@ def tick_loop(
                 note_off_tick = tick_count + int(dur)
                 if note_off_tick not in playback_schedule:
                     playback_schedule[note_off_tick] = []
-                playback_schedule[note_off_tick].append(
-                    {**event, "type": "note_off", "source": "model"}
-                )
+                playback_schedule[note_off_tick].append({**event, "type": "note_off", "source": "model"})
 
         # --- 5. Metronome ---
         if metronome_enabled:
@@ -674,6 +638,7 @@ def tick_loop(
             request_data = {
                 "melody_notes": notes_for_next_request,
                 "generation_start_tick": generation_start_tick,
+                **sampling_params,  # Spread sampling params
             }
             inference_request_queue.put((request_data, request_data.copy()))
             notes_for_next_request = []
@@ -713,9 +678,7 @@ def main():
     )
 
     # Musical timing arguments
-    parser.add_argument(
-        "--tempo", type=float, default=config.DEFAULT_TEMPO, help="Tempo in BPM"
-    )
+    parser.add_argument("--tempo", type=float, default=config.DEFAULT_TEMPO, help="Tempo in BPM")
     parser.add_argument(
         "--ticks_per_beat",
         type=int,
@@ -754,9 +717,7 @@ def main():
         default=config.DEFAULT_LOG_LINES,
         help="Number of log lines to display",
     )
-    parser.add_argument(
-        "--metronome", action="store_true", help="Enable audible MIDI metronome click"
-    )
+    parser.add_argument("--metronome", action="store_true", help="Enable audible MIDI metronome click")
 
     # MIDI I/O arguments
     parser.add_argument(
@@ -765,9 +726,7 @@ def main():
         default=None,
         help="Specify MIDI output port name",
     )
-    parser.add_argument(
-        "--midi_input_name", type=str, default=None, help="Specify MIDI input port name"
-    )
+    parser.add_argument("--midi_input_name", type=str, default=None, help="Specify MIDI input port name")
     parser.add_argument(
         "--accompaniment-velocity",
         type=int,
@@ -799,7 +758,6 @@ def main():
         help="(Deprecated) No-op. Input now streams note_on/note_off events without duration.",
     )
 
-    # 添加音乐注入参数
     parser.add_argument(
         "--injection-file",
         type=str,
@@ -812,6 +770,35 @@ def main():
         default=0,
         help="Number of ticks to inject from the injection file",
     )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=1.1,
+        help="Sampling temperature",
+    )
+    parser.add_argument(
+        "--top_k",
+        type=int,
+        default=10,
+        help="Sampling top_k",
+    )
+    parser.add_argument(
+        "--top_p",
+        type=float,
+        default=0.95,
+        help="Sampling top_p",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Explicit output directory for logs and midi",
+    )
+    parser.add_argument(
+        "--no-midi-output",
+        action="store_true",
+        help="Disable MIDI audio output (for headless testing)",
+    )
 
     args = parser.parse_args()
 
@@ -821,9 +808,7 @@ def main():
 
     # 验证注入参数
     if args.injection_file and args.injection_length <= 0:
-        print(
-            "Error: injection-length must be positive when injection-file is specified"
-        )
+        print("Error: injection-length must be positive when injection-file is specified")
         return
 
     if args.injection_file and not os.path.exists(args.injection_file):
@@ -835,6 +820,58 @@ def main():
     session_log_dir = os.path.join("app", "logs", f"session_{timestamp}")
     os.makedirs(session_log_dir, exist_ok=True)
 
+    # --- Setup IO handlers ---
+    # Input
+    # Note: Input handling is performed by threads starting functions from input_handlers.input_handler
+    # We do NOT need to instantiate handler classes here.
+    if args.use_keyboard_input:
+        pass
+    elif args.midi_file_input:
+        pass
+    else:
+        pass
+
+    # Output
+    # Console Output
+    # The original code had a default output_type, but it's not defined in args.
+    # Assuming CLI is the only type for now, or a default is intended.
+    # For now, I'll assume `output_type` is not an arg and CLI is always used.
+    from output_handlers.cli_output import CLIOutputHandler
+    # Fix: Handler expects 'log_display_count', args has 'log_lines'
+    output_handler = CLIOutputHandler(log_display_count=args.log_lines)
+
+    # Audio Output (MIDI)
+    if args.no_midi_output:
+
+        class DummyAudioOutputHandler:
+            def __init__(self, *args, **kwargs):
+                self.accompaniment_velocity = 80
+
+            def on(self, *args, **kwargs):
+                pass
+
+            def off(self, *args, **kwargs):
+                pass
+
+            def metro_first(self, *args, **kwargs):
+                pass
+
+            def metro_other(self, *args, **kwargs):
+                pass
+
+            def close(self):
+                pass
+
+        audio_output_handler = DummyAudioOutputHandler()
+        print("Midi Audio Output DISABLED (Headless Mode)")
+    else:
+        from output_handlers.audio_output import AudioOutputHandler
+
+        audio_output_handler = AudioOutputHandler(
+            port_name=args.midi_output_name,
+            accompaniment_velocity=args.accompaniment_velocity,
+        )
+
     # 清除服务器历史
     if not clear_server_history(args.server_url):
         return
@@ -842,9 +879,7 @@ def main():
     # --- 处理音乐注入 ---
     injection_offset_ticks = 0
     if args.injection_file:
-        injection_offset_ticks = inject_music_to_server(
-            args.server_url, args.injection_file, args.injection_length
-        )
+        injection_offset_ticks = inject_music_to_server(args.server_url, args.injection_file, args.injection_length)
 
         if injection_offset_ticks == 0:
             print("注入失败，程序退出")
@@ -861,11 +896,8 @@ def main():
     event_queue = Queue()
     inference_request_queue = Queue()
     inference_response_queue = Queue()
-    audio_output_handler = AudioOutputHandler(
-        port_name=args.midi_output_name,
-        accompaniment_velocity=args.accompaniment_velocity,
-    )
-    output_handler = CLIOutputHandler(args.log_lines)
+    # Audio output handler and output handler are already initialized above.
+
     midi_file_handler = MidiFileHandler(args.tempo, args.ticks_per_beat)
     json_log_handler = JsonLogHandler()
     all_timing_data = []  # Initialize list in main scope
@@ -892,25 +924,19 @@ def main():
             daemon=True,
         )
     elif args.use_keyboard_input:
-        input_thread = threading.Thread(
-            target=read_keyboard_input, args=(event_queue,), daemon=True
-        )
+        input_thread = threading.Thread(target=read_keyboard_input, args=(event_queue,), daemon=True)
     else:
         # A check to see if MIDI input is available.
         try:
             if not mido.get_input_names():
-                print(
-                    "No MIDI input devices found. Please connect a MIDI device or use --use-keyboard-input."
-                )
+                print("No MIDI input devices found. Please connect a MIDI device or use --use-keyboard-input.")
                 return
             midi_input_name = args.midi_input_name or mido.get_input_names()[0]
         except Exception as e:
             print(f"Could not list MIDI devices: {e}")
             return
 
-        input_thread = threading.Thread(
-            target=read_midi_input, args=(event_queue, midi_input_name), daemon=True
-        )
+        input_thread = threading.Thread(target=read_midi_input, args=(event_queue, midi_input_name), daemon=True)
 
     inference_thread = threading.Thread(
         target=inference_worker,
@@ -941,6 +967,12 @@ def main():
             args.generation_interval_ticks,
             generation_length_ticks,
             current_tick_ref,
+            # Sampling params passed as dict or args
+            {
+                "temperature": args.temperature,
+                "top_k": args.top_k,
+                "top_p": args.top_p,
+            },
         ),
         daemon=True,
     )
@@ -956,9 +988,7 @@ def main():
         print(
             f"  ⚠ Warning: generation_interval_ticks ({args.generation_interval_ticks}) != ticks_per_beat ({args.ticks_per_beat})"
         )
-        print(
-            f"    Engine generates beat-by-beat, so interval should equal ticks_per_beat for best results."
-        )
+        print(f"    Engine generates beat-by-beat, so interval should equal ticks_per_beat for best results.")
 
     try:
         input_thread.start()
@@ -972,51 +1002,59 @@ def main():
     except KeyboardInterrupt:
         print("\r\nCtrl+C detected. Exiting application.")
     finally:
-        if args.generation_length is None:
+        if args.output_dir:
+            # Use explicit output directory if provided
+            session_log_dir = args.output_dir
+            os.makedirs(session_log_dir, exist_ok=True)
+            print(f"\nSaving logs to explicit dir: {session_log_dir}")
+
+            output_handler.save_log_on_exit(session_log_dir, all_timing_data)
+
+            # If input file name is available, use it for midi output name
+            midi_name = "output"
+            if args.midi_file_input:
+                midi_name = os.path.splitext(os.path.basename(args.midi_file_input))[0]
+
+            midi_file_handler.save_to_midi(session_log_dir, midi_file_name=midi_name)
+            json_log_handler.save_logs(session_log_dir)
+
+            try:
+                with open(os.path.join(session_log_dir, "tick_history.json"), "w") as fh:
+                    json.dump(tick_history, fh, indent=2)
+            except Exception:
+                pass
+            audio_output_handler.close()
+
+        elif args.generation_length is None:
             print("\n--- Saving all session logs ---")
             # Pass the benchmark data to be saved
             output_handler.save_log_on_exit(session_log_dir, all_timing_data)
             midi_file_handler.save_to_midi(session_log_dir)
             json_log_handler.save_logs(session_log_dir)
             try:
-                with open(
-                    os.path.join(session_log_dir, "tick_history.json"), "w"
-                ) as fh:
+                with open(os.path.join(session_log_dir, "tick_history.json"), "w") as fh:
                     json.dump(tick_history, fh, indent=2)
-                print(
-                    f"✓ tick_history 已保存到: {os.path.join(session_log_dir, 'tick_history.json')}"
-                )
+                print(f"✓ tick_history 已保存到: {os.path.join(session_log_dir, 'tick_history.json')}")
             except Exception as e:
                 print(f"✗ 保存 tick_history 失败: {e}")
             audio_output_handler.close()
         else:
-            print(
-                "\nExperiment Mode: Generation length reached, exiting without saving logs."
-            )
-            test_midi_file_name = os.path.splitext(
-                os.path.basename(args.midi_file_input)
-            )[0]
+            # Legacy/Experiment mode without explicit output dir
+            print("\nExperiment Mode: Generation length reached, exiting without saving logs.")
+            test_midi_file_name = os.path.splitext(os.path.basename(args.midi_file_input))[0]
             base_log_dir = f"output_test/realtime/{args.tempo}/interval_{args.generation_interval_ticks}_gen_frame_{args.generation_length_per_request}/prompt_{args.injection_length}_gen_{args.generation_length}2"
-            session_log_dir = os.path.join(
-                base_log_dir, "batch_run", test_midi_file_name
-            )
+            session_log_dir = os.path.join(base_log_dir, "batch_run", test_midi_file_name)
             os.makedirs(session_log_dir, exist_ok=True)
             output_handler.save_log_on_exit(session_log_dir, all_timing_data)
             experiment_dir = f"{base_log_dir}/generated"
             os.makedirs(experiment_dir, exist_ok=True)
-            midi_file_handler.save_to_midi(
-                experiment_dir, midi_file_name=test_midi_file_name
-            )
+            midi_file_handler.save_to_midi(experiment_dir, midi_file_name=test_midi_file_name)
             json_log_handler.save_logs(session_log_dir)
             audio_output_handler.close()
             try:
-                with open(
-                    os.path.join(session_log_dir, "tick_history.json"), "w"
-                ) as fh:
+                with open(os.path.join(session_log_dir, "tick_history.json"), "w") as fh:
                     json.dump(tick_history, fh, indent=2)
-                print(
-                    f"✓ tick_history 已保存到: {os.path.join(session_log_dir, 'tick_history.json')}"
-                )
+                print(f"✓ tick_history 已保存到: {os.path.join(session_log_dir, 'tick_history.json')}")
             except Exception as e:
                 print(f"✗ 保存 tick_history 失败: {e}")
 

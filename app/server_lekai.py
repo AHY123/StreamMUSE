@@ -39,6 +39,9 @@ class InferenceRequest(BaseModel):
     generation_start_tick: int
     client_request_send_time: Optional[float] = None
     generation_length_frames: Optional[int] = None
+    temperature: Optional[float] = 1.1
+    top_k: Optional[int] = 10
+    top_p: Optional[float] = 0.95
 
 
 class AccompanimentNoteEvent(BaseModel):
@@ -183,9 +186,7 @@ async def inject_music(request: InjectionRequest):
     global injection_state
 
     if not inference_engine:
-        return JSONResponse(
-            status_code=503, content={"error": "Inference engine not loaded"}
-        )
+        return JSONResponse(status_code=503, content={"error": "Inference engine not loaded"})
 
     try:
         # Check if melody file exists
@@ -229,20 +230,12 @@ async def inject_music(request: InjectionRequest):
         # Read MIDI files (duration-based notes)
         from app.inference_engines.transformer_engine_lekai import midi_to_note
 
-        melody_notes, _, _ = midi_to_note(
-            melody_file_path, beat_div=inference_engine.ticks_per_beat
-        )
-        accompaniment_notes, _, _ = midi_to_note(
-            accompaniment_file_path, beat_div=inference_engine.ticks_per_beat
-        )
+        melody_notes, _, _ = midi_to_note(melody_file_path, beat_div=inference_engine.ticks_per_beat)
+        accompaniment_notes, _, _ = midi_to_note(accompaniment_file_path, beat_div=inference_engine.ticks_per_beat)
 
         # Filter notes within injection length
-        melody_notes = [
-            n for n in melody_notes if n["tick"] < request.injection_length_ticks
-        ]
-        accompaniment_notes = [
-            n for n in accompaniment_notes if n["tick"] < request.injection_length_ticks
-        ]
+        melody_notes = [n for n in melody_notes if n["tick"] < request.injection_length_ticks]
+        accompaniment_notes = [n for n in accompaniment_notes if n["tick"] < request.injection_length_ticks]
 
         # Convert duration-based notes to event-stream format for melody
         melody_events = notes_to_events(melody_notes)
@@ -270,9 +263,7 @@ async def inject_music(request: InjectionRequest):
             "injection_file_path": request.injection_file_path,
         }
 
-        print(
-            f"✓ 注入完成: {len(melody_events)} 个旋律事件, {len(accompaniment_notes)} 个伴奏音符"
-        )
+        print(f"✓ 注入完成: {len(melody_events)} 个旋律事件, {len(accompaniment_notes)} 个伴奏音符")
 
         return InjectionResponse(
             success=True,
@@ -327,9 +318,7 @@ async def generate_accompaniment(request: InferenceRequest):
     request_arrival_time = time.perf_counter()
 
     if not inference_engine:
-        return JSONResponse(
-            status_code=503, content={"error": "Inference engine not loaded"}
-        )
+        return JSONResponse(status_code=503, content={"error": "Inference engine not loaded"})
 
     # Convert Pydantic models to dicts (already in event-stream format)
     melody_notes_dicts = [note.model_dump() for note in request.melody_notes]
@@ -344,6 +333,9 @@ async def generate_accompaniment(request: InferenceRequest):
     ) = inference_engine.generate_accompaniment(
         melody_notes_dicts,
         generation_start_tick=request.generation_start_tick,
+        temperature=request.temperature,
+        top_k=request.top_k,
+        top_p=request.top_p,
     )
 
     response_output_time = time.perf_counter()
