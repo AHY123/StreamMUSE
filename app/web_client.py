@@ -82,6 +82,9 @@ class ClientConfig(BaseModel):
     manual_prompt_path: Optional[str] = None
     key_detection_method: str = "lightweight"
     prompt_dir: Optional[str] = None
+    
+    record_session: bool = True
+    save_json_log: bool = True
 
 
 class ConnectionManager:
@@ -306,6 +309,8 @@ class ClientManager:
         self.tick_thread: Optional[threading.Thread] = None
         
         self.audio_output_handler: Optional[AudioOutputHandler] = None
+        self.midi_file_handler: Optional[MidiFileHandler] = None
+        self.json_log_handler: Optional[JsonLogHandler] = None
         self.all_timing_data = []
         self.tick_history = []
     
@@ -334,6 +339,18 @@ class ClientManager:
         except Exception as e:
             print(f"Warning: Could not initialize audio output: {e}")
             self.audio_output_handler = None
+        
+        if self.config.record_session:
+            self.midi_file_handler = MidiFileHandler(self.config.tempo, self.config.ticks_per_beat)
+            print("[DEBUG] MIDI recording enabled")
+        else:
+            self.midi_file_handler = None
+        
+        if self.config.save_json_log:
+            self.json_log_handler = JsonLogHandler()
+            print("[DEBUG] JSON logging enabled")
+        else:
+            self.json_log_handler = None
         
         current_tick_ref = {"current_tick": 0}
         
@@ -426,6 +443,22 @@ class ClientManager:
             print("[DEBUG] Closing audio output handler...")
             self.audio_output_handler.close()
             self.audio_output_handler = None
+        
+        if self.midi_file_handler:
+            print("[DEBUG] Saving MIDI recording...")
+            session_log_dir = "logs"
+            os.makedirs(session_log_dir, exist_ok=True)
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            self.midi_file_handler.save_to_midi(session_log_dir, midi_file_name=f"web_session_{timestamp}")
+            self.midi_file_handler = None
+        
+        if self.json_log_handler:
+            print("[DEBUG] Saving JSON log...")
+            session_log_dir = "logs"
+            os.makedirs(session_log_dir, exist_ok=True)
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            self.json_log_handler.save_logs(session_log_dir, log_filename=f"web_session_{timestamp}_inferences.json")
+            self.json_log_handler = None
         
         # Clear references
         self.input_thread = None
@@ -554,6 +587,9 @@ class ClientManager:
                     notes_for_next_request.append(quantized_note)
                     user_notes_this_tick.append(quantized_note)
                     
+                    if self.midi_file_handler:
+                        self.midi_file_handler.add_user_note(quantized_note)
+                    
                     self.ws_handler.send_note_on(
                         pitch=event["pitch"],
                         velocity=event["velocity"],
@@ -578,6 +614,9 @@ class ClientManager:
                     break
                 
                 if response_data:
+                    if self.json_log_handler:
+                        self.json_log_handler.log_inference_event(request_data, response_data)
+                    
                     timings = response_data.get("timings", {})
                     timings["round_trip_time"] = round_trip_time
                     
@@ -702,6 +741,23 @@ class ClientManager:
                             print(f"Worker completed with result: {success}")
                         else:
                             print("Worker timed out, continuing without prompt")
+                    
+                    if self.midi_file_handler:
+                        print("[DEBUG] Retrieving injection status from server...")
+                        try:
+                            import requests
+                            status_url = self.config.server_url.replace("/generate_accompaniment", "/injection_status")
+                            response = requests.get(status_url, timeout=2.0)
+                            response.raise_for_status()
+                            injection_status = response.json()
+                            
+                            if injection_status.get("is_injected", False):
+                                accompaniment_notes = injection_status.get("accompaniment_notes", [])
+                                print(f"[DEBUG] Recording {len(accompaniment_notes)} injected accompaniment notes to MIDI file")
+                                for note in accompaniment_notes:
+                                    self.midi_file_handler.add_model_note(note)
+                        except Exception as e:
+                            print(f"[WARNING] Failed to retrieve injection status: {e}")
 
                     listening_mode_completed = True
 
@@ -769,6 +825,9 @@ class ClientManager:
             for event in notes_to_play_this_tick:
                 if self.audio_output_handler:
                     self.audio_output_handler.on(event["pitch"], self.config.accompaniment_velocity)
+                
+                if self.midi_file_handler:
+                    self.midi_file_handler.add_model_note(event)
                 
                 note_off_tick = tick_count + event.get("duration", 4)
                 if note_off_tick not in playback_schedule:

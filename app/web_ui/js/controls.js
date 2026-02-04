@@ -29,6 +29,8 @@ const Controls = (function() {
             prompt_dir: document.getElementById('prompt-dir').value || null,
             key_detection_method: document.getElementById('key-detection').value,
             manual_prompt_path: document.getElementById('manual-prompt').value || null,
+            record_session: document.getElementById('record-session').checked,
+            save_json_log: document.getElementById('save-json-log').checked,
         };
     }
     

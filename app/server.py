@@ -128,6 +128,8 @@ async def lifespan(app: FastAPI):
             "is_injected": False,
             "injection_length_ticks": 0,
             "injection_file_path": None,
+            "melody_notes": [],
+            "accompaniment_notes": [],
         }
 
     except FileNotFoundError as e:
@@ -228,6 +230,8 @@ async def inject_music(request: InjectionRequest):
             "is_injected": True,
             "injection_length_ticks": request.injection_length_ticks,
             "injection_file_path": request.injection_file_path,
+            "melody_notes": melody_notes,
+            "accompaniment_notes": accompaniment_notes,
         }
 
         print(
@@ -279,6 +283,16 @@ async def inject_notes(request: DirectInjectionRequest):
 
         # Set offset
         inference_engine.set_injection_offset(request.injection_length_ticks)
+        
+        # Update injection state
+        global injection_state
+        injection_state = {
+            "is_injected": True,
+            "injection_length_ticks": request.injection_length_ticks,
+            "injection_file_path": None,
+            "melody_notes": melody_notes_dicts,
+            "accompaniment_notes": accompaniment_notes_dicts,
+        }
 
         print(f"Injected {len(melody_notes_dicts)} melody notes and {len(accompaniment_notes_dicts)} accompaniment notes")
 
@@ -370,6 +384,8 @@ async def clear_history():
             "is_injected": False,
             "injection_length_ticks": 0,
             "injection_file_path": None,
+            "melody_notes": [],
+            "accompaniment_notes": [],
         }
         return {"message": "History and injection state cleared successfully."}
     return JSONResponse(
