@@ -39,6 +39,9 @@ class InferenceRequest(BaseModel):
     generation_start_tick: int
     client_request_send_time: Optional[float] = None
     generation_length_frames: Optional[int] = None
+    temperature: Optional[float] = 1.1
+    top_k: Optional[int] = 10
+    top_p: Optional[float] = 0.95
 
 
 class AccompanimentNoteEvent(BaseModel):
@@ -203,9 +206,7 @@ async def inject_music(request: InjectionRequest):
     global injection_state
 
     if not inference_engine:
-        return JSONResponse(
-            status_code=503, content={"error": "Inference engine not loaded"}
-        )
+        return JSONResponse(status_code=503, content={"error": "Inference engine not loaded"})
 
     try:
         # Check if melody file exists
@@ -427,9 +428,7 @@ async def generate_accompaniment(request: InferenceRequest):
     request_arrival_time = time.perf_counter()
 
     if not inference_engine:
-        return JSONResponse(
-            status_code=503, content={"error": "Inference engine not loaded"}
-        )
+        return JSONResponse(status_code=503, content={"error": "Inference engine not loaded"})
 
     # Convert Pydantic models to dicts (already in event-stream format)
     melody_notes_dicts = [note.model_dump() for note in request.melody_notes]
@@ -444,6 +443,9 @@ async def generate_accompaniment(request: InferenceRequest):
     ) = inference_engine.generate_accompaniment(
         melody_notes_dicts,
         generation_start_tick=request.generation_start_tick,
+        temperature=request.temperature,
+        top_k=request.top_k,
+        top_p=request.top_p,
     )
 
     response_output_time = time.perf_counter()
