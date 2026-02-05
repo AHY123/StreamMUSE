@@ -233,7 +233,12 @@ def save_prompt_midi(
 
 
 # 添加注入功能函数
-def inject_music_to_server(server_base_url: str, injection_file_path: str, injection_length_ticks: int):
+def inject_music_to_server(
+    server_base_url: str,
+    injection_file_path: str,
+    injection_length_ticks: int,
+    inject_mel_only: bool = False,
+):
     """
     向服务器注入音乐
     """
@@ -243,9 +248,13 @@ def inject_music_to_server(server_base_url: str, injection_file_path: str, injec
         request_data = {
             "injection_file_path": injection_file_path,
             "injection_length_ticks": injection_length_ticks,
+            "inject_mel_only": inject_mel_only,
         }
 
-        print(f"注入音乐: {injection_file_path} (前 {injection_length_ticks} ticks)")
+        mode_str = "(melody only)" if inject_mel_only else "(melody + acc)"
+        print(
+            f"注入音乐 {mode_str}: {injection_file_path} (前 {injection_length_ticks} ticks)"
+        )
         response = requests.post(injection_url, json=request_data)
         response.raise_for_status()
 
@@ -771,33 +780,9 @@ def main():
         help="Number of ticks to inject from the injection file",
     )
     parser.add_argument(
-        "--temperature",
-        type=float,
-        default=1.1,
-        help="Sampling temperature",
-    )
-    parser.add_argument(
-        "--top_k",
-        type=int,
-        default=10,
-        help="Sampling top_k",
-    )
-    parser.add_argument(
-        "--top_p",
-        type=float,
-        default=0.95,
-        help="Sampling top_p",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default=None,
-        help="Explicit output directory for logs and midi",
-    )
-    parser.add_argument(
-        "--no-midi-output",
+        "--inject-mel-only",
         action="store_true",
-        help="Disable MIDI audio output (for headless testing)",
+        help="Only inject melody (no accompaniment) when using injection",
     )
 
     args = parser.parse_args()
@@ -879,7 +864,12 @@ def main():
     # --- 处理音乐注入 ---
     injection_offset_ticks = 0
     if args.injection_file:
-        injection_offset_ticks = inject_music_to_server(args.server_url, args.injection_file, args.injection_length)
+        injection_offset_ticks = inject_music_to_server(
+            args.server_url,
+            args.injection_file,
+            args.injection_length,
+            inject_mel_only=args.inject_mel_only,
+        )
 
         if injection_offset_ticks == 0:
             print("注入失败，程序退出")
