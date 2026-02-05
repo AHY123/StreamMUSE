@@ -78,3 +78,5 @@ inference_benchmark/outputs/
 *.npz
 *.safetensors
 # Note: analysis_results_local_server, analysis_results_local, analysis_results_remote are tracked
+output_batch/
+output_test/
