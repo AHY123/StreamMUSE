@@ -21,6 +21,9 @@ from contextlib import asynccontextmanager
 
 # from app.inference_engines.transformer_engine import TransformerInferenceEngine
 from app.inference_engines.transformer_engine_stanley import InferenceEngineStanley
+from app.acc_transpose.music21_key_detect import detect_key
+from app.acc_transpose.transpose_c_major import transpose_pm,parse_keys
+from app.acc_transpose.transpose_key import get_semitones_for_transposition, transpose_pm, transpose_midi_file
 
 
 class MelodyNoteEvent(BaseModel):
@@ -150,15 +153,28 @@ async def inject_music(request: InjectionRequest):
                 melody_notes_injected=0,
                 accompaniment_notes_injected=0,
             )
-
+        
+        
         # 自动推导伴奏文件路径
         # 比如将 input/mel/001.mid 转换为 input/acc/001.mid
-        accompaniment_file_path = "acc-poly-pattern/c_major_poly_stride.mid"
+        # accompaniment_file_path = melody_file_path.replace("/mel/", "/acc/")
+        accompaniment_file_path = "acc-poly-pattern_resampled/c_major_poly_stride.mid"
         # acc_template_dir = "acc-poly-pattern/"
         # acc_template_list = sorted(os.listdir(acc_template_dir))
         # i = 0
         # accompaniment_file_path = os.path.join(acc_template_dir, acc_template_list[i])
         print(f"Using accompaniment file: {accompaniment_file_path}")
+        
+        tonic, mode, confidence = detect_key(melody_file_path)
+        print(f"Detected key: {tonic} {mode} (confidence: {confidence:.2f})")
+        
+        if mode == "major":
+            mode = ""
+        elif mode == "minor":
+            mode = "M"
+        transpose_midi_file(accompaniment_file_path, "test2.mid", "C", tonic.upper() + mode)
+        
+        
         # ----- CHANGE ACC SOURCE HERE -----
         # 位置说明：上面使用简单的字符串替换从 melody 文件路径推导 accompaniment 文件路径。
         # 如果你的伴奏来自其他来源，这里是修改的关键位置：

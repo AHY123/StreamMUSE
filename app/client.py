@@ -113,7 +113,7 @@ def save_prompt_midi(
         # 确定 mel 和 acc 文件路径
         mel_file_path = original_file_path
         # acc_file_path = original_file_path.replace("mel", "acc")
-        acc_file_path = "acc-poly-pattern/c_major_poly_stride.mid"
+        acc_file_path = "acc-poly-pattern_resampled/c_major_poly_stride.mid"
 
         print(f"处理 Melody 文件: {mel_file_path}")
         print(f"处理 Accompaniment 文件: {acc_file_path}")
@@ -130,7 +130,8 @@ def save_prompt_midi(
         injection_length_midi_ticks = int(
             injection_length_ticks * midi_ticks_per_client_tick
         )
-
+        print(f"mel MIDI ticks_per_beat: {mel_midi.ticks_per_beat}, mel injection length ticks: {injection_length_midi_ticks}")
+        print(f"acc MIDI ticks_per_beat: {mido.MidiFile(acc_file_path).ticks_per_beat}, acc injection length ticks: {int(injection_length_ticks * (mido.MidiFile(acc_file_path).ticks_per_beat / client_ticks_per_beat))}")
         print(
             f"客户端 ticks: {injection_length_ticks}, MIDI ticks: {injection_length_midi_ticks}"
         )
