@@ -227,3 +227,12 @@ def main(argv=None) -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
+
+
+# python3 plot_nll_heatmap.py \
+#   --input-dir records/nll_runs/experiments1 \
+#   --out records/nll_heatmap_experiments1.png \
+#   --csv-out records/nll_heatmap_experiments1.csv \
+#   --value-mode weighted_avg \
+#   --annotate \
+#   --cmap plasma
