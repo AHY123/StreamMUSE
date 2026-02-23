@@ -15,7 +15,7 @@ from pathlib import Path
 import os
 from typing import Iterable
 
-from scripts.dir_stats import get_path, RESULT, EXP_RAW, NLL
+from move_to_eval.eval_toolkit.path_utils import get_path, RESULT, EXP_RAW, NLL
 
 
 def iterate_types() -> Iterable[tuple[str, str]]:
@@ -25,7 +25,7 @@ def iterate_types() -> Iterable[tuple[str, str]]:
     for t in sorted(EXP_RAW):
         yield ("EXP_RAW", t)
     # for t in sorted(BATCH):
-        # yield ("BATCH", t)
+    # yield ("BATCH", t)
     for t in sorted(NLL):
         yield ("NLL", t)
 

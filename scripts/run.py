@@ -1,6 +1,6 @@
-from scripts.dir_stats import get_path
-from scripts.json_processors import parse_by_type
-from scripts.aggreate import compute_stats
+from move_to_eval.eval_toolkit.path_utils import get_path
+from move_to_eval.eval_toolkit.json_parser import parse_by_type
+from move_to_eval.eval_toolkit.stats import compute_stats
 import os
 
 # path = get_path("interval1_gen3_prompt_128_gen_576", "nll", "result/results-experiments2-local")

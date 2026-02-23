@@ -1,5 +1,5 @@
-from scripts.dir_stats import RESULT, get_path
-from scripts.json_processors import parse_by_type
+from move_to_eval.eval_toolkit.path_utils import RESULT, get_path
+from move_to_eval.eval_toolkit.json_parser import parse_by_type
 import json
 
 key = "interval1_gen3_prompt_128_gen_576"
