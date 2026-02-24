@@ -13,10 +13,12 @@ from typing import Literal, Union, List
 TypeFromResult = Literal[
     "pitch_jsd",
     "onset_jsd",
+    "duration_jsd",
     "consonant_ratio",
     "unsupported_ratio",
     "prompt_generated_txt_mean_distance",
     "frechet_music_distance",
+    "chord_accuracy",
 ]
 
 TypeFromExpRaw = Literal[
@@ -35,10 +37,12 @@ Type = Union[TypeFromResult, TypeFromExpRaw, TypeFromNll]
 RESULT = {
     "pitch_jsd",
     "onset_jsd",
+    "duration_jsd",
     "consonant_ratio",
     "unsupported_ratio",
     "prompt_generated_txt_mean_distance",
     "frechet_music_distance",
+    "chord_accuracy",
 }
 EXP_RAW = {
     "hit_rate",
