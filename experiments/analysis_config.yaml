@@ -1,0 +1,74 @@
+# StreamMUSE Experiment Analysis Configuration
+# Configuration for bulk analysis with custom formulas and formal names
+
+experiments:
+  - path: "experiments/local_direct_final"
+    experiment_source: "local_direct_final_test"  # Match the actual experiment_source in data
+    formal_name: "Local Direct (A4000-A4000)"
+    description: "Direct connection between A4000 and A4000"
+    formula:
+      type: "quadratic"  # or "linear"
+      a: 0.030801
+      b: 17.842165
+      c: 12.031375
+    formula_95:
+      type: "quadratic"
+      a: 0.036191
+      b: 17.564338
+      c: 10.882042
+    color: "#2E7D32"  # Dark green
+
+  - path: "experiments/local_server_final" 
+    experiment_source: "local_server_final_test"  # Match the actual experiment_source in data
+    formal_name: "Local Server (PC-Mac)"
+    description: "Local server connection between PC client and Mac server"
+    formula:
+      type: "quadratic"
+      a: 0.877257
+      b: 10.599259
+      c: 93.573464
+    formula_95:
+      type: "quadratic"
+      a: 0.837418
+      b: 11.197369
+      c: 86.276462
+    color: "#1976D2"  # Blue
+
+  - path: "experiments/remote_server_final5"
+    experiment_source: "remote_server_final_test"  # Match the actual experiment_source in data
+    formal_name: "Remote Server (Hyperstack-PC)"
+    description: "Remote server connection between PC client and Hyperstack server"
+    formula:
+      type: "quadratic"
+      a: -0.186951
+      b: 21.265486
+      c: 129.678235
+    formula_95:
+      type: "quadratic"
+      a: -0.173448
+      b: 21.069808
+      c: 125.282170
+    color: "#D32F2F"  # Red
+
+# Analysis settings
+analysis_settings:
+  anomaly_filter_percentage: 5  # Remove top 5% per generation length
+  output_directory: "experiments/final_analysis5_f"
+  individual_analyses: false  # Whether to run individual experiment analyses
+
+# Parameter constraint analysis settings
+constraint_analysis:
+  bpm_list: [90, 120, 150, 200]  # List of BPM values for tau_tick calculation
+  percentile: 100  # Fixed percentile for constraint analysis
+  generation_frames: [1, 3, 5, 7, 9, 11, 13, 15]  # Odd frames to analyze
+  inference_intervals: [1, 2, 3, 4, 5, 6, 7, 8]  # Inference interval range
+  use_formula_boundaries: true
+  use_formula_95: true  # Use formula_95 instead of main formula for constraint analysis
+  
+# Plot settings
+plot_settings:
+  shaded_area_alpha: 0.2      # Transparency for ±5% shaded area
+  line_width: 2.5             # Width of best fit lines
+  box_plot_alpha: 0.7         # Transparency for box plots
+  figure_size: [12, 8]        # Figure width, height in inches
+  dpi: 300                    # Resolution for saved plots

@@ -1,0 +1,1009 @@
+experiment_name,percentile,inference_interval_ticks,generation_length_ticks,generation_length_frames,constraint_status_code,constraint_status,rtt_percentile_ms,constraint1_satisfied,constraint2_satisfied,both_constraints_satisfied
+local_direct_final_test,50.0,1,1,1,2,C2 Violated,27.68876950722185,True,False,False
+local_direct_final_test,50.0,1,2,3,0,Valid,62.309701490448745,True,True,True
+local_direct_final_test,50.0,1,3,5,0,Valid,97.40866949141486,True,True,True
+local_direct_final_test,50.0,1,4,7,1,C1 Violated,132.81553999695456,False,True,False
+local_direct_final_test,50.0,1,5,9,1,C1 Violated,168.45127998385576,False,True,False
+local_direct_final_test,50.0,1,6,11,1,C1 Violated,204.01758448861068,False,True,False
+local_direct_final_test,50.0,1,7,13,1,C1 Violated,240.04637749749236,False,True,False
+local_direct_final_test,50.0,1,8,15,1,C1 Violated,276.06568099872675,False,True,False
+local_direct_final_test,50.0,2,1,1,2,C2 Violated,27.68876950722185,True,False,False
+local_direct_final_test,50.0,2,2,3,2,C2 Violated,62.309701490448745,True,False,False
+local_direct_final_test,50.0,2,3,5,0,Valid,97.40866949141486,True,True,True
+local_direct_final_test,50.0,2,4,7,0,Valid,132.81553999695456,True,True,True
+local_direct_final_test,50.0,2,5,9,0,Valid,168.45127998385576,True,True,True
+local_direct_final_test,50.0,2,6,11,0,Valid,204.01758448861068,True,True,True
+local_direct_final_test,50.0,2,7,13,0,Valid,240.04637749749236,True,True,True
+local_direct_final_test,50.0,2,8,15,1,C1 Violated,276.06568099872675,False,True,False
+local_direct_final_test,50.0,3,1,1,2,C2 Violated,27.68876950722185,True,False,False
+local_direct_final_test,50.0,3,2,3,2,C2 Violated,62.309701490448745,True,False,False
+local_direct_final_test,50.0,3,3,5,2,C2 Violated,97.40866949141486,True,False,False
+local_direct_final_test,50.0,3,4,7,2,C2 Violated,132.81553999695456,True,False,False
+local_direct_final_test,50.0,3,5,9,0,Valid,168.45127998385576,True,True,True
+local_direct_final_test,50.0,3,6,11,0,Valid,204.01758448861068,True,True,True
+local_direct_final_test,50.0,3,7,13,0,Valid,240.04637749749236,True,True,True
+local_direct_final_test,50.0,3,8,15,0,Valid,276.06568099872675,True,True,True
+local_direct_final_test,50.0,4,1,1,2,C2 Violated,27.68876950722185,True,False,False
+local_direct_final_test,50.0,4,2,3,2,C2 Violated,62.309701490448745,True,False,False
+local_direct_final_test,50.0,4,3,5,2,C2 Violated,97.40866949141486,True,False,False
+local_direct_final_test,50.0,4,4,7,2,C2 Violated,132.81553999695456,True,False,False
+local_direct_final_test,50.0,4,5,9,2,C2 Violated,168.45127998385576,True,False,False
+local_direct_final_test,50.0,4,6,11,0,Valid,204.01758448861068,True,True,True
+local_direct_final_test,50.0,4,7,13,0,Valid,240.04637749749236,True,True,True
+local_direct_final_test,50.0,4,8,15,0,Valid,276.06568099872675,True,True,True
+local_direct_final_test,50.0,5,1,1,2,C2 Violated,27.68876950722185,True,False,False
+local_direct_final_test,50.0,5,2,3,2,C2 Violated,62.309701490448745,True,False,False
+local_direct_final_test,50.0,5,3,5,2,C2 Violated,97.40866949141486,True,False,False
+local_direct_final_test,50.0,5,4,7,2,C2 Violated,132.81553999695456,True,False,False
+local_direct_final_test,50.0,5,5,9,2,C2 Violated,168.45127998385576,True,False,False
+local_direct_final_test,50.0,5,6,11,2,C2 Violated,204.01758448861068,True,False,False
+local_direct_final_test,50.0,5,7,13,0,Valid,240.04637749749236,True,True,True
+local_direct_final_test,50.0,5,8,15,0,Valid,276.06568099872675,True,True,True
+local_direct_final_test,50.0,6,1,1,2,C2 Violated,27.68876950722185,True,False,False
+local_direct_final_test,50.0,6,2,3,2,C2 Violated,62.309701490448745,True,False,False
+local_direct_final_test,50.0,6,3,5,2,C2 Violated,97.40866949141486,True,False,False
+local_direct_final_test,50.0,6,4,7,2,C2 Violated,132.81553999695456,True,False,False
+local_direct_final_test,50.0,6,5,9,2,C2 Violated,168.45127998385576,True,False,False
+local_direct_final_test,50.0,6,6,11,2,C2 Violated,204.01758448861068,True,False,False
+local_direct_final_test,50.0,6,7,13,2,C2 Violated,240.04637749749236,True,False,False
+local_direct_final_test,50.0,6,8,15,2,C2 Violated,276.06568099872675,True,False,False
+local_direct_final_test,50.0,7,1,1,2,C2 Violated,27.68876950722185,True,False,False
+local_direct_final_test,50.0,7,2,3,2,C2 Violated,62.309701490448745,True,False,False
+local_direct_final_test,50.0,7,3,5,2,C2 Violated,97.40866949141486,True,False,False
+local_direct_final_test,50.0,7,4,7,2,C2 Violated,132.81553999695456,True,False,False
+local_direct_final_test,50.0,7,5,9,2,C2 Violated,168.45127998385576,True,False,False
+local_direct_final_test,50.0,7,6,11,2,C2 Violated,204.01758448861068,True,False,False
+local_direct_final_test,50.0,7,7,13,2,C2 Violated,240.04637749749236,True,False,False
+local_direct_final_test,50.0,7,8,15,2,C2 Violated,276.06568099872675,True,False,False
+local_direct_final_test,60.0,1,1,1,2,C2 Violated,27.90924978326072,True,False,False
+local_direct_final_test,60.0,1,2,3,0,Valid,62.94626859598786,True,True,True
+local_direct_final_test,60.0,1,3,5,0,Valid,98.28255219617856,True,True,True
+local_direct_final_test,60.0,1,4,7,1,C1 Violated,133.57057801331385,False,True,False
+local_direct_final_test,60.0,1,5,9,1,C1 Violated,169.2346729978453,False,True,False
+local_direct_final_test,60.0,1,6,11,1,C1 Violated,204.97664200956928,False,True,False
+local_direct_final_test,60.0,1,7,13,1,C1 Violated,244.50760780018746,False,True,False
+local_direct_final_test,60.0,1,8,15,1,C1 Violated,282.2048161819111,False,True,False
+local_direct_final_test,60.0,2,1,1,2,C2 Violated,27.90924978326072,True,False,False
+local_direct_final_test,60.0,2,2,3,2,C2 Violated,62.94626859598786,True,False,False
+local_direct_final_test,60.0,2,3,5,0,Valid,98.28255219617856,True,True,True
+local_direct_final_test,60.0,2,4,7,0,Valid,133.57057801331385,True,True,True
+local_direct_final_test,60.0,2,5,9,0,Valid,169.2346729978453,True,True,True
+local_direct_final_test,60.0,2,6,11,0,Valid,204.97664200956928,True,True,True
+local_direct_final_test,60.0,2,7,13,0,Valid,244.50760780018746,True,True,True
+local_direct_final_test,60.0,2,8,15,1,C1 Violated,282.2048161819111,False,True,False
+local_direct_final_test,60.0,3,1,1,2,C2 Violated,27.90924978326072,True,False,False
+local_direct_final_test,60.0,3,2,3,2,C2 Violated,62.94626859598786,True,False,False
+local_direct_final_test,60.0,3,3,5,2,C2 Violated,98.28255219617856,True,False,False
+local_direct_final_test,60.0,3,4,7,2,C2 Violated,133.57057801331385,True,False,False
+local_direct_final_test,60.0,3,5,9,0,Valid,169.2346729978453,True,True,True
+local_direct_final_test,60.0,3,6,11,0,Valid,204.97664200956928,True,True,True
+local_direct_final_test,60.0,3,7,13,0,Valid,244.50760780018746,True,True,True
+local_direct_final_test,60.0,3,8,15,0,Valid,282.2048161819111,True,True,True
+local_direct_final_test,60.0,4,1,1,2,C2 Violated,27.90924978326072,True,False,False
+local_direct_final_test,60.0,4,2,3,2,C2 Violated,62.94626859598786,True,False,False
+local_direct_final_test,60.0,4,3,5,2,C2 Violated,98.28255219617856,True,False,False
+local_direct_final_test,60.0,4,4,7,2,C2 Violated,133.57057801331385,True,False,False
+local_direct_final_test,60.0,4,5,9,2,C2 Violated,169.2346729978453,True,False,False
+local_direct_final_test,60.0,4,6,11,0,Valid,204.97664200956928,True,True,True
+local_direct_final_test,60.0,4,7,13,0,Valid,244.50760780018746,True,True,True
+local_direct_final_test,60.0,4,8,15,0,Valid,282.2048161819111,True,True,True
+local_direct_final_test,60.0,5,1,1,2,C2 Violated,27.90924978326072,True,False,False
+local_direct_final_test,60.0,5,2,3,2,C2 Violated,62.94626859598786,True,False,False
+local_direct_final_test,60.0,5,3,5,2,C2 Violated,98.28255219617856,True,False,False
+local_direct_final_test,60.0,5,4,7,2,C2 Violated,133.57057801331385,True,False,False
+local_direct_final_test,60.0,5,5,9,2,C2 Violated,169.2346729978453,True,False,False
+local_direct_final_test,60.0,5,6,11,2,C2 Violated,204.97664200956928,True,False,False
+local_direct_final_test,60.0,5,7,13,0,Valid,244.50760780018746,True,True,True
+local_direct_final_test,60.0,5,8,15,0,Valid,282.2048161819111,True,True,True
+local_direct_final_test,60.0,6,1,1,2,C2 Violated,27.90924978326072,True,False,False
+local_direct_final_test,60.0,6,2,3,2,C2 Violated,62.94626859598786,True,False,False
+local_direct_final_test,60.0,6,3,5,2,C2 Violated,98.28255219617856,True,False,False
+local_direct_final_test,60.0,6,4,7,2,C2 Violated,133.57057801331385,True,False,False
+local_direct_final_test,60.0,6,5,9,2,C2 Violated,169.2346729978453,True,False,False
+local_direct_final_test,60.0,6,6,11,2,C2 Violated,204.97664200956928,True,False,False
+local_direct_final_test,60.0,6,7,13,2,C2 Violated,244.50760780018746,True,False,False
+local_direct_final_test,60.0,6,8,15,2,C2 Violated,282.2048161819111,True,False,False
+local_direct_final_test,60.0,7,1,1,2,C2 Violated,27.90924978326072,True,False,False
+local_direct_final_test,60.0,7,2,3,2,C2 Violated,62.94626859598786,True,False,False
+local_direct_final_test,60.0,7,3,5,2,C2 Violated,98.28255219617856,True,False,False
+local_direct_final_test,60.0,7,4,7,2,C2 Violated,133.57057801331385,True,False,False
+local_direct_final_test,60.0,7,5,9,2,C2 Violated,169.2346729978453,True,False,False
+local_direct_final_test,60.0,7,6,11,2,C2 Violated,204.97664200956928,True,False,False
+local_direct_final_test,60.0,7,7,13,2,C2 Violated,244.50760780018746,True,False,False
+local_direct_final_test,60.0,7,8,15,2,C2 Violated,282.2048161819111,True,False,False
+local_direct_final_test,70.0,1,1,1,2,C2 Violated,28.124657907756,True,False,False
+local_direct_final_test,70.0,1,2,3,0,Valid,63.95293578971173,True,True,True
+local_direct_final_test,70.0,1,3,5,0,Valid,99.16420599038244,True,True,True
+local_direct_final_test,70.0,1,4,7,1,C1 Violated,135.01034588553006,False,True,False
+local_direct_final_test,70.0,1,5,9,1,C1 Violated,172.5728101067943,False,True,False
+local_direct_final_test,70.0,1,6,11,1,C1 Violated,209.3195318069774,False,True,False
+local_direct_final_test,70.0,1,7,13,1,C1 Violated,250.37399240827648,False,True,False
+local_direct_final_test,70.0,1,8,15,1,C1 Violated,291.8074280867586,False,True,False
+local_direct_final_test,70.0,2,1,1,2,C2 Violated,28.124657907756,True,False,False
+local_direct_final_test,70.0,2,2,3,2,C2 Violated,63.95293578971173,True,False,False
+local_direct_final_test,70.0,2,3,5,0,Valid,99.16420599038244,True,True,True
+local_direct_final_test,70.0,2,4,7,0,Valid,135.01034588553006,True,True,True
+local_direct_final_test,70.0,2,5,9,0,Valid,172.5728101067943,True,True,True
+local_direct_final_test,70.0,2,6,11,0,Valid,209.3195318069774,True,True,True
+local_direct_final_test,70.0,2,7,13,1,C1 Violated,250.37399240827648,False,True,False
+local_direct_final_test,70.0,2,8,15,1,C1 Violated,291.8074280867586,False,True,False
+local_direct_final_test,70.0,3,1,1,2,C2 Violated,28.124657907756,True,False,False
+local_direct_final_test,70.0,3,2,3,2,C2 Violated,63.95293578971173,True,False,False
+local_direct_final_test,70.0,3,3,5,2,C2 Violated,99.16420599038244,True,False,False
+local_direct_final_test,70.0,3,4,7,2,C2 Violated,135.01034588553006,True,False,False
+local_direct_final_test,70.0,3,5,9,0,Valid,172.5728101067943,True,True,True
+local_direct_final_test,70.0,3,6,11,0,Valid,209.3195318069774,True,True,True
+local_direct_final_test,70.0,3,7,13,0,Valid,250.37399240827648,True,True,True
+local_direct_final_test,70.0,3,8,15,0,Valid,291.8074280867586,True,True,True
+local_direct_final_test,70.0,4,1,1,2,C2 Violated,28.124657907756,True,False,False
+local_direct_final_test,70.0,4,2,3,2,C2 Violated,63.95293578971173,True,False,False
+local_direct_final_test,70.0,4,3,5,2,C2 Violated,99.16420599038244,True,False,False
+local_direct_final_test,70.0,4,4,7,2,C2 Violated,135.01034588553006,True,False,False
+local_direct_final_test,70.0,4,5,9,2,C2 Violated,172.5728101067943,True,False,False
+local_direct_final_test,70.0,4,6,11,0,Valid,209.3195318069774,True,True,True
+local_direct_final_test,70.0,4,7,13,0,Valid,250.37399240827648,True,True,True
+local_direct_final_test,70.0,4,8,15,0,Valid,291.8074280867586,True,True,True
+local_direct_final_test,70.0,5,1,1,2,C2 Violated,28.124657907756,True,False,False
+local_direct_final_test,70.0,5,2,3,2,C2 Violated,63.95293578971173,True,False,False
+local_direct_final_test,70.0,5,3,5,2,C2 Violated,99.16420599038244,True,False,False
+local_direct_final_test,70.0,5,4,7,2,C2 Violated,135.01034588553006,True,False,False
+local_direct_final_test,70.0,5,5,9,2,C2 Violated,172.5728101067943,True,False,False
+local_direct_final_test,70.0,5,6,11,2,C2 Violated,209.3195318069774,True,False,False
+local_direct_final_test,70.0,5,7,13,2,C2 Violated,250.37399240827648,True,False,False
+local_direct_final_test,70.0,5,8,15,0,Valid,291.8074280867586,True,True,True
+local_direct_final_test,70.0,6,1,1,2,C2 Violated,28.124657907756,True,False,False
+local_direct_final_test,70.0,6,2,3,2,C2 Violated,63.95293578971173,True,False,False
+local_direct_final_test,70.0,6,3,5,2,C2 Violated,99.16420599038244,True,False,False
+local_direct_final_test,70.0,6,4,7,2,C2 Violated,135.01034588553006,True,False,False
+local_direct_final_test,70.0,6,5,9,2,C2 Violated,172.5728101067943,True,False,False
+local_direct_final_test,70.0,6,6,11,2,C2 Violated,209.3195318069774,True,False,False
+local_direct_final_test,70.0,6,7,13,2,C2 Violated,250.37399240827648,True,False,False
+local_direct_final_test,70.0,6,8,15,2,C2 Violated,291.8074280867586,True,False,False
+local_direct_final_test,70.0,7,1,1,2,C2 Violated,28.124657907756,True,False,False
+local_direct_final_test,70.0,7,2,3,2,C2 Violated,63.95293578971173,True,False,False
+local_direct_final_test,70.0,7,3,5,2,C2 Violated,99.16420599038244,True,False,False
+local_direct_final_test,70.0,7,4,7,2,C2 Violated,135.01034588553006,True,False,False
+local_direct_final_test,70.0,7,5,9,2,C2 Violated,172.5728101067943,True,False,False
+local_direct_final_test,70.0,7,6,11,2,C2 Violated,209.3195318069774,True,False,False
+local_direct_final_test,70.0,7,7,13,2,C2 Violated,250.37399240827648,True,False,False
+local_direct_final_test,70.0,7,8,15,2,C2 Violated,291.8074280867586,True,False,False
+local_direct_final_test,80.0,1,1,1,2,C2 Violated,28.45429099397726,True,False,False
+local_direct_final_test,80.0,1,2,3,0,Valid,65.08457278250708,True,True,True
+local_direct_final_test,80.0,1,3,5,0,Valid,101.5993189939763,True,True,True
+local_direct_final_test,80.0,1,4,7,1,C1 Violated,138.80058178910986,False,True,False
+local_direct_final_test,80.0,1,5,9,1,C1 Violated,180.59258839930405,False,True,False
+local_direct_final_test,80.0,1,6,11,1,C1 Violated,217.5345802097581,False,True,False
+local_direct_final_test,80.0,1,7,13,1,C1 Violated,257.70423719077365,False,True,False
+local_direct_final_test,80.0,1,8,15,1,C1 Violated,298.42074300395325,False,True,False
+local_direct_final_test,80.0,2,1,1,2,C2 Violated,28.45429099397726,True,False,False
+local_direct_final_test,80.0,2,2,3,2,C2 Violated,65.08457278250708,True,False,False
+local_direct_final_test,80.0,2,3,5,0,Valid,101.5993189939763,True,True,True
+local_direct_final_test,80.0,2,4,7,0,Valid,138.80058178910986,True,True,True
+local_direct_final_test,80.0,2,5,9,0,Valid,180.59258839930405,True,True,True
+local_direct_final_test,80.0,2,6,11,0,Valid,217.5345802097581,True,True,True
+local_direct_final_test,80.0,2,7,13,1,C1 Violated,257.70423719077365,False,True,False
+local_direct_final_test,80.0,2,8,15,1,C1 Violated,298.42074300395325,False,True,False
+local_direct_final_test,80.0,3,1,1,2,C2 Violated,28.45429099397726,True,False,False
+local_direct_final_test,80.0,3,2,3,2,C2 Violated,65.08457278250708,True,False,False
+local_direct_final_test,80.0,3,3,5,2,C2 Violated,101.5993189939763,True,False,False
+local_direct_final_test,80.0,3,4,7,2,C2 Violated,138.80058178910986,True,False,False
+local_direct_final_test,80.0,3,5,9,0,Valid,180.59258839930405,True,True,True
+local_direct_final_test,80.0,3,6,11,0,Valid,217.5345802097581,True,True,True
+local_direct_final_test,80.0,3,7,13,0,Valid,257.70423719077365,True,True,True
+local_direct_final_test,80.0,3,8,15,0,Valid,298.42074300395325,True,True,True
+local_direct_final_test,80.0,4,1,1,2,C2 Violated,28.45429099397726,True,False,False
+local_direct_final_test,80.0,4,2,3,2,C2 Violated,65.08457278250708,True,False,False
+local_direct_final_test,80.0,4,3,5,2,C2 Violated,101.5993189939763,True,False,False
+local_direct_final_test,80.0,4,4,7,2,C2 Violated,138.80058178910986,True,False,False
+local_direct_final_test,80.0,4,5,9,2,C2 Violated,180.59258839930405,True,False,False
+local_direct_final_test,80.0,4,6,11,0,Valid,217.5345802097581,True,True,True
+local_direct_final_test,80.0,4,7,13,0,Valid,257.70423719077365,True,True,True
+local_direct_final_test,80.0,4,8,15,0,Valid,298.42074300395325,True,True,True
+local_direct_final_test,80.0,5,1,1,2,C2 Violated,28.45429099397726,True,False,False
+local_direct_final_test,80.0,5,2,3,2,C2 Violated,65.08457278250708,True,False,False
+local_direct_final_test,80.0,5,3,5,2,C2 Violated,101.5993189939763,True,False,False
+local_direct_final_test,80.0,5,4,7,2,C2 Violated,138.80058178910986,True,False,False
+local_direct_final_test,80.0,5,5,9,2,C2 Violated,180.59258839930405,True,False,False
+local_direct_final_test,80.0,5,6,11,2,C2 Violated,217.5345802097581,True,False,False
+local_direct_final_test,80.0,5,7,13,2,C2 Violated,257.70423719077365,True,False,False
+local_direct_final_test,80.0,5,8,15,0,Valid,298.42074300395325,True,True,True
+local_direct_final_test,80.0,6,1,1,2,C2 Violated,28.45429099397726,True,False,False
+local_direct_final_test,80.0,6,2,3,2,C2 Violated,65.08457278250708,True,False,False
+local_direct_final_test,80.0,6,3,5,2,C2 Violated,101.5993189939763,True,False,False
+local_direct_final_test,80.0,6,4,7,2,C2 Violated,138.80058178910986,True,False,False
+local_direct_final_test,80.0,6,5,9,2,C2 Violated,180.59258839930405,True,False,False
+local_direct_final_test,80.0,6,6,11,2,C2 Violated,217.5345802097581,True,False,False
+local_direct_final_test,80.0,6,7,13,2,C2 Violated,257.70423719077365,True,False,False
+local_direct_final_test,80.0,6,8,15,2,C2 Violated,298.42074300395325,True,False,False
+local_direct_final_test,80.0,7,1,1,2,C2 Violated,28.45429099397726,True,False,False
+local_direct_final_test,80.0,7,2,3,2,C2 Violated,65.08457278250708,True,False,False
+local_direct_final_test,80.0,7,3,5,2,C2 Violated,101.5993189939763,True,False,False
+local_direct_final_test,80.0,7,4,7,2,C2 Violated,138.80058178910986,True,False,False
+local_direct_final_test,80.0,7,5,9,2,C2 Violated,180.59258839930405,True,False,False
+local_direct_final_test,80.0,7,6,11,2,C2 Violated,217.5345802097581,True,False,False
+local_direct_final_test,80.0,7,7,13,2,C2 Violated,257.70423719077365,True,False,False
+local_direct_final_test,80.0,7,8,15,2,C2 Violated,298.42074300395325,True,False,False
+local_direct_final_test,90.0,1,1,1,2,C2 Violated,29.05243490531574,True,False,False
+local_direct_final_test,90.0,1,2,3,0,Valid,73.6918149050325,True,True,True
+local_direct_final_test,90.0,1,3,5,0,Valid,105.49178560904691,True,True,True
+local_direct_final_test,90.0,1,4,7,1,C1 Violated,147.51330150756982,False,True,False
+local_direct_final_test,90.0,1,5,9,1,C1 Violated,189.45098951808174,False,True,False
+local_direct_final_test,90.0,1,6,11,1,C1 Violated,225.55812407517803,False,True,False
+local_direct_final_test,90.0,1,7,13,1,C1 Violated,267.6491142017767,False,True,False
+local_direct_final_test,90.0,1,8,15,1,C1 Violated,308.6051453865366,False,True,False
+local_direct_final_test,90.0,2,1,1,2,C2 Violated,29.05243490531574,True,False,False
+local_direct_final_test,90.0,2,2,3,2,C2 Violated,73.6918149050325,True,False,False
+local_direct_final_test,90.0,2,3,5,0,Valid,105.49178560904691,True,True,True
+local_direct_final_test,90.0,2,4,7,0,Valid,147.51330150756982,True,True,True
+local_direct_final_test,90.0,2,5,9,0,Valid,189.45098951808174,True,True,True
+local_direct_final_test,90.0,2,6,11,0,Valid,225.55812407517803,True,True,True
+local_direct_final_test,90.0,2,7,13,1,C1 Violated,267.6491142017767,False,True,False
+local_direct_final_test,90.0,2,8,15,1,C1 Violated,308.6051453865366,False,True,False
+local_direct_final_test,90.0,3,1,1,2,C2 Violated,29.05243490531574,True,False,False
+local_direct_final_test,90.0,3,2,3,2,C2 Violated,73.6918149050325,True,False,False
+local_direct_final_test,90.0,3,3,5,2,C2 Violated,105.49178560904691,True,False,False
+local_direct_final_test,90.0,3,4,7,2,C2 Violated,147.51330150756982,True,False,False
+local_direct_final_test,90.0,3,5,9,0,Valid,189.45098951808174,True,True,True
+local_direct_final_test,90.0,3,6,11,0,Valid,225.55812407517803,True,True,True
+local_direct_final_test,90.0,3,7,13,0,Valid,267.6491142017767,True,True,True
+local_direct_final_test,90.0,3,8,15,0,Valid,308.6051453865366,True,True,True
+local_direct_final_test,90.0,4,1,1,2,C2 Violated,29.05243490531574,True,False,False
+local_direct_final_test,90.0,4,2,3,2,C2 Violated,73.6918149050325,True,False,False
+local_direct_final_test,90.0,4,3,5,2,C2 Violated,105.49178560904691,True,False,False
+local_direct_final_test,90.0,4,4,7,2,C2 Violated,147.51330150756982,True,False,False
+local_direct_final_test,90.0,4,5,9,2,C2 Violated,189.45098951808174,True,False,False
+local_direct_final_test,90.0,4,6,11,0,Valid,225.55812407517803,True,True,True
+local_direct_final_test,90.0,4,7,13,0,Valid,267.6491142017767,True,True,True
+local_direct_final_test,90.0,4,8,15,0,Valid,308.6051453865366,True,True,True
+local_direct_final_test,90.0,5,1,1,2,C2 Violated,29.05243490531574,True,False,False
+local_direct_final_test,90.0,5,2,3,2,C2 Violated,73.6918149050325,True,False,False
+local_direct_final_test,90.0,5,3,5,2,C2 Violated,105.49178560904691,True,False,False
+local_direct_final_test,90.0,5,4,7,2,C2 Violated,147.51330150756982,True,False,False
+local_direct_final_test,90.0,5,5,9,2,C2 Violated,189.45098951808174,True,False,False
+local_direct_final_test,90.0,5,6,11,2,C2 Violated,225.55812407517803,True,False,False
+local_direct_final_test,90.0,5,7,13,2,C2 Violated,267.6491142017767,True,False,False
+local_direct_final_test,90.0,5,8,15,0,Valid,308.6051453865366,True,True,True
+local_direct_final_test,90.0,6,1,1,2,C2 Violated,29.05243490531574,True,False,False
+local_direct_final_test,90.0,6,2,3,2,C2 Violated,73.6918149050325,True,False,False
+local_direct_final_test,90.0,6,3,5,2,C2 Violated,105.49178560904691,True,False,False
+local_direct_final_test,90.0,6,4,7,2,C2 Violated,147.51330150756982,True,False,False
+local_direct_final_test,90.0,6,5,9,2,C2 Violated,189.45098951808174,True,False,False
+local_direct_final_test,90.0,6,6,11,2,C2 Violated,225.55812407517803,True,False,False
+local_direct_final_test,90.0,6,7,13,2,C2 Violated,267.6491142017767,True,False,False
+local_direct_final_test,90.0,6,8,15,2,C2 Violated,308.6051453865366,True,False,False
+local_direct_final_test,90.0,7,1,1,2,C2 Violated,29.05243490531574,True,False,False
+local_direct_final_test,90.0,7,2,3,2,C2 Violated,73.6918149050325,True,False,False
+local_direct_final_test,90.0,7,3,5,2,C2 Violated,105.49178560904691,True,False,False
+local_direct_final_test,90.0,7,4,7,2,C2 Violated,147.51330150756982,True,False,False
+local_direct_final_test,90.0,7,5,9,2,C2 Violated,189.45098951808174,True,False,False
+local_direct_final_test,90.0,7,6,11,2,C2 Violated,225.55812407517803,True,False,False
+local_direct_final_test,90.0,7,7,13,2,C2 Violated,267.6491142017767,True,False,False
+local_direct_final_test,90.0,7,8,15,2,C2 Violated,308.6051453865366,True,False,False
+local_direct_final_test,99.5,1,1,1,2,C2 Violated,33.35736023436763,True,False,False
+local_direct_final_test,99.5,1,2,3,0,Valid,117.0366890080913,True,True,True
+local_direct_final_test,99.5,1,3,5,0,Valid,118.78037136964845,True,True,True
+local_direct_final_test,99.5,1,4,7,1,C1 Violated,157.66908525285538,False,True,False
+local_direct_final_test,99.5,1,5,9,1,C1 Violated,210.7148697917,False,True,False
+local_direct_final_test,99.5,1,6,11,1,C1 Violated,242.80255632314947,False,True,False
+local_direct_final_test,99.5,1,7,13,1,C1 Violated,295.5462460020498,False,True,False
+local_direct_final_test,99.5,1,8,15,1,C1 Violated,329.6910863493394,False,True,False
+local_direct_final_test,99.5,2,1,1,2,C2 Violated,33.35736023436763,True,False,False
+local_direct_final_test,99.5,2,2,3,2,C2 Violated,117.0366890080913,True,False,False
+local_direct_final_test,99.5,2,3,5,0,Valid,118.78037136964845,True,True,True
+local_direct_final_test,99.5,2,4,7,0,Valid,157.66908525285538,True,True,True
+local_direct_final_test,99.5,2,5,9,0,Valid,210.7148697917,True,True,True
+local_direct_final_test,99.5,2,6,11,0,Valid,242.80255632314947,True,True,True
+local_direct_final_test,99.5,2,7,13,1,C1 Violated,295.5462460020498,False,True,False
+local_direct_final_test,99.5,2,8,15,1,C1 Violated,329.6910863493394,False,True,False
+local_direct_final_test,99.5,3,1,1,2,C2 Violated,33.35736023436763,True,False,False
+local_direct_final_test,99.5,3,2,3,2,C2 Violated,117.0366890080913,True,False,False
+local_direct_final_test,99.5,3,3,5,2,C2 Violated,118.78037136964845,True,False,False
+local_direct_final_test,99.5,3,4,7,2,C2 Violated,157.66908525285538,True,False,False
+local_direct_final_test,99.5,3,5,9,0,Valid,210.7148697917,True,True,True
+local_direct_final_test,99.5,3,6,11,0,Valid,242.80255632314947,True,True,True
+local_direct_final_test,99.5,3,7,13,0,Valid,295.5462460020498,True,True,True
+local_direct_final_test,99.5,3,8,15,0,Valid,329.6910863493394,True,True,True
+local_direct_final_test,99.5,4,1,1,2,C2 Violated,33.35736023436763,True,False,False
+local_direct_final_test,99.5,4,2,3,2,C2 Violated,117.0366890080913,True,False,False
+local_direct_final_test,99.5,4,3,5,2,C2 Violated,118.78037136964845,True,False,False
+local_direct_final_test,99.5,4,4,7,2,C2 Violated,157.66908525285538,True,False,False
+local_direct_final_test,99.5,4,5,9,2,C2 Violated,210.7148697917,True,False,False
+local_direct_final_test,99.5,4,6,11,0,Valid,242.80255632314947,True,True,True
+local_direct_final_test,99.5,4,7,13,0,Valid,295.5462460020498,True,True,True
+local_direct_final_test,99.5,4,8,15,0,Valid,329.6910863493394,True,True,True
+local_direct_final_test,99.5,5,1,1,2,C2 Violated,33.35736023436763,True,False,False
+local_direct_final_test,99.5,5,2,3,2,C2 Violated,117.0366890080913,True,False,False
+local_direct_final_test,99.5,5,3,5,2,C2 Violated,118.78037136964845,True,False,False
+local_direct_final_test,99.5,5,4,7,2,C2 Violated,157.66908525285538,True,False,False
+local_direct_final_test,99.5,5,5,9,2,C2 Violated,210.7148697917,True,False,False
+local_direct_final_test,99.5,5,6,11,2,C2 Violated,242.80255632314947,True,False,False
+local_direct_final_test,99.5,5,7,13,2,C2 Violated,295.5462460020498,True,False,False
+local_direct_final_test,99.5,5,8,15,0,Valid,329.6910863493394,True,True,True
+local_direct_final_test,99.5,6,1,1,2,C2 Violated,33.35736023436763,True,False,False
+local_direct_final_test,99.5,6,2,3,2,C2 Violated,117.0366890080913,True,False,False
+local_direct_final_test,99.5,6,3,5,2,C2 Violated,118.78037136964845,True,False,False
+local_direct_final_test,99.5,6,4,7,2,C2 Violated,157.66908525285538,True,False,False
+local_direct_final_test,99.5,6,5,9,2,C2 Violated,210.7148697917,True,False,False
+local_direct_final_test,99.5,6,6,11,2,C2 Violated,242.80255632314947,True,False,False
+local_direct_final_test,99.5,6,7,13,2,C2 Violated,295.5462460020498,True,False,False
+local_direct_final_test,99.5,6,8,15,2,C2 Violated,329.6910863493394,True,False,False
+local_direct_final_test,99.5,7,1,1,2,C2 Violated,33.35736023436763,True,False,False
+local_direct_final_test,99.5,7,2,3,2,C2 Violated,117.0366890080913,True,False,False
+local_direct_final_test,99.5,7,3,5,2,C2 Violated,118.78037136964845,True,False,False
+local_direct_final_test,99.5,7,4,7,2,C2 Violated,157.66908525285538,True,False,False
+local_direct_final_test,99.5,7,5,9,2,C2 Violated,210.7148697917,True,False,False
+local_direct_final_test,99.5,7,6,11,2,C2 Violated,242.80255632314947,True,False,False
+local_direct_final_test,99.5,7,7,13,2,C2 Violated,295.5462460020498,True,False,False
+local_direct_final_test,99.5,7,8,15,2,C2 Violated,329.6910863493394,True,False,False
+local_server_final_test,50.0,1,1,1,2,C2 Violated,105.63418746460225,True,False,False
+local_server_final_test,50.0,1,2,3,0,Valid,110.26314547052604,True,True,True
+local_server_final_test,50.0,1,3,5,1,C1 Violated,156.12514596432447,False,True,False
+local_server_final_test,50.0,1,4,7,1,C1 Violated,205.13308397494256,False,True,False
+local_server_final_test,50.0,1,5,9,1,C1 Violated,250.8008540025912,False,True,False
+local_server_final_test,50.0,1,6,11,1,C1 Violated,299.0067505161278,False,True,False
+local_server_final_test,50.0,1,7,13,1,C1 Violated,403.587062493898,False,True,False
+local_server_final_test,50.0,1,8,15,1,C1 Violated,410.5006044846959,False,True,False
+local_server_final_test,50.0,2,1,1,2,C2 Violated,105.63418746460225,True,False,False
+local_server_final_test,50.0,2,2,3,2,C2 Violated,110.26314547052604,True,False,False
+local_server_final_test,50.0,2,3,5,2,C2 Violated,156.12514596432447,True,False,False
+local_server_final_test,50.0,2,4,7,0,Valid,205.13308397494256,True,True,True
+local_server_final_test,50.0,2,5,9,1,C1 Violated,250.8008540025912,False,True,False
+local_server_final_test,50.0,2,6,11,1,C1 Violated,299.0067505161278,False,True,False
+local_server_final_test,50.0,2,7,13,1,C1 Violated,403.587062493898,False,True,False
+local_server_final_test,50.0,2,8,15,1,C1 Violated,410.5006044846959,False,True,False
+local_server_final_test,50.0,3,1,1,2,C2 Violated,105.63418746460225,True,False,False
+local_server_final_test,50.0,3,2,3,2,C2 Violated,110.26314547052604,True,False,False
+local_server_final_test,50.0,3,3,5,2,C2 Violated,156.12514596432447,True,False,False
+local_server_final_test,50.0,3,4,7,2,C2 Violated,205.13308397494256,True,False,False
+local_server_final_test,50.0,3,5,9,2,C2 Violated,250.8008540025912,True,False,False
+local_server_final_test,50.0,3,6,11,0,Valid,299.0067505161278,True,True,True
+local_server_final_test,50.0,3,7,13,1,C1 Violated,403.587062493898,False,True,False
+local_server_final_test,50.0,3,8,15,1,C1 Violated,410.5006044846959,False,True,False
+local_server_final_test,50.0,4,1,1,2,C2 Violated,105.63418746460225,True,False,False
+local_server_final_test,50.0,4,2,3,2,C2 Violated,110.26314547052604,True,False,False
+local_server_final_test,50.0,4,3,5,2,C2 Violated,156.12514596432447,True,False,False
+local_server_final_test,50.0,4,4,7,2,C2 Violated,205.13308397494256,True,False,False
+local_server_final_test,50.0,4,5,9,2,C2 Violated,250.8008540025912,True,False,False
+local_server_final_test,50.0,4,6,11,2,C2 Violated,299.0067505161278,True,False,False
+local_server_final_test,50.0,4,7,13,2,C2 Violated,403.587062493898,True,False,False
+local_server_final_test,50.0,4,8,15,0,Valid,410.5006044846959,True,True,True
+local_server_final_test,50.0,5,1,1,2,C2 Violated,105.63418746460225,True,False,False
+local_server_final_test,50.0,5,2,3,2,C2 Violated,110.26314547052604,True,False,False
+local_server_final_test,50.0,5,3,5,2,C2 Violated,156.12514596432447,True,False,False
+local_server_final_test,50.0,5,4,7,2,C2 Violated,205.13308397494256,True,False,False
+local_server_final_test,50.0,5,5,9,2,C2 Violated,250.8008540025912,True,False,False
+local_server_final_test,50.0,5,6,11,2,C2 Violated,299.0067505161278,True,False,False
+local_server_final_test,50.0,5,7,13,2,C2 Violated,403.587062493898,True,False,False
+local_server_final_test,50.0,5,8,15,2,C2 Violated,410.5006044846959,True,False,False
+local_server_final_test,50.0,6,1,1,2,C2 Violated,105.63418746460225,True,False,False
+local_server_final_test,50.0,6,2,3,2,C2 Violated,110.26314547052604,True,False,False
+local_server_final_test,50.0,6,3,5,2,C2 Violated,156.12514596432447,True,False,False
+local_server_final_test,50.0,6,4,7,2,C2 Violated,205.13308397494256,True,False,False
+local_server_final_test,50.0,6,5,9,2,C2 Violated,250.8008540025912,True,False,False
+local_server_final_test,50.0,6,6,11,2,C2 Violated,299.0067505161278,True,False,False
+local_server_final_test,50.0,6,7,13,2,C2 Violated,403.587062493898,True,False,False
+local_server_final_test,50.0,6,8,15,2,C2 Violated,410.5006044846959,True,False,False
+local_server_final_test,50.0,7,1,1,2,C2 Violated,105.63418746460225,True,False,False
+local_server_final_test,50.0,7,2,3,2,C2 Violated,110.26314547052604,True,False,False
+local_server_final_test,50.0,7,3,5,2,C2 Violated,156.12514596432447,True,False,False
+local_server_final_test,50.0,7,4,7,2,C2 Violated,205.13308397494256,True,False,False
+local_server_final_test,50.0,7,5,9,2,C2 Violated,250.8008540025912,True,False,False
+local_server_final_test,50.0,7,6,11,2,C2 Violated,299.0067505161278,True,False,False
+local_server_final_test,50.0,7,7,13,2,C2 Violated,403.587062493898,True,False,False
+local_server_final_test,50.0,7,8,15,2,C2 Violated,410.5006044846959,True,False,False
+local_server_final_test,60.0,1,1,1,2,C2 Violated,107.7040664153173,True,False,False
+local_server_final_test,60.0,1,2,3,0,Valid,112.59106618817889,True,True,True
+local_server_final_test,60.0,1,3,5,1,C1 Violated,158.39005841407922,False,True,False
+local_server_final_test,60.0,1,4,7,1,C1 Violated,208.19969142321492,False,True,False
+local_server_final_test,60.0,1,5,9,1,C1 Violated,252.8036078205332,False,True,False
+local_server_final_test,60.0,1,6,11,1,C1 Violated,302.7640499407425,False,True,False
+local_server_final_test,60.0,1,7,13,1,C1 Violated,405.8197329519316,False,True,False
+local_server_final_test,60.0,1,8,15,1,C1 Violated,421.30212499760086,False,True,False
+local_server_final_test,60.0,2,1,1,2,C2 Violated,107.7040664153173,True,False,False
+local_server_final_test,60.0,2,2,3,2,C2 Violated,112.59106618817889,True,False,False
+local_server_final_test,60.0,2,3,5,2,C2 Violated,158.39005841407922,True,False,False
+local_server_final_test,60.0,2,4,7,0,Valid,208.19969142321492,True,True,True
+local_server_final_test,60.0,2,5,9,1,C1 Violated,252.8036078205332,False,True,False
+local_server_final_test,60.0,2,6,11,1,C1 Violated,302.7640499407425,False,True,False
+local_server_final_test,60.0,2,7,13,1,C1 Violated,405.8197329519316,False,True,False
+local_server_final_test,60.0,2,8,15,1,C1 Violated,421.30212499760086,False,True,False
+local_server_final_test,60.0,3,1,1,2,C2 Violated,107.7040664153173,True,False,False
+local_server_final_test,60.0,3,2,3,2,C2 Violated,112.59106618817889,True,False,False
+local_server_final_test,60.0,3,3,5,2,C2 Violated,158.39005841407922,True,False,False
+local_server_final_test,60.0,3,4,7,2,C2 Violated,208.19969142321492,True,False,False
+local_server_final_test,60.0,3,5,9,2,C2 Violated,252.8036078205332,True,False,False
+local_server_final_test,60.0,3,6,11,0,Valid,302.7640499407425,True,True,True
+local_server_final_test,60.0,3,7,13,1,C1 Violated,405.8197329519316,False,True,False
+local_server_final_test,60.0,3,8,15,1,C1 Violated,421.30212499760086,False,True,False
+local_server_final_test,60.0,4,1,1,2,C2 Violated,107.7040664153173,True,False,False
+local_server_final_test,60.0,4,2,3,2,C2 Violated,112.59106618817889,True,False,False
+local_server_final_test,60.0,4,3,5,2,C2 Violated,158.39005841407922,True,False,False
+local_server_final_test,60.0,4,4,7,2,C2 Violated,208.19969142321492,True,False,False
+local_server_final_test,60.0,4,5,9,2,C2 Violated,252.8036078205332,True,False,False
+local_server_final_test,60.0,4,6,11,2,C2 Violated,302.7640499407425,True,False,False
+local_server_final_test,60.0,4,7,13,2,C2 Violated,405.8197329519316,True,False,False
+local_server_final_test,60.0,4,8,15,0,Valid,421.30212499760086,True,True,True
+local_server_final_test,60.0,5,1,1,2,C2 Violated,107.7040664153173,True,False,False
+local_server_final_test,60.0,5,2,3,2,C2 Violated,112.59106618817889,True,False,False
+local_server_final_test,60.0,5,3,5,2,C2 Violated,158.39005841407922,True,False,False
+local_server_final_test,60.0,5,4,7,2,C2 Violated,208.19969142321492,True,False,False
+local_server_final_test,60.0,5,5,9,2,C2 Violated,252.8036078205332,True,False,False
+local_server_final_test,60.0,5,6,11,2,C2 Violated,302.7640499407425,True,False,False
+local_server_final_test,60.0,5,7,13,2,C2 Violated,405.8197329519316,True,False,False
+local_server_final_test,60.0,5,8,15,2,C2 Violated,421.30212499760086,True,False,False
+local_server_final_test,60.0,6,1,1,2,C2 Violated,107.7040664153173,True,False,False
+local_server_final_test,60.0,6,2,3,2,C2 Violated,112.59106618817889,True,False,False
+local_server_final_test,60.0,6,3,5,2,C2 Violated,158.39005841407922,True,False,False
+local_server_final_test,60.0,6,4,7,2,C2 Violated,208.19969142321492,True,False,False
+local_server_final_test,60.0,6,5,9,2,C2 Violated,252.8036078205332,True,False,False
+local_server_final_test,60.0,6,6,11,2,C2 Violated,302.7640499407425,True,False,False
+local_server_final_test,60.0,6,7,13,2,C2 Violated,405.8197329519316,True,False,False
+local_server_final_test,60.0,6,8,15,2,C2 Violated,421.30212499760086,True,False,False
+local_server_final_test,60.0,7,1,1,2,C2 Violated,107.7040664153173,True,False,False
+local_server_final_test,60.0,7,2,3,2,C2 Violated,112.59106618817889,True,False,False
+local_server_final_test,60.0,7,3,5,2,C2 Violated,158.39005841407922,True,False,False
+local_server_final_test,60.0,7,4,7,2,C2 Violated,208.19969142321492,True,False,False
+local_server_final_test,60.0,7,5,9,2,C2 Violated,252.8036078205332,True,False,False
+local_server_final_test,60.0,7,6,11,2,C2 Violated,302.7640499407425,True,False,False
+local_server_final_test,60.0,7,7,13,2,C2 Violated,405.8197329519316,True,False,False
+local_server_final_test,60.0,7,8,15,2,C2 Violated,421.30212499760086,True,False,False
+local_server_final_test,70.0,1,1,1,2,C2 Violated,110.93617115402589,True,False,False
+local_server_final_test,70.0,1,2,3,0,Valid,116.28579561365764,True,True,True
+local_server_final_test,70.0,1,3,5,1,C1 Violated,161.25654551433394,False,True,False
+local_server_final_test,70.0,1,4,7,1,C1 Violated,212.4240085948258,False,True,False
+local_server_final_test,70.0,1,5,9,1,C1 Violated,256.1885000555776,False,True,False
+local_server_final_test,70.0,1,6,11,1,C1 Violated,306.79551694774995,False,True,False
+local_server_final_test,70.0,1,7,13,1,C1 Violated,407.8326543327421,False,True,False
+local_server_final_test,70.0,1,8,15,1,C1 Violated,441.6391204693354,False,True,False
+local_server_final_test,70.0,2,1,1,2,C2 Violated,110.93617115402589,True,False,False
+local_server_final_test,70.0,2,2,3,2,C2 Violated,116.28579561365764,True,False,False
+local_server_final_test,70.0,2,3,5,2,C2 Violated,161.25654551433394,True,False,False
+local_server_final_test,70.0,2,4,7,0,Valid,212.4240085948258,True,True,True
+local_server_final_test,70.0,2,5,9,1,C1 Violated,256.1885000555776,False,True,False
+local_server_final_test,70.0,2,6,11,1,C1 Violated,306.79551694774995,False,True,False
+local_server_final_test,70.0,2,7,13,1,C1 Violated,407.8326543327421,False,True,False
+local_server_final_test,70.0,2,8,15,1,C1 Violated,441.6391204693354,False,True,False
+local_server_final_test,70.0,3,1,1,2,C2 Violated,110.93617115402589,True,False,False
+local_server_final_test,70.0,3,2,3,2,C2 Violated,116.28579561365764,True,False,False
+local_server_final_test,70.0,3,3,5,2,C2 Violated,161.25654551433394,True,False,False
+local_server_final_test,70.0,3,4,7,2,C2 Violated,212.4240085948258,True,False,False
+local_server_final_test,70.0,3,5,9,2,C2 Violated,256.1885000555776,True,False,False
+local_server_final_test,70.0,3,6,11,0,Valid,306.79551694774995,True,True,True
+local_server_final_test,70.0,3,7,13,1,C1 Violated,407.8326543327421,False,True,False
+local_server_final_test,70.0,3,8,15,1,C1 Violated,441.6391204693354,False,True,False
+local_server_final_test,70.0,4,1,1,2,C2 Violated,110.93617115402589,True,False,False
+local_server_final_test,70.0,4,2,3,2,C2 Violated,116.28579561365764,True,False,False
+local_server_final_test,70.0,4,3,5,2,C2 Violated,161.25654551433394,True,False,False
+local_server_final_test,70.0,4,4,7,2,C2 Violated,212.4240085948258,True,False,False
+local_server_final_test,70.0,4,5,9,2,C2 Violated,256.1885000555776,True,False,False
+local_server_final_test,70.0,4,6,11,2,C2 Violated,306.79551694774995,True,False,False
+local_server_final_test,70.0,4,7,13,2,C2 Violated,407.8326543327421,True,False,False
+local_server_final_test,70.0,4,8,15,0,Valid,441.6391204693354,True,True,True
+local_server_final_test,70.0,5,1,1,2,C2 Violated,110.93617115402589,True,False,False
+local_server_final_test,70.0,5,2,3,2,C2 Violated,116.28579561365764,True,False,False
+local_server_final_test,70.0,5,3,5,2,C2 Violated,161.25654551433394,True,False,False
+local_server_final_test,70.0,5,4,7,2,C2 Violated,212.4240085948258,True,False,False
+local_server_final_test,70.0,5,5,9,2,C2 Violated,256.1885000555776,True,False,False
+local_server_final_test,70.0,5,6,11,2,C2 Violated,306.79551694774995,True,False,False
+local_server_final_test,70.0,5,7,13,2,C2 Violated,407.8326543327421,True,False,False
+local_server_final_test,70.0,5,8,15,2,C2 Violated,441.6391204693354,True,False,False
+local_server_final_test,70.0,6,1,1,2,C2 Violated,110.93617115402589,True,False,False
+local_server_final_test,70.0,6,2,3,2,C2 Violated,116.28579561365764,True,False,False
+local_server_final_test,70.0,6,3,5,2,C2 Violated,161.25654551433394,True,False,False
+local_server_final_test,70.0,6,4,7,2,C2 Violated,212.4240085948258,True,False,False
+local_server_final_test,70.0,6,5,9,2,C2 Violated,256.1885000555776,True,False,False
+local_server_final_test,70.0,6,6,11,2,C2 Violated,306.79551694774995,True,False,False
+local_server_final_test,70.0,6,7,13,2,C2 Violated,407.8326543327421,True,False,False
+local_server_final_test,70.0,6,8,15,2,C2 Violated,441.6391204693354,True,False,False
+local_server_final_test,70.0,7,1,1,2,C2 Violated,110.93617115402589,True,False,False
+local_server_final_test,70.0,7,2,3,2,C2 Violated,116.28579561365764,True,False,False
+local_server_final_test,70.0,7,3,5,2,C2 Violated,161.25654551433394,True,False,False
+local_server_final_test,70.0,7,4,7,2,C2 Violated,212.4240085948258,True,False,False
+local_server_final_test,70.0,7,5,9,2,C2 Violated,256.1885000555776,True,False,False
+local_server_final_test,70.0,7,6,11,2,C2 Violated,306.79551694774995,True,False,False
+local_server_final_test,70.0,7,7,13,2,C2 Violated,407.8326543327421,True,False,False
+local_server_final_test,70.0,7,8,15,2,C2 Violated,441.6391204693354,True,False,False
+local_server_final_test,80.0,1,1,1,3,Both Violated,126.96605802047996,False,False,False
+local_server_final_test,80.0,1,2,3,0,Valid,124.61453340947628,True,True,True
+local_server_final_test,80.0,1,3,5,1,C1 Violated,166.59105001017448,False,True,False
+local_server_final_test,80.0,1,4,7,1,C1 Violated,219.91010021883994,False,True,False
+local_server_final_test,80.0,1,5,9,1,C1 Violated,264.1405586386099,False,True,False
+local_server_final_test,80.0,1,6,11,1,C1 Violated,316.57216639723623,False,True,False
+local_server_final_test,80.0,1,7,13,1,C1 Violated,409.9771422101184,False,True,False
+local_server_final_test,80.0,1,8,15,1,C1 Violated,500.70960000157356,False,True,False
+local_server_final_test,80.0,2,1,1,2,C2 Violated,126.96605802047996,True,False,False
+local_server_final_test,80.0,2,2,3,2,C2 Violated,124.61453340947628,True,False,False
+local_server_final_test,80.0,2,3,5,2,C2 Violated,166.59105001017448,True,False,False
+local_server_final_test,80.0,2,4,7,0,Valid,219.91010021883994,True,True,True
+local_server_final_test,80.0,2,5,9,1,C1 Violated,264.1405586386099,False,True,False
+local_server_final_test,80.0,2,6,11,1,C1 Violated,316.57216639723623,False,True,False
+local_server_final_test,80.0,2,7,13,1,C1 Violated,409.9771422101184,False,True,False
+local_server_final_test,80.0,2,8,15,1,C1 Violated,500.70960000157356,False,True,False
+local_server_final_test,80.0,3,1,1,2,C2 Violated,126.96605802047996,True,False,False
+local_server_final_test,80.0,3,2,3,2,C2 Violated,124.61453340947628,True,False,False
+local_server_final_test,80.0,3,3,5,2,C2 Violated,166.59105001017448,True,False,False
+local_server_final_test,80.0,3,4,7,2,C2 Violated,219.91010021883994,True,False,False
+local_server_final_test,80.0,3,5,9,2,C2 Violated,264.1405586386099,True,False,False
+local_server_final_test,80.0,3,6,11,0,Valid,316.57216639723623,True,True,True
+local_server_final_test,80.0,3,7,13,1,C1 Violated,409.9771422101184,False,True,False
+local_server_final_test,80.0,3,8,15,1,C1 Violated,500.70960000157356,False,True,False
+local_server_final_test,80.0,4,1,1,2,C2 Violated,126.96605802047996,True,False,False
+local_server_final_test,80.0,4,2,3,2,C2 Violated,124.61453340947628,True,False,False
+local_server_final_test,80.0,4,3,5,2,C2 Violated,166.59105001017448,True,False,False
+local_server_final_test,80.0,4,4,7,2,C2 Violated,219.91010021883994,True,False,False
+local_server_final_test,80.0,4,5,9,2,C2 Violated,264.1405586386099,True,False,False
+local_server_final_test,80.0,4,6,11,2,C2 Violated,316.57216639723623,True,False,False
+local_server_final_test,80.0,4,7,13,2,C2 Violated,409.9771422101184,True,False,False
+local_server_final_test,80.0,4,8,15,3,Both Violated,500.70960000157356,False,False,False
+local_server_final_test,80.0,5,1,1,2,C2 Violated,126.96605802047996,True,False,False
+local_server_final_test,80.0,5,2,3,2,C2 Violated,124.61453340947628,True,False,False
+local_server_final_test,80.0,5,3,5,2,C2 Violated,166.59105001017448,True,False,False
+local_server_final_test,80.0,5,4,7,2,C2 Violated,219.91010021883994,True,False,False
+local_server_final_test,80.0,5,5,9,2,C2 Violated,264.1405586386099,True,False,False
+local_server_final_test,80.0,5,6,11,2,C2 Violated,316.57216639723623,True,False,False
+local_server_final_test,80.0,5,7,13,2,C2 Violated,409.9771422101184,True,False,False
+local_server_final_test,80.0,5,8,15,2,C2 Violated,500.70960000157356,True,False,False
+local_server_final_test,80.0,6,1,1,2,C2 Violated,126.96605802047996,True,False,False
+local_server_final_test,80.0,6,2,3,2,C2 Violated,124.61453340947628,True,False,False
+local_server_final_test,80.0,6,3,5,2,C2 Violated,166.59105001017448,True,False,False
+local_server_final_test,80.0,6,4,7,2,C2 Violated,219.91010021883994,True,False,False
+local_server_final_test,80.0,6,5,9,2,C2 Violated,264.1405586386099,True,False,False
+local_server_final_test,80.0,6,6,11,2,C2 Violated,316.57216639723623,True,False,False
+local_server_final_test,80.0,6,7,13,2,C2 Violated,409.9771422101184,True,False,False
+local_server_final_test,80.0,6,8,15,2,C2 Violated,500.70960000157356,True,False,False
+local_server_final_test,80.0,7,1,1,2,C2 Violated,126.96605802047996,True,False,False
+local_server_final_test,80.0,7,2,3,2,C2 Violated,124.61453340947628,True,False,False
+local_server_final_test,80.0,7,3,5,2,C2 Violated,166.59105001017448,True,False,False
+local_server_final_test,80.0,7,4,7,2,C2 Violated,219.91010021883994,True,False,False
+local_server_final_test,80.0,7,5,9,2,C2 Violated,264.1405586386099,True,False,False
+local_server_final_test,80.0,7,6,11,2,C2 Violated,316.57216639723623,True,False,False
+local_server_final_test,80.0,7,7,13,2,C2 Violated,409.9771422101184,True,False,False
+local_server_final_test,80.0,7,8,15,2,C2 Violated,500.70960000157356,True,False,False
+local_server_final_test,90.0,1,1,1,3,Both Violated,149.56439969828352,False,False,False
+local_server_final_test,90.0,1,2,3,3,Both Violated,131.03528326610095,False,False,False
+local_server_final_test,90.0,1,3,5,1,C1 Violated,180.05574638955292,False,True,False
+local_server_final_test,90.0,1,4,7,1,C1 Violated,230.3525997092947,False,True,False
+local_server_final_test,90.0,1,5,9,1,C1 Violated,277.4567963904701,False,True,False
+local_server_final_test,90.0,1,6,11,1,C1 Violated,336.30068355705583,False,True,False
+local_server_final_test,90.0,1,7,13,1,C1 Violated,414.8924539564177,False,True,False
+local_server_final_test,90.0,1,8,15,1,C1 Violated,509.3580628512427,False,True,False
+local_server_final_test,90.0,2,1,1,2,C2 Violated,149.56439969828352,True,False,False
+local_server_final_test,90.0,2,2,3,2,C2 Violated,131.03528326610095,True,False,False
+local_server_final_test,90.0,2,3,5,2,C2 Violated,180.05574638955292,True,False,False
+local_server_final_test,90.0,2,4,7,0,Valid,230.3525997092947,True,True,True
+local_server_final_test,90.0,2,5,9,1,C1 Violated,277.4567963904701,False,True,False
+local_server_final_test,90.0,2,6,11,1,C1 Violated,336.30068355705583,False,True,False
+local_server_final_test,90.0,2,7,13,1,C1 Violated,414.8924539564177,False,True,False
+local_server_final_test,90.0,2,8,15,1,C1 Violated,509.3580628512427,False,True,False
+local_server_final_test,90.0,3,1,1,2,C2 Violated,149.56439969828352,True,False,False
+local_server_final_test,90.0,3,2,3,2,C2 Violated,131.03528326610095,True,False,False
+local_server_final_test,90.0,3,3,5,2,C2 Violated,180.05574638955292,True,False,False
+local_server_final_test,90.0,3,4,7,2,C2 Violated,230.3525997092947,True,False,False
+local_server_final_test,90.0,3,5,9,2,C2 Violated,277.4567963904701,True,False,False
+local_server_final_test,90.0,3,6,11,0,Valid,336.30068355705583,True,True,True
+local_server_final_test,90.0,3,7,13,1,C1 Violated,414.8924539564177,False,True,False
+local_server_final_test,90.0,3,8,15,1,C1 Violated,509.3580628512427,False,True,False
+local_server_final_test,90.0,4,1,1,2,C2 Violated,149.56439969828352,True,False,False
+local_server_final_test,90.0,4,2,3,2,C2 Violated,131.03528326610095,True,False,False
+local_server_final_test,90.0,4,3,5,2,C2 Violated,180.05574638955292,True,False,False
+local_server_final_test,90.0,4,4,7,2,C2 Violated,230.3525997092947,True,False,False
+local_server_final_test,90.0,4,5,9,2,C2 Violated,277.4567963904701,True,False,False
+local_server_final_test,90.0,4,6,11,2,C2 Violated,336.30068355705583,True,False,False
+local_server_final_test,90.0,4,7,13,2,C2 Violated,414.8924539564177,True,False,False
+local_server_final_test,90.0,4,8,15,3,Both Violated,509.3580628512427,False,False,False
+local_server_final_test,90.0,5,1,1,2,C2 Violated,149.56439969828352,True,False,False
+local_server_final_test,90.0,5,2,3,2,C2 Violated,131.03528326610095,True,False,False
+local_server_final_test,90.0,5,3,5,2,C2 Violated,180.05574638955292,True,False,False
+local_server_final_test,90.0,5,4,7,2,C2 Violated,230.3525997092947,True,False,False
+local_server_final_test,90.0,5,5,9,2,C2 Violated,277.4567963904701,True,False,False
+local_server_final_test,90.0,5,6,11,2,C2 Violated,336.30068355705583,True,False,False
+local_server_final_test,90.0,5,7,13,2,C2 Violated,414.8924539564177,True,False,False
+local_server_final_test,90.0,5,8,15,2,C2 Violated,509.3580628512427,True,False,False
+local_server_final_test,90.0,6,1,1,2,C2 Violated,149.56439969828352,True,False,False
+local_server_final_test,90.0,6,2,3,2,C2 Violated,131.03528326610095,True,False,False
+local_server_final_test,90.0,6,3,5,2,C2 Violated,180.05574638955292,True,False,False
+local_server_final_test,90.0,6,4,7,2,C2 Violated,230.3525997092947,True,False,False
+local_server_final_test,90.0,6,5,9,2,C2 Violated,277.4567963904701,True,False,False
+local_server_final_test,90.0,6,6,11,2,C2 Violated,336.30068355705583,True,False,False
+local_server_final_test,90.0,6,7,13,2,C2 Violated,414.8924539564177,True,False,False
+local_server_final_test,90.0,6,8,15,2,C2 Violated,509.3580628512427,True,False,False
+local_server_final_test,90.0,7,1,1,2,C2 Violated,149.56439969828352,True,False,False
+local_server_final_test,90.0,7,2,3,2,C2 Violated,131.03528326610095,True,False,False
+local_server_final_test,90.0,7,3,5,2,C2 Violated,180.05574638955292,True,False,False
+local_server_final_test,90.0,7,4,7,2,C2 Violated,230.3525997092947,True,False,False
+local_server_final_test,90.0,7,5,9,2,C2 Violated,277.4567963904701,True,False,False
+local_server_final_test,90.0,7,6,11,2,C2 Violated,336.30068355705583,True,False,False
+local_server_final_test,90.0,7,7,13,2,C2 Violated,414.8924539564177,True,False,False
+local_server_final_test,90.0,7,8,15,2,C2 Violated,509.3580628512427,True,False,False
+local_server_final_test,99.5,1,1,1,3,Both Violated,184.35597878415132,False,False,False
+local_server_final_test,99.5,1,2,3,3,Both Violated,152.23301403922954,False,False,False
+local_server_final_test,99.5,1,3,5,1,C1 Violated,205.00938257784583,False,True,False
+local_server_final_test,99.5,1,4,7,1,C1 Violated,265.5363609042251,False,True,False
+local_server_final_test,99.5,1,5,9,1,C1 Violated,307.9100108222337,False,True,False
+local_server_final_test,99.5,1,6,11,1,C1 Violated,402.0038152410416,False,True,False
+local_server_final_test,99.5,1,7,13,1,C1 Violated,461.1858689010842,False,True,False
+local_server_final_test,99.5,1,8,15,1,C1 Violated,513.3673058549175,False,True,False
+local_server_final_test,99.5,2,1,1,2,C2 Violated,184.35597878415132,True,False,False
+local_server_final_test,99.5,2,2,3,2,C2 Violated,152.23301403922954,True,False,False
+local_server_final_test,99.5,2,3,5,2,C2 Violated,205.00938257784583,True,False,False
+local_server_final_test,99.5,2,4,7,3,Both Violated,265.5363609042251,False,False,False
+local_server_final_test,99.5,2,5,9,1,C1 Violated,307.9100108222337,False,True,False
+local_server_final_test,99.5,2,6,11,1,C1 Violated,402.0038152410416,False,True,False
+local_server_final_test,99.5,2,7,13,1,C1 Violated,461.1858689010842,False,True,False
+local_server_final_test,99.5,2,8,15,1,C1 Violated,513.3673058549175,False,True,False
+local_server_final_test,99.5,3,1,1,2,C2 Violated,184.35597878415132,True,False,False
+local_server_final_test,99.5,3,2,3,2,C2 Violated,152.23301403922954,True,False,False
+local_server_final_test,99.5,3,3,5,2,C2 Violated,205.00938257784583,True,False,False
+local_server_final_test,99.5,3,4,7,2,C2 Violated,265.5363609042251,True,False,False
+local_server_final_test,99.5,3,5,9,2,C2 Violated,307.9100108222337,True,False,False
+local_server_final_test,99.5,3,6,11,3,Both Violated,402.0038152410416,False,False,False
+local_server_final_test,99.5,3,7,13,1,C1 Violated,461.1858689010842,False,True,False
+local_server_final_test,99.5,3,8,15,1,C1 Violated,513.3673058549175,False,True,False
+local_server_final_test,99.5,4,1,1,2,C2 Violated,184.35597878415132,True,False,False
+local_server_final_test,99.5,4,2,3,2,C2 Violated,152.23301403922954,True,False,False
+local_server_final_test,99.5,4,3,5,2,C2 Violated,205.00938257784583,True,False,False
+local_server_final_test,99.5,4,4,7,2,C2 Violated,265.5363609042251,True,False,False
+local_server_final_test,99.5,4,5,9,2,C2 Violated,307.9100108222337,True,False,False
+local_server_final_test,99.5,4,6,11,2,C2 Violated,402.0038152410416,True,False,False
+local_server_final_test,99.5,4,7,13,2,C2 Violated,461.1858689010842,True,False,False
+local_server_final_test,99.5,4,8,15,3,Both Violated,513.3673058549175,False,False,False
+local_server_final_test,99.5,5,1,1,2,C2 Violated,184.35597878415132,True,False,False
+local_server_final_test,99.5,5,2,3,2,C2 Violated,152.23301403922954,True,False,False
+local_server_final_test,99.5,5,3,5,2,C2 Violated,205.00938257784583,True,False,False
+local_server_final_test,99.5,5,4,7,2,C2 Violated,265.5363609042251,True,False,False
+local_server_final_test,99.5,5,5,9,2,C2 Violated,307.9100108222337,True,False,False
+local_server_final_test,99.5,5,6,11,2,C2 Violated,402.0038152410416,True,False,False
+local_server_final_test,99.5,5,7,13,2,C2 Violated,461.1858689010842,True,False,False
+local_server_final_test,99.5,5,8,15,2,C2 Violated,513.3673058549175,True,False,False
+local_server_final_test,99.5,6,1,1,2,C2 Violated,184.35597878415132,True,False,False
+local_server_final_test,99.5,6,2,3,2,C2 Violated,152.23301403922954,True,False,False
+local_server_final_test,99.5,6,3,5,2,C2 Violated,205.00938257784583,True,False,False
+local_server_final_test,99.5,6,4,7,2,C2 Violated,265.5363609042251,True,False,False
+local_server_final_test,99.5,6,5,9,2,C2 Violated,307.9100108222337,True,False,False
+local_server_final_test,99.5,6,6,11,2,C2 Violated,402.0038152410416,True,False,False
+local_server_final_test,99.5,6,7,13,2,C2 Violated,461.1858689010842,True,False,False
+local_server_final_test,99.5,6,8,15,2,C2 Violated,513.3673058549175,True,False,False
+local_server_final_test,99.5,7,1,1,2,C2 Violated,184.35597878415132,True,False,False
+local_server_final_test,99.5,7,2,3,2,C2 Violated,152.23301403922954,True,False,False
+local_server_final_test,99.5,7,3,5,2,C2 Violated,205.00938257784583,True,False,False
+local_server_final_test,99.5,7,4,7,2,C2 Violated,265.5363609042251,True,False,False
+local_server_final_test,99.5,7,5,9,2,C2 Violated,307.9100108222337,True,False,False
+local_server_final_test,99.5,7,6,11,2,C2 Violated,402.0038152410416,True,False,False
+local_server_final_test,99.5,7,7,13,2,C2 Violated,461.1858689010842,True,False,False
+local_server_final_test,99.5,7,8,15,2,C2 Violated,513.3673058549175,True,False,False
+remote_server_final_test,50.0,1,1,1,3,Both Violated,142.44175050407645,False,False,False
+remote_server_final_test,50.0,1,2,3,3,Both Violated,179.844229016453,False,False,False
+remote_server_final_test,50.0,1,3,5,1,C1 Violated,216.1436460446566,False,True,False
+remote_server_final_test,50.0,1,4,7,1,C1 Violated,261.58695851336233,False,True,False
+remote_server_final_test,50.0,1,5,9,1,C1 Violated,292.7930004952941,False,True,False
+remote_server_final_test,50.0,1,6,11,1,C1 Violated,328.28547951066867,False,True,False
+remote_server_final_test,50.0,1,7,13,1,C1 Violated,364.3487920053303,False,True,False
+remote_server_final_test,50.0,1,8,15,1,C1 Violated,400.84391698474064,False,True,False
+remote_server_final_test,50.0,2,1,1,2,C2 Violated,142.44175050407645,True,False,False
+remote_server_final_test,50.0,2,2,3,2,C2 Violated,179.844229016453,True,False,False
+remote_server_final_test,50.0,2,3,5,2,C2 Violated,216.1436460446566,True,False,False
+remote_server_final_test,50.0,2,4,7,3,Both Violated,261.58695851336233,False,False,False
+remote_server_final_test,50.0,2,5,9,1,C1 Violated,292.7930004952941,False,True,False
+remote_server_final_test,50.0,2,6,11,1,C1 Violated,328.28547951066867,False,True,False
+remote_server_final_test,50.0,2,7,13,1,C1 Violated,364.3487920053303,False,True,False
+remote_server_final_test,50.0,2,8,15,1,C1 Violated,400.84391698474064,False,True,False
+remote_server_final_test,50.0,3,1,1,2,C2 Violated,142.44175050407645,True,False,False
+remote_server_final_test,50.0,3,2,3,2,C2 Violated,179.844229016453,True,False,False
+remote_server_final_test,50.0,3,3,5,2,C2 Violated,216.1436460446566,True,False,False
+remote_server_final_test,50.0,3,4,7,2,C2 Violated,261.58695851336233,True,False,False
+remote_server_final_test,50.0,3,5,9,2,C2 Violated,292.7930004952941,True,False,False
+remote_server_final_test,50.0,3,6,11,0,Valid,328.28547951066867,True,True,True
+remote_server_final_test,50.0,3,7,13,0,Valid,364.3487920053303,True,True,True
+remote_server_final_test,50.0,3,8,15,1,C1 Violated,400.84391698474064,False,True,False
+remote_server_final_test,50.0,4,1,1,2,C2 Violated,142.44175050407645,True,False,False
+remote_server_final_test,50.0,4,2,3,2,C2 Violated,179.844229016453,True,False,False
+remote_server_final_test,50.0,4,3,5,2,C2 Violated,216.1436460446566,True,False,False
+remote_server_final_test,50.0,4,4,7,2,C2 Violated,261.58695851336233,True,False,False
+remote_server_final_test,50.0,4,5,9,2,C2 Violated,292.7930004952941,True,False,False
+remote_server_final_test,50.0,4,6,11,2,C2 Violated,328.28547951066867,True,False,False
+remote_server_final_test,50.0,4,7,13,0,Valid,364.3487920053303,True,True,True
+remote_server_final_test,50.0,4,8,15,0,Valid,400.84391698474064,True,True,True
+remote_server_final_test,50.0,5,1,1,2,C2 Violated,142.44175050407645,True,False,False
+remote_server_final_test,50.0,5,2,3,2,C2 Violated,179.844229016453,True,False,False
+remote_server_final_test,50.0,5,3,5,2,C2 Violated,216.1436460446566,True,False,False
+remote_server_final_test,50.0,5,4,7,2,C2 Violated,261.58695851336233,True,False,False
+remote_server_final_test,50.0,5,5,9,2,C2 Violated,292.7930004952941,True,False,False
+remote_server_final_test,50.0,5,6,11,2,C2 Violated,328.28547951066867,True,False,False
+remote_server_final_test,50.0,5,7,13,2,C2 Violated,364.3487920053303,True,False,False
+remote_server_final_test,50.0,5,8,15,2,C2 Violated,400.84391698474064,True,False,False
+remote_server_final_test,50.0,6,1,1,2,C2 Violated,142.44175050407645,True,False,False
+remote_server_final_test,50.0,6,2,3,2,C2 Violated,179.844229016453,True,False,False
+remote_server_final_test,50.0,6,3,5,2,C2 Violated,216.1436460446566,True,False,False
+remote_server_final_test,50.0,6,4,7,2,C2 Violated,261.58695851336233,True,False,False
+remote_server_final_test,50.0,6,5,9,2,C2 Violated,292.7930004952941,True,False,False
+remote_server_final_test,50.0,6,6,11,2,C2 Violated,328.28547951066867,True,False,False
+remote_server_final_test,50.0,6,7,13,2,C2 Violated,364.3487920053303,True,False,False
+remote_server_final_test,50.0,6,8,15,2,C2 Violated,400.84391698474064,True,False,False
+remote_server_final_test,50.0,7,1,1,2,C2 Violated,142.44175050407645,True,False,False
+remote_server_final_test,50.0,7,2,3,2,C2 Violated,179.844229016453,True,False,False
+remote_server_final_test,50.0,7,3,5,2,C2 Violated,216.1436460446566,True,False,False
+remote_server_final_test,50.0,7,4,7,2,C2 Violated,261.58695851336233,True,False,False
+remote_server_final_test,50.0,7,5,9,2,C2 Violated,292.7930004952941,True,False,False
+remote_server_final_test,50.0,7,6,11,2,C2 Violated,328.28547951066867,True,False,False
+remote_server_final_test,50.0,7,7,13,2,C2 Violated,364.3487920053303,True,False,False
+remote_server_final_test,50.0,7,8,15,2,C2 Violated,400.84391698474064,True,False,False
+remote_server_final_test,60.0,1,1,1,3,Both Violated,145.1430750079453,False,False,False
+remote_server_final_test,60.0,1,2,3,3,Both Violated,182.43441681843245,False,False,False
+remote_server_final_test,60.0,1,3,5,1,C1 Violated,217.89538341108707,False,True,False
+remote_server_final_test,60.0,1,4,7,1,C1 Violated,273.92192480619997,False,True,False
+remote_server_final_test,60.0,1,5,9,1,C1 Violated,295.47741719288746,False,True,False
+remote_server_final_test,60.0,1,6,11,1,C1 Violated,331.0249663889408,False,True,False
+remote_server_final_test,60.0,1,7,13,1,C1 Violated,367.00129178352654,False,True,False
+remote_server_final_test,60.0,1,8,15,1,C1 Violated,403.409383201506,False,True,False
+remote_server_final_test,60.0,2,1,1,2,C2 Violated,145.1430750079453,True,False,False
+remote_server_final_test,60.0,2,2,3,2,C2 Violated,182.43441681843245,True,False,False
+remote_server_final_test,60.0,2,3,5,2,C2 Violated,217.89538341108707,True,False,False
+remote_server_final_test,60.0,2,4,7,3,Both Violated,273.92192480619997,False,False,False
+remote_server_final_test,60.0,2,5,9,1,C1 Violated,295.47741719288746,False,True,False
+remote_server_final_test,60.0,2,6,11,1,C1 Violated,331.0249663889408,False,True,False
+remote_server_final_test,60.0,2,7,13,1,C1 Violated,367.00129178352654,False,True,False
+remote_server_final_test,60.0,2,8,15,1,C1 Violated,403.409383201506,False,True,False
+remote_server_final_test,60.0,3,1,1,2,C2 Violated,145.1430750079453,True,False,False
+remote_server_final_test,60.0,3,2,3,2,C2 Violated,182.43441681843245,True,False,False
+remote_server_final_test,60.0,3,3,5,2,C2 Violated,217.89538341108707,True,False,False
+remote_server_final_test,60.0,3,4,7,2,C2 Violated,273.92192480619997,True,False,False
+remote_server_final_test,60.0,3,5,9,2,C2 Violated,295.47741719288746,True,False,False
+remote_server_final_test,60.0,3,6,11,0,Valid,331.0249663889408,True,True,True
+remote_server_final_test,60.0,3,7,13,0,Valid,367.00129178352654,True,True,True
+remote_server_final_test,60.0,3,8,15,1,C1 Violated,403.409383201506,False,True,False
+remote_server_final_test,60.0,4,1,1,2,C2 Violated,145.1430750079453,True,False,False
+remote_server_final_test,60.0,4,2,3,2,C2 Violated,182.43441681843245,True,False,False
+remote_server_final_test,60.0,4,3,5,2,C2 Violated,217.89538341108707,True,False,False
+remote_server_final_test,60.0,4,4,7,2,C2 Violated,273.92192480619997,True,False,False
+remote_server_final_test,60.0,4,5,9,2,C2 Violated,295.47741719288746,True,False,False
+remote_server_final_test,60.0,4,6,11,2,C2 Violated,331.0249663889408,True,False,False
+remote_server_final_test,60.0,4,7,13,0,Valid,367.00129178352654,True,True,True
+remote_server_final_test,60.0,4,8,15,0,Valid,403.409383201506,True,True,True
+remote_server_final_test,60.0,5,1,1,2,C2 Violated,145.1430750079453,True,False,False
+remote_server_final_test,60.0,5,2,3,2,C2 Violated,182.43441681843245,True,False,False
+remote_server_final_test,60.0,5,3,5,2,C2 Violated,217.89538341108707,True,False,False
+remote_server_final_test,60.0,5,4,7,2,C2 Violated,273.92192480619997,True,False,False
+remote_server_final_test,60.0,5,5,9,2,C2 Violated,295.47741719288746,True,False,False
+remote_server_final_test,60.0,5,6,11,2,C2 Violated,331.0249663889408,True,False,False
+remote_server_final_test,60.0,5,7,13,2,C2 Violated,367.00129178352654,True,False,False
+remote_server_final_test,60.0,5,8,15,2,C2 Violated,403.409383201506,True,False,False
+remote_server_final_test,60.0,6,1,1,2,C2 Violated,145.1430750079453,True,False,False
+remote_server_final_test,60.0,6,2,3,2,C2 Violated,182.43441681843245,True,False,False
+remote_server_final_test,60.0,6,3,5,2,C2 Violated,217.89538341108707,True,False,False
+remote_server_final_test,60.0,6,4,7,2,C2 Violated,273.92192480619997,True,False,False
+remote_server_final_test,60.0,6,5,9,2,C2 Violated,295.47741719288746,True,False,False
+remote_server_final_test,60.0,6,6,11,2,C2 Violated,331.0249663889408,True,False,False
+remote_server_final_test,60.0,6,7,13,2,C2 Violated,367.00129178352654,True,False,False
+remote_server_final_test,60.0,6,8,15,2,C2 Violated,403.409383201506,True,False,False
+remote_server_final_test,60.0,7,1,1,2,C2 Violated,145.1430750079453,True,False,False
+remote_server_final_test,60.0,7,2,3,2,C2 Violated,182.43441681843245,True,False,False
+remote_server_final_test,60.0,7,3,5,2,C2 Violated,217.89538341108707,True,False,False
+remote_server_final_test,60.0,7,4,7,2,C2 Violated,273.92192480619997,True,False,False
+remote_server_final_test,60.0,7,5,9,2,C2 Violated,295.47741719288746,True,False,False
+remote_server_final_test,60.0,7,6,11,2,C2 Violated,331.0249663889408,True,False,False
+remote_server_final_test,60.0,7,7,13,2,C2 Violated,367.00129178352654,True,False,False
+remote_server_final_test,60.0,7,8,15,2,C2 Violated,403.409383201506,True,False,False
+remote_server_final_test,70.0,1,1,1,3,Both Violated,147.89529129629955,False,False,False
+remote_server_final_test,70.0,1,2,3,3,Both Violated,186.215291172266,False,False,False
+remote_server_final_test,70.0,1,3,5,1,C1 Violated,220.85034988704132,False,True,False
+remote_server_final_test,70.0,1,4,7,1,C1 Violated,297.0433328766376,False,True,False
+remote_server_final_test,70.0,1,5,9,1,C1 Violated,300.0729497871361,False,True,False
+remote_server_final_test,70.0,1,6,11,1,C1 Violated,334.8900836077519,False,True,False
+remote_server_final_test,70.0,1,7,13,1,C1 Violated,370.74110458488576,False,True,False
+remote_server_final_test,70.0,1,8,15,1,C1 Violated,407.0557542145252,False,True,False
+remote_server_final_test,70.0,2,1,1,2,C2 Violated,147.89529129629955,True,False,False
+remote_server_final_test,70.0,2,2,3,2,C2 Violated,186.215291172266,True,False,False
+remote_server_final_test,70.0,2,3,5,2,C2 Violated,220.85034988704132,True,False,False
+remote_server_final_test,70.0,2,4,7,3,Both Violated,297.0433328766376,False,False,False
+remote_server_final_test,70.0,2,5,9,1,C1 Violated,300.0729497871361,False,True,False
+remote_server_final_test,70.0,2,6,11,1,C1 Violated,334.8900836077519,False,True,False
+remote_server_final_test,70.0,2,7,13,1,C1 Violated,370.74110458488576,False,True,False
+remote_server_final_test,70.0,2,8,15,1,C1 Violated,407.0557542145252,False,True,False
+remote_server_final_test,70.0,3,1,1,2,C2 Violated,147.89529129629955,True,False,False
+remote_server_final_test,70.0,3,2,3,2,C2 Violated,186.215291172266,True,False,False
+remote_server_final_test,70.0,3,3,5,2,C2 Violated,220.85034988704132,True,False,False
+remote_server_final_test,70.0,3,4,7,2,C2 Violated,297.0433328766376,True,False,False
+remote_server_final_test,70.0,3,5,9,2,C2 Violated,300.0729497871361,True,False,False
+remote_server_final_test,70.0,3,6,11,0,Valid,334.8900836077519,True,True,True
+remote_server_final_test,70.0,3,7,13,0,Valid,370.74110458488576,True,True,True
+remote_server_final_test,70.0,3,8,15,1,C1 Violated,407.0557542145252,False,True,False
+remote_server_final_test,70.0,4,1,1,2,C2 Violated,147.89529129629955,True,False,False
+remote_server_final_test,70.0,4,2,3,2,C2 Violated,186.215291172266,True,False,False
+remote_server_final_test,70.0,4,3,5,2,C2 Violated,220.85034988704132,True,False,False
+remote_server_final_test,70.0,4,4,7,2,C2 Violated,297.0433328766376,True,False,False
+remote_server_final_test,70.0,4,5,9,2,C2 Violated,300.0729497871361,True,False,False
+remote_server_final_test,70.0,4,6,11,2,C2 Violated,334.8900836077519,True,False,False
+remote_server_final_test,70.0,4,7,13,0,Valid,370.74110458488576,True,True,True
+remote_server_final_test,70.0,4,8,15,0,Valid,407.0557542145252,True,True,True
+remote_server_final_test,70.0,5,1,1,2,C2 Violated,147.89529129629955,True,False,False
+remote_server_final_test,70.0,5,2,3,2,C2 Violated,186.215291172266,True,False,False
+remote_server_final_test,70.0,5,3,5,2,C2 Violated,220.85034988704132,True,False,False
+remote_server_final_test,70.0,5,4,7,2,C2 Violated,297.0433328766376,True,False,False
+remote_server_final_test,70.0,5,5,9,2,C2 Violated,300.0729497871361,True,False,False
+remote_server_final_test,70.0,5,6,11,2,C2 Violated,334.8900836077519,True,False,False
+remote_server_final_test,70.0,5,7,13,2,C2 Violated,370.74110458488576,True,False,False
+remote_server_final_test,70.0,5,8,15,2,C2 Violated,407.0557542145252,True,False,False
+remote_server_final_test,70.0,6,1,1,2,C2 Violated,147.89529129629955,True,False,False
+remote_server_final_test,70.0,6,2,3,2,C2 Violated,186.215291172266,True,False,False
+remote_server_final_test,70.0,6,3,5,2,C2 Violated,220.85034988704132,True,False,False
+remote_server_final_test,70.0,6,4,7,2,C2 Violated,297.0433328766376,True,False,False
+remote_server_final_test,70.0,6,5,9,2,C2 Violated,300.0729497871361,True,False,False
+remote_server_final_test,70.0,6,6,11,2,C2 Violated,334.8900836077519,True,False,False
+remote_server_final_test,70.0,6,7,13,2,C2 Violated,370.74110458488576,True,False,False
+remote_server_final_test,70.0,6,8,15,2,C2 Violated,407.0557542145252,True,False,False
+remote_server_final_test,70.0,7,1,1,2,C2 Violated,147.89529129629955,True,False,False
+remote_server_final_test,70.0,7,2,3,2,C2 Violated,186.215291172266,True,False,False
+remote_server_final_test,70.0,7,3,5,2,C2 Violated,220.85034988704132,True,False,False
+remote_server_final_test,70.0,7,4,7,2,C2 Violated,297.0433328766376,True,False,False
+remote_server_final_test,70.0,7,5,9,2,C2 Violated,300.0729497871361,True,False,False
+remote_server_final_test,70.0,7,6,11,2,C2 Violated,334.8900836077519,True,False,False
+remote_server_final_test,70.0,7,7,13,2,C2 Violated,370.74110458488576,True,False,False
+remote_server_final_test,70.0,7,8,15,2,C2 Violated,407.0557542145252,True,False,False
+remote_server_final_test,80.0,1,1,1,3,Both Violated,153.9511161856353,False,False,False
+remote_server_final_test,80.0,1,2,3,3,Both Violated,192.4385499558411,False,False,False
+remote_server_final_test,80.0,1,3,5,1,C1 Violated,224.99644141644237,False,True,False
+remote_server_final_test,80.0,1,4,7,1,C1 Violated,319.27134181605646,False,True,False
+remote_server_final_test,80.0,1,5,9,1,C1 Violated,306.43115002894774,False,True,False
+remote_server_final_test,80.0,1,6,11,1,C1 Violated,341.77220002748066,False,True,False
+remote_server_final_test,80.0,1,7,13,1,C1 Violated,376.3830497977323,False,True,False
+remote_server_final_test,80.0,1,8,15,1,C1 Violated,411.5088840248063,False,True,False
+remote_server_final_test,80.0,2,1,1,2,C2 Violated,153.9511161856353,True,False,False
+remote_server_final_test,80.0,2,2,3,2,C2 Violated,192.4385499558411,True,False,False
+remote_server_final_test,80.0,2,3,5,2,C2 Violated,224.99644141644237,True,False,False
+remote_server_final_test,80.0,2,4,7,3,Both Violated,319.27134181605646,False,False,False
+remote_server_final_test,80.0,2,5,9,1,C1 Violated,306.43115002894774,False,True,False
+remote_server_final_test,80.0,2,6,11,1,C1 Violated,341.77220002748066,False,True,False
+remote_server_final_test,80.0,2,7,13,1,C1 Violated,376.3830497977323,False,True,False
+remote_server_final_test,80.0,2,8,15,1,C1 Violated,411.5088840248063,False,True,False
+remote_server_final_test,80.0,3,1,1,2,C2 Violated,153.9511161856353,True,False,False
+remote_server_final_test,80.0,3,2,3,2,C2 Violated,192.4385499558411,True,False,False
+remote_server_final_test,80.0,3,3,5,2,C2 Violated,224.99644141644237,True,False,False
+remote_server_final_test,80.0,3,4,7,2,C2 Violated,319.27134181605646,True,False,False
+remote_server_final_test,80.0,3,5,9,2,C2 Violated,306.43115002894774,True,False,False
+remote_server_final_test,80.0,3,6,11,0,Valid,341.77220002748066,True,True,True
+remote_server_final_test,80.0,3,7,13,1,C1 Violated,376.3830497977323,False,True,False
+remote_server_final_test,80.0,3,8,15,1,C1 Violated,411.5088840248063,False,True,False
+remote_server_final_test,80.0,4,1,1,2,C2 Violated,153.9511161856353,True,False,False
+remote_server_final_test,80.0,4,2,3,2,C2 Violated,192.4385499558411,True,False,False
+remote_server_final_test,80.0,4,3,5,2,C2 Violated,224.99644141644237,True,False,False
+remote_server_final_test,80.0,4,4,7,2,C2 Violated,319.27134181605646,True,False,False
+remote_server_final_test,80.0,4,5,9,2,C2 Violated,306.43115002894774,True,False,False
+remote_server_final_test,80.0,4,6,11,2,C2 Violated,341.77220002748066,True,False,False
+remote_server_final_test,80.0,4,7,13,2,C2 Violated,376.3830497977323,True,False,False
+remote_server_final_test,80.0,4,8,15,0,Valid,411.5088840248063,True,True,True
+remote_server_final_test,80.0,5,1,1,2,C2 Violated,153.9511161856353,True,False,False
+remote_server_final_test,80.0,5,2,3,2,C2 Violated,192.4385499558411,True,False,False
+remote_server_final_test,80.0,5,3,5,2,C2 Violated,224.99644141644237,True,False,False
+remote_server_final_test,80.0,5,4,7,2,C2 Violated,319.27134181605646,True,False,False
+remote_server_final_test,80.0,5,5,9,2,C2 Violated,306.43115002894774,True,False,False
+remote_server_final_test,80.0,5,6,11,2,C2 Violated,341.77220002748066,True,False,False
+remote_server_final_test,80.0,5,7,13,2,C2 Violated,376.3830497977323,True,False,False
+remote_server_final_test,80.0,5,8,15,2,C2 Violated,411.5088840248063,True,False,False
+remote_server_final_test,80.0,6,1,1,2,C2 Violated,153.9511161856353,True,False,False
+remote_server_final_test,80.0,6,2,3,2,C2 Violated,192.4385499558411,True,False,False
+remote_server_final_test,80.0,6,3,5,2,C2 Violated,224.99644141644237,True,False,False
+remote_server_final_test,80.0,6,4,7,2,C2 Violated,319.27134181605646,True,False,False
+remote_server_final_test,80.0,6,5,9,2,C2 Violated,306.43115002894774,True,False,False
+remote_server_final_test,80.0,6,6,11,2,C2 Violated,341.77220002748066,True,False,False
+remote_server_final_test,80.0,6,7,13,2,C2 Violated,376.3830497977323,True,False,False
+remote_server_final_test,80.0,6,8,15,2,C2 Violated,411.5088840248063,True,False,False
+remote_server_final_test,80.0,7,1,1,2,C2 Violated,153.9511161856353,True,False,False
+remote_server_final_test,80.0,7,2,3,2,C2 Violated,192.4385499558411,True,False,False
+remote_server_final_test,80.0,7,3,5,2,C2 Violated,224.99644141644237,True,False,False
+remote_server_final_test,80.0,7,4,7,2,C2 Violated,319.27134181605646,True,False,False
+remote_server_final_test,80.0,7,5,9,2,C2 Violated,306.43115002894774,True,False,False
+remote_server_final_test,80.0,7,6,11,2,C2 Violated,341.77220002748066,True,False,False
+remote_server_final_test,80.0,7,7,13,2,C2 Violated,376.3830497977323,True,False,False
+remote_server_final_test,80.0,7,8,15,2,C2 Violated,411.5088840248063,True,False,False
+remote_server_final_test,90.0,1,1,1,3,Both Violated,172.29834549361837,False,False,False
+remote_server_final_test,90.0,1,2,3,3,Both Violated,205.49421641044316,False,False,False
+remote_server_final_test,90.0,1,3,5,1,C1 Violated,231.85894969501533,False,True,False
+remote_server_final_test,90.0,1,4,7,1,C1 Violated,336.9373457855545,False,True,False
+remote_server_final_test,90.0,1,5,9,1,C1 Violated,321.18149559828447,False,True,False
+remote_server_final_test,90.0,1,6,11,1,C1 Violated,364.2212833859958,False,True,False
+remote_server_final_test,90.0,1,7,13,1,C1 Violated,387.20970061840484,False,True,False
+remote_server_final_test,90.0,1,8,15,1,C1 Violated,418.80156669649296,False,True,False
+remote_server_final_test,90.0,2,1,1,2,C2 Violated,172.29834549361837,True,False,False
+remote_server_final_test,90.0,2,2,3,2,C2 Violated,205.49421641044316,True,False,False
+remote_server_final_test,90.0,2,3,5,2,C2 Violated,231.85894969501533,True,False,False
+remote_server_final_test,90.0,2,4,7,3,Both Violated,336.9373457855545,False,False,False
+remote_server_final_test,90.0,2,5,9,1,C1 Violated,321.18149559828447,False,True,False
+remote_server_final_test,90.0,2,6,11,1,C1 Violated,364.2212833859958,False,True,False
+remote_server_final_test,90.0,2,7,13,1,C1 Violated,387.20970061840484,False,True,False
+remote_server_final_test,90.0,2,8,15,1,C1 Violated,418.80156669649296,False,True,False
+remote_server_final_test,90.0,3,1,1,2,C2 Violated,172.29834549361837,True,False,False
+remote_server_final_test,90.0,3,2,3,2,C2 Violated,205.49421641044316,True,False,False
+remote_server_final_test,90.0,3,3,5,2,C2 Violated,231.85894969501533,True,False,False
+remote_server_final_test,90.0,3,4,7,2,C2 Violated,336.9373457855545,True,False,False
+remote_server_final_test,90.0,3,5,9,2,C2 Violated,321.18149559828447,True,False,False
+remote_server_final_test,90.0,3,6,11,0,Valid,364.2212833859958,True,True,True
+remote_server_final_test,90.0,3,7,13,1,C1 Violated,387.20970061840484,False,True,False
+remote_server_final_test,90.0,3,8,15,1,C1 Violated,418.80156669649296,False,True,False
+remote_server_final_test,90.0,4,1,1,2,C2 Violated,172.29834549361837,True,False,False
+remote_server_final_test,90.0,4,2,3,2,C2 Violated,205.49421641044316,True,False,False
+remote_server_final_test,90.0,4,3,5,2,C2 Violated,231.85894969501533,True,False,False
+remote_server_final_test,90.0,4,4,7,2,C2 Violated,336.9373457855545,True,False,False
+remote_server_final_test,90.0,4,5,9,2,C2 Violated,321.18149559828447,True,False,False
+remote_server_final_test,90.0,4,6,11,2,C2 Violated,364.2212833859958,True,False,False
+remote_server_final_test,90.0,4,7,13,2,C2 Violated,387.20970061840484,True,False,False
+remote_server_final_test,90.0,4,8,15,0,Valid,418.80156669649296,True,True,True
+remote_server_final_test,90.0,5,1,1,2,C2 Violated,172.29834549361837,True,False,False
+remote_server_final_test,90.0,5,2,3,2,C2 Violated,205.49421641044316,True,False,False
+remote_server_final_test,90.0,5,3,5,2,C2 Violated,231.85894969501533,True,False,False
+remote_server_final_test,90.0,5,4,7,2,C2 Violated,336.9373457855545,True,False,False
+remote_server_final_test,90.0,5,5,9,2,C2 Violated,321.18149559828447,True,False,False
+remote_server_final_test,90.0,5,6,11,2,C2 Violated,364.2212833859958,True,False,False
+remote_server_final_test,90.0,5,7,13,2,C2 Violated,387.20970061840484,True,False,False
+remote_server_final_test,90.0,5,8,15,2,C2 Violated,418.80156669649296,True,False,False
+remote_server_final_test,90.0,6,1,1,2,C2 Violated,172.29834549361837,True,False,False
+remote_server_final_test,90.0,6,2,3,2,C2 Violated,205.49421641044316,True,False,False
+remote_server_final_test,90.0,6,3,5,2,C2 Violated,231.85894969501533,True,False,False
+remote_server_final_test,90.0,6,4,7,2,C2 Violated,336.9373457855545,True,False,False
+remote_server_final_test,90.0,6,5,9,2,C2 Violated,321.18149559828447,True,False,False
+remote_server_final_test,90.0,6,6,11,2,C2 Violated,364.2212833859958,True,False,False
+remote_server_final_test,90.0,6,7,13,2,C2 Violated,387.20970061840484,True,False,False
+remote_server_final_test,90.0,6,8,15,2,C2 Violated,418.80156669649296,True,False,False
+remote_server_final_test,90.0,7,1,1,2,C2 Violated,172.29834549361837,True,False,False
+remote_server_final_test,90.0,7,2,3,2,C2 Violated,205.49421641044316,True,False,False
+remote_server_final_test,90.0,7,3,5,2,C2 Violated,231.85894969501533,True,False,False
+remote_server_final_test,90.0,7,4,7,2,C2 Violated,336.9373457855545,True,False,False
+remote_server_final_test,90.0,7,5,9,2,C2 Violated,321.18149559828447,True,False,False
+remote_server_final_test,90.0,7,6,11,2,C2 Violated,364.2212833859958,True,False,False
+remote_server_final_test,90.0,7,7,13,2,C2 Violated,387.20970061840484,True,False,False
+remote_server_final_test,90.0,7,8,15,2,C2 Violated,418.80156669649296,True,False,False
+remote_server_final_test,99.5,1,1,1,3,Both Violated,228.2803662208607,False,False,False
+remote_server_final_test,99.5,1,2,3,3,Both Violated,231.30431192839748,False,False,False
+remote_server_final_test,99.5,1,3,5,1,C1 Violated,246.82873261539496,False,True,False
+remote_server_final_test,99.5,1,4,7,1,C1 Violated,355.60537392331753,False,True,False
+remote_server_final_test,99.5,1,5,9,1,C1 Violated,369.7378912565182,False,True,False
+remote_server_final_test,99.5,1,6,11,1,C1 Violated,419.2129194014705,False,True,False
+remote_server_final_test,99.5,1,7,13,1,C1 Violated,407.4255537291174,False,True,False
+remote_server_final_test,99.5,1,8,15,1,C1 Violated,444.35585146420635,False,True,False
+remote_server_final_test,99.5,2,1,1,2,C2 Violated,228.2803662208607,True,False,False
+remote_server_final_test,99.5,2,2,3,2,C2 Violated,231.30431192839748,True,False,False
+remote_server_final_test,99.5,2,3,5,2,C2 Violated,246.82873261539496,True,False,False
+remote_server_final_test,99.5,2,4,7,3,Both Violated,355.60537392331753,False,False,False
+remote_server_final_test,99.5,2,5,9,1,C1 Violated,369.7378912565182,False,True,False
+remote_server_final_test,99.5,2,6,11,1,C1 Violated,419.2129194014705,False,True,False
+remote_server_final_test,99.5,2,7,13,1,C1 Violated,407.4255537291174,False,True,False
+remote_server_final_test,99.5,2,8,15,1,C1 Violated,444.35585146420635,False,True,False
+remote_server_final_test,99.5,3,1,1,2,C2 Violated,228.2803662208607,True,False,False
+remote_server_final_test,99.5,3,2,3,2,C2 Violated,231.30431192839748,True,False,False
+remote_server_final_test,99.5,3,3,5,2,C2 Violated,246.82873261539496,True,False,False
+remote_server_final_test,99.5,3,4,7,2,C2 Violated,355.60537392331753,True,False,False
+remote_server_final_test,99.5,3,5,9,2,C2 Violated,369.7378912565182,True,False,False
+remote_server_final_test,99.5,3,6,11,3,Both Violated,419.2129194014705,False,False,False
+remote_server_final_test,99.5,3,7,13,1,C1 Violated,407.4255537291174,False,True,False
+remote_server_final_test,99.5,3,8,15,1,C1 Violated,444.35585146420635,False,True,False
+remote_server_final_test,99.5,4,1,1,2,C2 Violated,228.2803662208607,True,False,False
+remote_server_final_test,99.5,4,2,3,2,C2 Violated,231.30431192839748,True,False,False
+remote_server_final_test,99.5,4,3,5,2,C2 Violated,246.82873261539496,True,False,False
+remote_server_final_test,99.5,4,4,7,2,C2 Violated,355.60537392331753,True,False,False
+remote_server_final_test,99.5,4,5,9,2,C2 Violated,369.7378912565182,True,False,False
+remote_server_final_test,99.5,4,6,11,2,C2 Violated,419.2129194014705,True,False,False
+remote_server_final_test,99.5,4,7,13,2,C2 Violated,407.4255537291174,True,False,False
+remote_server_final_test,99.5,4,8,15,0,Valid,444.35585146420635,True,True,True
+remote_server_final_test,99.5,5,1,1,2,C2 Violated,228.2803662208607,True,False,False
+remote_server_final_test,99.5,5,2,3,2,C2 Violated,231.30431192839748,True,False,False
+remote_server_final_test,99.5,5,3,5,2,C2 Violated,246.82873261539496,True,False,False
+remote_server_final_test,99.5,5,4,7,2,C2 Violated,355.60537392331753,True,False,False
+remote_server_final_test,99.5,5,5,9,2,C2 Violated,369.7378912565182,True,False,False
+remote_server_final_test,99.5,5,6,11,2,C2 Violated,419.2129194014705,True,False,False
+remote_server_final_test,99.5,5,7,13,2,C2 Violated,407.4255537291174,True,False,False
+remote_server_final_test,99.5,5,8,15,2,C2 Violated,444.35585146420635,True,False,False
+remote_server_final_test,99.5,6,1,1,2,C2 Violated,228.2803662208607,True,False,False
+remote_server_final_test,99.5,6,2,3,2,C2 Violated,231.30431192839748,True,False,False
+remote_server_final_test,99.5,6,3,5,2,C2 Violated,246.82873261539496,True,False,False
+remote_server_final_test,99.5,6,4,7,2,C2 Violated,355.60537392331753,True,False,False
+remote_server_final_test,99.5,6,5,9,2,C2 Violated,369.7378912565182,True,False,False
+remote_server_final_test,99.5,6,6,11,2,C2 Violated,419.2129194014705,True,False,False
+remote_server_final_test,99.5,6,7,13,2,C2 Violated,407.4255537291174,True,False,False
+remote_server_final_test,99.5,6,8,15,2,C2 Violated,444.35585146420635,True,False,False
+remote_server_final_test,99.5,7,1,1,2,C2 Violated,228.2803662208607,True,False,False
+remote_server_final_test,99.5,7,2,3,2,C2 Violated,231.30431192839748,True,False,False
+remote_server_final_test,99.5,7,3,5,2,C2 Violated,246.82873261539496,True,False,False
+remote_server_final_test,99.5,7,4,7,2,C2 Violated,355.60537392331753,True,False,False
+remote_server_final_test,99.5,7,5,9,2,C2 Violated,369.7378912565182,True,False,False
+remote_server_final_test,99.5,7,6,11,2,C2 Violated,419.2129194014705,True,False,False
+remote_server_final_test,99.5,7,7,13,2,C2 Violated,407.4255537291174,True,False,False
+remote_server_final_test,99.5,7,8,15,2,C2 Violated,444.35585146420635,True,False,False
