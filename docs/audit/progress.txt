@@ -1,0 +1,165 @@
+STREAMMUSE — SESSION BRIDGE
+Branch: demo_lekai
+Last Updated: 2026-04-01
+===========================================
+
+COMPLETED:
+-----------
+[x] Real-time accompaniment generation (Stanley engine, stable)
+[x] MIDI device input
+[x] Computer keyboard input
+[x] MIDI file simulation input
+[x] Real-time audio output via MIDI port
+[x] MIDI file recording (fixed 2026-03-23)
+[x] JSON inference logging
+[x] CSV/TXT session summary
+[x] CLI real-time display (ANSI terminal UI)
+[x] Music injection via /inject_notes (client-side, canonical)
+[x] /clear_history endpoint
+[x] /injection_status endpoint
+[x] Listening mode / adaptive key detection
+[x] Manual prompt selection
+[x] Performance benchmarking system
+[x] Lekai (LLaMA) engine integrated into server
+[x] Web client (web_client.py) with Lekai integration
+[x] Canonical documentation set (CLAUDE.md, PRD.md, TECH_STACK.md, etc.)
+
+IN PROGRESS:
+------------
+[ ] Lekai engine: full end-to-end stability testing (committed as "not fully tested")
+[ ] web_client.py ↔ client_lekai.py feature parity (web client is 1,397 lines, diverging)
+[ ] server_lekai.py status unknown (may be duplicate of server.py, needs verification)
+
+KNOWN BUGS / TECH DEBT:
+------------------------
+[BUG] Lekai engine: potential unbalanced note events (note_on without note_off)
+      → Mitigation: post-generation balance check exists, but may not catch all cases
+[BUG] Lekai live input tick assignment: `client_lekai.py` / `web_client.py` assign
+      live events with `event.get("tick", tick_count)` after the 10% sleep window
+      → Confirmed via `app/debug/analyze_lekai_client_timing.py`:
+        most live events land 1 tick late, while MIDI-file events with explicit ticks do not
+[BUG] Lekai sliding-window melody rebuild: `_active_melody_pitches` can carry stale
+      sustain state into the first beat of a rebuilt context window
+      → Confirmed via `app/debug/analyze_lekai_engine_context.py`:
+        stale carry-in doubles sustain coverage for the same beat
+[TEST] Server-side rebuild-state tests added in
+       `app/debug/test_lekai_rebuild_state.py`
+      → Confirms `_normalize_melody_input()` preserves event type/pitch/tick
+        except for the intentional injection-offset shift
+      → Confirms `generate_accompaniment()` stores the expected normalized melody
+        events in `melody_event_history` before the rebuild loop begins
+      → Confirms the same normalized history produces different beat-0 melody
+        pianorolls when `_active_melody_pitches` is stale versus empty
+      → Confirms the first rebuilt beat differs while the next rebuilt beat
+        converges again, localizing corruption to the rebuild boundary
+      → Expanded coverage also confirms same-tick `note_off`/`note_on` handling
+        is preserved for rebuild via `MidiConverter.events_to_pianoroll()`
+      → Expanded coverage confirms the corruption still appears when the sliding
+        window starts after beat 0 (`start_beat > 0`), so this is not only an
+        early-session/beat-0 artifact
+      → Expanded coverage confirms injection offset shifts both normalized ticks
+        and the rebuild horizon as expected before context assembly
+[FIX] Lekai sliding-window rebuild now recomputes `_active_melody_pitches`
+      exactly at the rebuild boundary from `melody_event_history`
+      → Carry-in uses all events with `tick < start_tick`, ordered with
+        `note_off` before `note_on` at the same tick
+      → This removes stale prior-call carry-in while preserving true
+        cross-window sustain from notes that legitimately began before `start_beat`
+[TEST] Focused rebuild suite rerun after exact carry-in recomputation
+      → Upstream normalization tests still pass
+      → Early-session rebuild boundary test now shows clean/stale runs match on
+        the first rebuilt beat
+      → Later sliding-window boundary test (`start_beat > 0`) now shows
+        clean/stale runs match on the first rebuilt beat
+      → True cross-window sustain is preserved in the first rebuilt beat after
+        recomputation
+[TEST] Lekai live replay via real keyboard path was exercised with self-authored
+       sanity and stress melodies using `app/debug/run_lekai_live_replay_test.py`
+       against `app/debug/lekai_live_test_server.py`
+      → On this machine, macOS accessibility trust blocked `read_keyboard_input`
+        from capturing replayed key events; both source melodies produced
+        0 server-bound melody events and no saved user-track MIDI
+[TEST] Lekai live replay via the real MIDI-device path was exercised with a
+       virtual CoreMIDI output port using
+       `app/debug/run_lekai_virtual_midi_replay_test.py`
+      → The client captured and recorded notes through `read_midi_input`
+      → A constant startup offset of +22 ticks appears in both request events and
+        recorded user MIDI relative to the source test melodies
+      → After offset normalization, the sanity melody is almost preserved but one
+        note shortens by 1 tick and the following note starts 1 tick early
+      → The stress melody shows a more severe event-collapse case:
+        one note disappears from the server-bound reconstruction and the recorded
+        user track keeps a dangling `note_on` alive until session finalize
+[FIX] Live input events are now stamped with ticks at creation time using
+      `time.perf_counter()` + shared `seconds_per_tick` context in
+      `input_handler.py`; main-loop dequeue-time stamping remains only as fallback
+[TEST] Virtual MIDI replay rerun after input-time stamping
+      → After offset normalization, request-side reconstruction is exact for both
+        `sanity_case` and `stress_case`
+      → Recorded user MIDI is also exact for `sanity_case`
+      → One remaining `stress_case` recording-only mismatch persists:
+        pitch 65 is stretched to session end in the saved MIDI, while the
+        server-bound event stream is already correct
+      → The remaining mismatch is likely separate from tick stamping and is
+        consistent with queue/event-order handling in the recording path
+[TEST] Focused recording-path repro tests added in
+       `app/debug/test_recording_order_issue.py`
+      → Reproduces that the current `read_midi_input()` stop-signal peek logic can
+        rotate the shared queue enough to place `note_off` before the earlier
+        `note_on` for the same pitch
+      → Reproduces that `MidiFileHandler` then misses that `note_off`, leaves the
+        pitch active, and stretches the note until `finalize()` closes it at the
+        last known end time
+      → Confirms the leftover issue is an event-order bug in the recording path,
+        not a remaining live tick-stamping bug
+[FIX] Live MIDI recording-path ordering fix
+      → `read_midi_input()` now uses a dedicated stop signal instead of peeking
+        and re-appending items from the shared `event_queue`
+      → `client_lekai.py` and `web_client.py` now pass/set that stop signal for
+        live MIDI shutdown
+[TEST] Virtual MIDI replay rerun after the recording-path fix
+      → `sanity_case`: normalized request notes match source exactly; normalized
+        recorded user MIDI also matches source exactly
+      → `stress_case`: normalized request notes match source exactly; normalized
+        recorded user MIDI now also matches source exactly
+      → The previous pitch-65 stretched-note recording mismatch is resolved
+[BUG] Lekai KV cache (past_key_values) unbounded growth in stateful mode
+      → Mitigation: call /clear_history between sessions
+[DEBT] No test suite — no unit/integration tests in main source directories
+[DEBT] 3 client variants (client.py, client_lekai.py, web_client.py) duplicate logic
+       → Bug fixes in shared components (input_handlers, output_handlers) must be applied to all
+[DEBT] No logging framework — scattered print() statements throughout
+[DEBT] models/old_m2a_transformer.py, old_m2a_nomask_transformer.py — legacy, never used
+[DEBT] app/inference_engines/transformer_engine.py, transformer_engine_midi_input.py — legacy, not in server
+[DEBT] app/output_handlers/log_output.py, webapp_output.py — not wired into any client
+[DEBT] app/debug/ directory — debug-only scripts, no production use
+[DEBT] /inject_music endpoint deprecated but still present (backward compat)
+[DEBT] models/base_pytorch_lightning_model.py:78 — FIX comment for batch_files initialization
+[DEBT] inject_music_to_server() in client.py:436 — marked DEPRECATED, not cleaned up
+
+NEXT (Immediate Priorities):
+-----------------------------
+1. DEMO STABILITY: Full end-to-end test of demo_lekai branch with Lekai engine
+   → Test: client_lekai.py + server.py (ENGINE_TYPE=lekai) full session
+   → Verify: note balance, KV cache, listening mode, MIDI recording
+2. TESTING: Add basic smoke test for /generate_accompaniment endpoint
+   → Test: mock inference request with known melody → verify valid response shape
+3. DEBUGGING: Investigate and document known Lekai engine edge cases
+   → Focus: sustain note handling, event balance at beat boundaries
+4. FIX VALIDATION: Use the new opt-in debug logs in `app/lekai_input_debug.py`
+   with `STREAMMUSE_DEBUG_CLIENT_TIMING=1` and/or `STREAMMUSE_DEBUG_ENGINE_CONTEXT=1`
+   during a real Lekai session to validate any follow-up fix
+5. LIVE REPLAY VALIDATION: Grant accessibility trust to the Python process in the
+   `muse_client` environment, then rerun `app/debug/run_lekai_live_replay_test.py`
+   to measure the real keyboard-input path end to end
+6. MIDI LIVE PATH: Use `app/debug/run_lekai_virtual_midi_replay_test.py` as the
+   reproducible end-to-end harness for the `read_midi_input` path while keyboard
+   replay remains OS-constrained
+
+ENVIRONMENT:
+------------
+Python: >=3.10
+CUDA: 12.8 (required for GPU inference)
+Package Manager: uv
+Server: uvicorn + FastAPI
+Key env vars: CHECKPOINT_PATH, ENGINE_TYPE, MODEL_MAX_SEQ_LEN_FRAMES

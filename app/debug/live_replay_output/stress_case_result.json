@@ -1,0 +1,233 @@
+{
+  "case_name": "stress_case",
+  "source_midi": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/debug/live_replay_output/stress_case.mid",
+  "session_dir": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/logs/session_20260401-130011",
+  "recorded_midi": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/logs/session_20260401-130011/performance.mid",
+  "recorded_midi_exists": false,
+  "source_notes": [
+    {
+      "pitch": 60,
+      "tick": 0,
+      "duration": 1
+    },
+    {
+      "pitch": 62,
+      "tick": 1,
+      "duration": 1
+    },
+    {
+      "pitch": 64,
+      "tick": 3,
+      "duration": 1
+    },
+    {
+      "pitch": 65,
+      "tick": 4,
+      "duration": 1
+    },
+    {
+      "pitch": 67,
+      "tick": 7,
+      "duration": 1
+    },
+    {
+      "pitch": 69,
+      "tick": 8,
+      "duration": 2
+    },
+    {
+      "pitch": 71,
+      "tick": 11,
+      "duration": 1
+    },
+    {
+      "pitch": 72,
+      "tick": 12,
+      "duration": 1
+    },
+    {
+      "pitch": 74,
+      "tick": 14,
+      "duration": 2
+    }
+  ],
+  "request_events": [],
+  "request_notes": [],
+  "recorded_notes": [],
+  "request_vs_source": {
+    "source_count": 9,
+    "observed_count": 0,
+    "mismatch_count": 9,
+    "mismatches": [
+      {
+        "index": 0,
+        "source": {
+          "pitch": 60,
+          "tick": 0,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 1,
+        "source": {
+          "pitch": 62,
+          "tick": 1,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 2,
+        "source": {
+          "pitch": 64,
+          "tick": 3,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 3,
+        "source": {
+          "pitch": 65,
+          "tick": 4,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 4,
+        "source": {
+          "pitch": 67,
+          "tick": 7,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 5,
+        "source": {
+          "pitch": 69,
+          "tick": 8,
+          "duration": 2
+        },
+        "observed": null
+      },
+      {
+        "index": 6,
+        "source": {
+          "pitch": 71,
+          "tick": 11,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 7,
+        "source": {
+          "pitch": 72,
+          "tick": 12,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 8,
+        "source": {
+          "pitch": 74,
+          "tick": 14,
+          "duration": 2
+        },
+        "observed": null
+      }
+    ]
+  },
+  "recorded_vs_source": {
+    "source_count": 9,
+    "observed_count": 0,
+    "mismatch_count": 9,
+    "mismatches": [
+      {
+        "index": 0,
+        "source": {
+          "pitch": 60,
+          "tick": 0,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 1,
+        "source": {
+          "pitch": 62,
+          "tick": 1,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 2,
+        "source": {
+          "pitch": 64,
+          "tick": 3,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 3,
+        "source": {
+          "pitch": 65,
+          "tick": 4,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 4,
+        "source": {
+          "pitch": 67,
+          "tick": 7,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 5,
+        "source": {
+          "pitch": 69,
+          "tick": 8,
+          "duration": 2
+        },
+        "observed": null
+      },
+      {
+        "index": 6,
+        "source": {
+          "pitch": 71,
+          "tick": 11,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 7,
+        "source": {
+          "pitch": 72,
+          "tick": 12,
+          "duration": 1
+        },
+        "observed": null
+      },
+      {
+        "index": 8,
+        "source": {
+          "pitch": 74,
+          "tick": 14,
+          "duration": 2
+        },
+        "observed": null
+      }
+    ]
+  }
+}

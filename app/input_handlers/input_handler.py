@@ -8,17 +8,51 @@ import mido
 from queue import Queue
 import sys
 import os
+import math
 
 # Add the app directory to the path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    from lekai_input_debug import log_client_timing
+except ImportError:
+    def log_client_timing(*args, **kwargs):
+        return None
 
 try:
     from midi_utils import midi_to_note
 except ImportError:
     from midi_utils_client import midi_to_note_client as midi_to_note
 
+
+def _compute_live_event_tick(timing_context: dict | None):
+    """Convert live event arrival time into a client tick.
+
+    Returns:
+        tuple[int | None, float]: (computed_tick, perf_time)
+    """
+    perf_time = time.perf_counter()
+    if not timing_context:
+        return None, perf_time
+
+    session_perf_start = timing_context.get("session_perf_start")
+    seconds_per_tick = timing_context.get("seconds_per_tick")
+    if session_perf_start is None or not seconds_per_tick:
+        return None, perf_time
+
+    raw_tick = (perf_time - float(session_perf_start)) / float(seconds_per_tick)
+    computed_tick = max(0, int(math.floor(raw_tick + 1e-9)))
+    return computed_tick, perf_time
+
 # --- MIDI Input Handler ---
-def read_midi_input(event_queue: Queue, device_name: str = None, audio_handler=None, melody_channel: int = 0):
+def read_midi_input(
+    event_queue: Queue,
+    device_name: str = None,
+    audio_handler=None,
+    melody_channel: int = 0,
+    timing_context: dict | None = None,
+    stop_event=None,
+):
     """
     Worker function for reading MIDI input from a connected device (separate thread).
     If audio_handler is provided, plays notes immediately for low-latency feedback.
@@ -28,21 +62,14 @@ def read_midi_input(event_queue: Queue, device_name: str = None, audio_handler=N
         port = mido.open_input(device_name)
         print(f"Listening for MIDI input on '{port.name}'...")
         
-        # Use polling instead of blocking iteration
+        # Use polling instead of blocking iteration.
+        # Stop control must stay separate from the shared event queue so we
+        # preserve FIFO ordering for note_on/note_off events.
         while True:
-            # Check for stop signal first
-            if not event_queue.empty():
-                try:
-                    peek = event_queue.get_nowait()
-                    if peek is None:
-                        print("[DEBUG] MIDI input received stop signal")
-                        break
-                    else:
-                        # Put it back if it's not None
-                        event_queue.put(peek)
-                except:
-                    pass
-            
+            if stop_event is not None and stop_event.is_set():
+                print("[DEBUG] MIDI input received stop signal")
+                break
+
             # Poll for MIDI messages with timeout
             msg = port.poll()
             if msg is None:
@@ -51,13 +78,55 @@ def read_midi_input(event_queue: Queue, device_name: str = None, audio_handler=N
                 continue
             
             if msg.type == 'note_on' and msg.velocity > 0:
-                event = {"type": "note_on", "pitch": msg.note, "velocity": msg.velocity, "time": time.time()}
+                computed_tick, perf_time = _compute_live_event_tick(timing_context)
+                event = {
+                    "type": "note_on",
+                    "pitch": msg.note,
+                    "velocity": msg.velocity,
+                    "time": time.time(),
+                    "perf_time": perf_time,
+                }
+                if computed_tick is not None:
+                    event["tick"] = computed_tick
                 event_queue.put(event)
+                log_client_timing(
+                    "input_handler.midi",
+                    "enqueue",
+                    queue_size=event_queue.qsize(),
+                    event=event,
+                    extra={
+                        "computed_tick": computed_tick,
+                        "current_tick_snapshot": (
+                            timing_context.get("current_tick") if timing_context else None
+                        ),
+                    },
+                )
                 if audio_handler:
                     audio_handler.on(msg.note, msg.velocity, channel=melody_channel)
             elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
-                event = {"type": "note_off", "pitch": msg.note, "velocity": 0, "time": time.time()}
+                computed_tick, perf_time = _compute_live_event_tick(timing_context)
+                event = {
+                    "type": "note_off",
+                    "pitch": msg.note,
+                    "velocity": 0,
+                    "time": time.time(),
+                    "perf_time": perf_time,
+                }
+                if computed_tick is not None:
+                    event["tick"] = computed_tick
                 event_queue.put(event)
+                log_client_timing(
+                    "input_handler.midi",
+                    "enqueue",
+                    queue_size=event_queue.qsize(),
+                    event=event,
+                    extra={
+                        "computed_tick": computed_tick,
+                        "current_tick_snapshot": (
+                            timing_context.get("current_tick") if timing_context else None
+                        ),
+                    },
+                )
                 if audio_handler:
                     audio_handler.off(msg.note, channel=melody_channel)
                     
@@ -77,7 +146,6 @@ def read_midi_input(event_queue: Queue, device_name: str = None, audio_handler=N
             except:
                 pass
         print("[DEBUG] MIDI input thread exiting")
-        event_queue.put(None)
 
 
 # --- Keyboard Input Handler ---
@@ -91,32 +159,83 @@ KEY_TO_PITCH = {
 VELOCITY = 100
 pressed_keys = set()
 
-def _on_press(key, event_queue, keyboard, audio_handler=None, melody_channel=0):
+def _on_press(
+    key,
+    event_queue,
+    keyboard,
+    audio_handler=None,
+    melody_channel=0,
+    timing_context: dict | None = None,
+):
     try:
         char_key = key.char
         if char_key in KEY_TO_PITCH and char_key not in pressed_keys:
             pitch = KEY_TO_PITCH[char_key]
             pressed_keys.add(char_key)
-            event = {"type": "note_on", "pitch": pitch, "velocity": VELOCITY, "time": time.time()}
+            computed_tick, perf_time = _compute_live_event_tick(timing_context)
+            event = {
+                "type": "note_on",
+                "pitch": pitch,
+                "velocity": VELOCITY,
+                "time": time.time(),
+                "perf_time": perf_time,
+            }
+            if computed_tick is not None:
+                event["tick"] = computed_tick
             event_queue.put(event)
+            log_client_timing(
+                "input_handler.keyboard",
+                "enqueue",
+                queue_size=event_queue.qsize(),
+                event=event,
+                extra={
+                    "computed_tick": computed_tick,
+                    "current_tick_snapshot": (
+                        timing_context.get("current_tick") if timing_context else None
+                    ),
+                },
+            )
             if audio_handler:
                 audio_handler.on(pitch, VELOCITY, channel=melody_channel)
     except AttributeError:
         pass # Ignore special keys
 
-def _on_release(key, event_queue, keyboard, audio_handler=None, melody_channel=0):
+def _on_release(
+    key,
+    event_queue,
+    keyboard,
+    audio_handler=None,
+    melody_channel=0,
+    timing_context: dict | None = None,
+):
     try:
         char_key = key.char
         if char_key in KEY_TO_PITCH and char_key in pressed_keys:
             pitch = KEY_TO_PITCH[char_key]
             pressed_keys.remove(char_key)
+            computed_tick, perf_time = _compute_live_event_tick(timing_context)
             event = {
                 "type": "note_off",
                 "pitch": pitch,
                 "velocity": 0,
                 "time": time.time(),
+                "perf_time": perf_time,
             }
+            if computed_tick is not None:
+                event["tick"] = computed_tick
             event_queue.put(event)
+            log_client_timing(
+                "input_handler.keyboard",
+                "enqueue",
+                queue_size=event_queue.qsize(),
+                event=event,
+                extra={
+                    "computed_tick": computed_tick,
+                    "current_tick_snapshot": (
+                        timing_context.get("current_tick") if timing_context else None
+                    ),
+                },
+            )
             if audio_handler:
                 audio_handler.off(pitch, channel=melody_channel)
     except AttributeError:
@@ -124,7 +243,12 @@ def _on_release(key, event_queue, keyboard, audio_handler=None, melody_channel=0
             # Stop listener
             event_queue.put(None)
 
-def read_keyboard_input(event_queue: Queue, audio_handler=None, melody_channel: int = 0):
+def read_keyboard_input(
+    event_queue: Queue,
+    audio_handler=None,
+    melody_channel: int = 0,
+    timing_context: dict | None = None,
+):
     """
     Worker function for reading computer keyboard input (separate thread).
     Maps keyboard keys to MIDI notes.
@@ -144,8 +268,8 @@ def read_keyboard_input(event_queue: Queue, audio_handler=None, melody_channel: 
     
     try:
         with keyboard.Listener(
-                on_press=lambda key: _on_press(key, event_queue, keyboard, audio_handler, melody_channel),
-                on_release=lambda key: _on_release(key, event_queue, keyboard, audio_handler, melody_channel)) as listener:
+                on_press=lambda key: _on_press(key, event_queue, keyboard, audio_handler, melody_channel, timing_context),
+                on_release=lambda key: _on_release(key, event_queue, keyboard, audio_handler, melody_channel, timing_context)) as listener:
             listener.join()
     except Exception as e:
         print(f"Error starting keyboard listener: {e}")
@@ -280,6 +404,13 @@ def read_midi_file_input(
                 for event in events:
                     event["time"] = time.time()
                     event_queue.put(event)
+                    log_client_timing(
+                        "input_handler.midi_file",
+                        "enqueue",
+                        tick_count=current_tick,
+                        queue_size=event_queue.qsize(),
+                        event=event,
+                    )
 
                     # Play audio immediately for low-latency feedback
                     if audio_handler:

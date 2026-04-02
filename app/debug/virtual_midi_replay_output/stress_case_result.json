@@ -1,0 +1,596 @@
+{
+  "case_name": "stress_case",
+  "source_midi": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/debug/virtual_midi_replay_output/stress_case.mid",
+  "session_dir": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/logs/session_20260402-103022",
+  "recorded_midi": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/logs/session_20260402-103022/performance.mid",
+  "recorded_midi_exists": true,
+  "source_notes": [
+    {
+      "pitch": 60,
+      "tick": 0,
+      "duration": 1
+    },
+    {
+      "pitch": 62,
+      "tick": 1,
+      "duration": 1
+    },
+    {
+      "pitch": 64,
+      "tick": 3,
+      "duration": 1
+    },
+    {
+      "pitch": 65,
+      "tick": 4,
+      "duration": 1
+    },
+    {
+      "pitch": 67,
+      "tick": 7,
+      "duration": 1
+    },
+    {
+      "pitch": 69,
+      "tick": 8,
+      "duration": 2
+    },
+    {
+      "pitch": 71,
+      "tick": 11,
+      "duration": 1
+    },
+    {
+      "pitch": 72,
+      "tick": 12,
+      "duration": 1
+    },
+    {
+      "pitch": 74,
+      "tick": 14,
+      "duration": 2
+    }
+  ],
+  "request_events": [
+    {
+      "type": "note_on",
+      "pitch": 60,
+      "tick": 22
+    },
+    {
+      "type": "note_off",
+      "pitch": 60,
+      "tick": 23
+    },
+    {
+      "type": "note_on",
+      "pitch": 62,
+      "tick": 23
+    },
+    {
+      "type": "note_off",
+      "pitch": 62,
+      "tick": 24
+    },
+    {
+      "type": "note_on",
+      "pitch": 64,
+      "tick": 25
+    },
+    {
+      "type": "note_off",
+      "pitch": 64,
+      "tick": 26
+    },
+    {
+      "type": "note_on",
+      "pitch": 65,
+      "tick": 26
+    },
+    {
+      "type": "note_off",
+      "pitch": 65,
+      "tick": 27
+    },
+    {
+      "type": "note_on",
+      "pitch": 67,
+      "tick": 29
+    },
+    {
+      "type": "note_off",
+      "pitch": 67,
+      "tick": 30
+    },
+    {
+      "type": "note_on",
+      "pitch": 69,
+      "tick": 30
+    },
+    {
+      "type": "note_off",
+      "pitch": 69,
+      "tick": 32
+    },
+    {
+      "type": "note_on",
+      "pitch": 71,
+      "tick": 33
+    },
+    {
+      "type": "note_off",
+      "pitch": 71,
+      "tick": 34
+    },
+    {
+      "type": "note_on",
+      "pitch": 72,
+      "tick": 34
+    },
+    {
+      "type": "note_off",
+      "pitch": 72,
+      "tick": 35
+    },
+    {
+      "type": "note_on",
+      "pitch": 74,
+      "tick": 36
+    },
+    {
+      "type": "note_off",
+      "pitch": 74,
+      "tick": 38
+    }
+  ],
+  "request_notes": [
+    {
+      "pitch": 60,
+      "tick": 22,
+      "duration": 1
+    },
+    {
+      "pitch": 62,
+      "tick": 23,
+      "duration": 1
+    },
+    {
+      "pitch": 64,
+      "tick": 25,
+      "duration": 1
+    },
+    {
+      "pitch": 65,
+      "tick": 26,
+      "duration": 1
+    },
+    {
+      "pitch": 67,
+      "tick": 29,
+      "duration": 1
+    },
+    {
+      "pitch": 69,
+      "tick": 30,
+      "duration": 2
+    },
+    {
+      "pitch": 71,
+      "tick": 33,
+      "duration": 1
+    },
+    {
+      "pitch": 72,
+      "tick": 34,
+      "duration": 1
+    },
+    {
+      "pitch": 74,
+      "tick": 36,
+      "duration": 2
+    }
+  ],
+  "request_offset_ticks": 22,
+  "normalized_request_notes": [
+    {
+      "pitch": 60,
+      "tick": 0,
+      "duration": 1
+    },
+    {
+      "pitch": 62,
+      "tick": 1,
+      "duration": 1
+    },
+    {
+      "pitch": 64,
+      "tick": 3,
+      "duration": 1
+    },
+    {
+      "pitch": 65,
+      "tick": 4,
+      "duration": 1
+    },
+    {
+      "pitch": 67,
+      "tick": 7,
+      "duration": 1
+    },
+    {
+      "pitch": 69,
+      "tick": 8,
+      "duration": 2
+    },
+    {
+      "pitch": 71,
+      "tick": 11,
+      "duration": 1
+    },
+    {
+      "pitch": 72,
+      "tick": 12,
+      "duration": 1
+    },
+    {
+      "pitch": 74,
+      "tick": 14,
+      "duration": 2
+    }
+  ],
+  "recorded_notes": [
+    {
+      "pitch": 60,
+      "tick": 22,
+      "duration": 1
+    },
+    {
+      "pitch": 62,
+      "tick": 23,
+      "duration": 1
+    },
+    {
+      "pitch": 64,
+      "tick": 25,
+      "duration": 1
+    },
+    {
+      "pitch": 65,
+      "tick": 26,
+      "duration": 1
+    },
+    {
+      "pitch": 67,
+      "tick": 29,
+      "duration": 1
+    },
+    {
+      "pitch": 69,
+      "tick": 30,
+      "duration": 2
+    },
+    {
+      "pitch": 71,
+      "tick": 33,
+      "duration": 1
+    },
+    {
+      "pitch": 72,
+      "tick": 34,
+      "duration": 1
+    },
+    {
+      "pitch": 74,
+      "tick": 36,
+      "duration": 2
+    }
+  ],
+  "recorded_offset_ticks": 22,
+  "normalized_recorded_notes": [
+    {
+      "pitch": 60,
+      "tick": 0,
+      "duration": 1
+    },
+    {
+      "pitch": 62,
+      "tick": 1,
+      "duration": 1
+    },
+    {
+      "pitch": 64,
+      "tick": 3,
+      "duration": 1
+    },
+    {
+      "pitch": 65,
+      "tick": 4,
+      "duration": 1
+    },
+    {
+      "pitch": 67,
+      "tick": 7,
+      "duration": 1
+    },
+    {
+      "pitch": 69,
+      "tick": 8,
+      "duration": 2
+    },
+    {
+      "pitch": 71,
+      "tick": 11,
+      "duration": 1
+    },
+    {
+      "pitch": 72,
+      "tick": 12,
+      "duration": 1
+    },
+    {
+      "pitch": 74,
+      "tick": 14,
+      "duration": 2
+    }
+  ],
+  "request_vs_source": {
+    "source_count": 9,
+    "observed_count": 9,
+    "mismatch_count": 9,
+    "mismatches": [
+      {
+        "index": 0,
+        "source": {
+          "pitch": 60,
+          "tick": 0,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 60,
+          "tick": 22,
+          "duration": 1
+        }
+      },
+      {
+        "index": 1,
+        "source": {
+          "pitch": 62,
+          "tick": 1,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 62,
+          "tick": 23,
+          "duration": 1
+        }
+      },
+      {
+        "index": 2,
+        "source": {
+          "pitch": 64,
+          "tick": 3,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 64,
+          "tick": 25,
+          "duration": 1
+        }
+      },
+      {
+        "index": 3,
+        "source": {
+          "pitch": 65,
+          "tick": 4,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 65,
+          "tick": 26,
+          "duration": 1
+        }
+      },
+      {
+        "index": 4,
+        "source": {
+          "pitch": 67,
+          "tick": 7,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 67,
+          "tick": 29,
+          "duration": 1
+        }
+      },
+      {
+        "index": 5,
+        "source": {
+          "pitch": 69,
+          "tick": 8,
+          "duration": 2
+        },
+        "observed": {
+          "pitch": 69,
+          "tick": 30,
+          "duration": 2
+        }
+      },
+      {
+        "index": 6,
+        "source": {
+          "pitch": 71,
+          "tick": 11,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 71,
+          "tick": 33,
+          "duration": 1
+        }
+      },
+      {
+        "index": 7,
+        "source": {
+          "pitch": 72,
+          "tick": 12,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 72,
+          "tick": 34,
+          "duration": 1
+        }
+      },
+      {
+        "index": 8,
+        "source": {
+          "pitch": 74,
+          "tick": 14,
+          "duration": 2
+        },
+        "observed": {
+          "pitch": 74,
+          "tick": 36,
+          "duration": 2
+        }
+      }
+    ]
+  },
+  "normalized_request_vs_source": {
+    "source_count": 9,
+    "observed_count": 9,
+    "mismatch_count": 0,
+    "mismatches": []
+  },
+  "recorded_vs_source": {
+    "source_count": 9,
+    "observed_count": 9,
+    "mismatch_count": 9,
+    "mismatches": [
+      {
+        "index": 0,
+        "source": {
+          "pitch": 60,
+          "tick": 0,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 60,
+          "tick": 22,
+          "duration": 1
+        }
+      },
+      {
+        "index": 1,
+        "source": {
+          "pitch": 62,
+          "tick": 1,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 62,
+          "tick": 23,
+          "duration": 1
+        }
+      },
+      {
+        "index": 2,
+        "source": {
+          "pitch": 64,
+          "tick": 3,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 64,
+          "tick": 25,
+          "duration": 1
+        }
+      },
+      {
+        "index": 3,
+        "source": {
+          "pitch": 65,
+          "tick": 4,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 65,
+          "tick": 26,
+          "duration": 1
+        }
+      },
+      {
+        "index": 4,
+        "source": {
+          "pitch": 67,
+          "tick": 7,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 67,
+          "tick": 29,
+          "duration": 1
+        }
+      },
+      {
+        "index": 5,
+        "source": {
+          "pitch": 69,
+          "tick": 8,
+          "duration": 2
+        },
+        "observed": {
+          "pitch": 69,
+          "tick": 30,
+          "duration": 2
+        }
+      },
+      {
+        "index": 6,
+        "source": {
+          "pitch": 71,
+          "tick": 11,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 71,
+          "tick": 33,
+          "duration": 1
+        }
+      },
+      {
+        "index": 7,
+        "source": {
+          "pitch": 72,
+          "tick": 12,
+          "duration": 1
+        },
+        "observed": {
+          "pitch": 72,
+          "tick": 34,
+          "duration": 1
+        }
+      },
+      {
+        "index": 8,
+        "source": {
+          "pitch": 74,
+          "tick": 14,
+          "duration": 2
+        },
+        "observed": {
+          "pitch": 74,
+          "tick": 36,
+          "duration": 2
+        }
+      }
+    ]
+  },
+  "normalized_recorded_vs_source": {
+    "source_count": 9,
+    "observed_count": 9,
+    "mismatch_count": 0,
+    "mismatches": []
+  }
+}

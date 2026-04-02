@@ -33,6 +33,7 @@ from input_handlers.input_handler import (
     read_keyboard_input,
     read_midi_file_input,
 )
+from lekai_input_debug import log_client_timing
 
 
 # --- Configuration ---
@@ -415,6 +416,13 @@ def tick_loop(
                 "melody_notes": notes_for_next_request,
                 "generation_start_tick": generation_start_tick,
             }
+            log_client_timing(
+                "client_lekai",
+                "request_send_initial",
+                tick_count=tick_count,
+                generation_start_tick=generation_start_tick,
+                notes=request_data["melody_notes"],
+            )
             inference_request_queue.put((request_data, request_data.copy()))
             notes_for_next_request = []
             is_trigger_tick = True
@@ -435,6 +443,14 @@ def tick_loop(
             # --- Note Quantization & Audio Playback ---
             # Use the event's tick if available (from MIDI file input), otherwise use current tick_count
             event_tick = event.get("tick", tick_count)
+            log_client_timing(
+                "client_lekai",
+                "dequeue_assign",
+                tick_count=tick_count,
+                queue_size=event_queue.qsize(),
+                event=event,
+                extra={"assigned_tick": event_tick},
+            )
 
             if event["type"] == "note_on":
                 # 1. Quantize the note for the inference engine request.
@@ -682,6 +698,13 @@ def tick_loop(
                 "melody_notes": notes_for_next_request,
                 "generation_start_tick": generation_start_tick,
             }
+            log_client_timing(
+                "client_lekai",
+                "request_send_periodic",
+                tick_count=tick_count,
+                generation_start_tick=generation_start_tick,
+                notes=request_data["melody_notes"],
+            )
             inference_request_queue.put((request_data, request_data.copy()))
             notes_for_next_request = []
             is_trigger_tick = True
@@ -886,8 +909,14 @@ def main():
     all_timing_data = []  # Initialize list in main scope
     tick_history = []  # 用于记录每个 tick system metrics
 
-    # Create shared reference for current tick count (for MIDI file input)
-    current_tick_ref = {"current_tick": 0}
+    # Shared timing context for live input and MIDI-file scheduling.
+    current_tick_ref = {
+        "current_tick": 0,
+        "session_perf_start": time.perf_counter(),
+        "seconds_per_tick": (60.0 / args.tempo) / args.ticks_per_beat,
+    }
+
+    midi_input_stop_event = None
 
     if args.midi_file_input:
         # MIDI file input mode - 考虑偏移，以及跳过注入的部分
@@ -908,7 +937,9 @@ def main():
         )
     elif args.use_keyboard_input:
         input_thread = threading.Thread(
-            target=read_keyboard_input, args=(event_queue,), daemon=True
+            target=read_keyboard_input,
+            args=(event_queue, None, 0, current_tick_ref),
+            daemon=True,
         )
     else:
         # A check to see if MIDI input is available.
@@ -923,8 +954,18 @@ def main():
             print(f"Could not list MIDI devices: {e}")
             return
 
+        midi_input_stop_event = threading.Event()
         input_thread = threading.Thread(
-            target=read_midi_input, args=(event_queue, midi_input_name), daemon=True
+            target=read_midi_input,
+            args=(
+                event_queue,
+                midi_input_name,
+                None,
+                0,
+                current_tick_ref,
+                midi_input_stop_event,
+            ),
+            daemon=True,
         )
 
     inference_thread = threading.Thread(
@@ -987,6 +1028,19 @@ def main():
     except KeyboardInterrupt:
         print("\r\nCtrl+C detected. Exiting application.")
     finally:
+        if midi_input_stop_event is not None:
+            midi_input_stop_event.set()
+            if input_thread.is_alive():
+                input_thread.join(timeout=1.0)
+
+        event_queue.put(None)
+        if music_pacer_thread.is_alive():
+            music_pacer_thread.join(timeout=2.0)
+
+        inference_request_queue.put(None)
+        if inference_thread.is_alive():
+            inference_thread.join(timeout=2.0)
+
         if args.generation_length is None:
             print("\n--- Saving all session logs ---")
             # Pass the benchmark data to be saved

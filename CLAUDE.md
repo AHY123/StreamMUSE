@@ -152,3 +152,51 @@ The system supports "music injection" to pre-populate model history:
 - `inference_engines/`: Model inference implementations
 - `schema/yaml/`: Model configuration files
 - `transformers/`: Modified transformers library for RoFormer
+
+## Active Entry Points (Verified 2026-03-23)
+
+- **Primary Clients**: `app/client_lekai.py`, `app/web_client.py`
+- **Primary Server**: `app/server.py` (handles both engines via `ENGINE_TYPE` env var; `app/server_lekai.py` status uncertain)
+- **Training**: `training_runner.py` (top-level)
+- **Offline Inference**: `m2a_transformer_inference.py` (top-level)
+
+> `app/client.py` is still functional but `client_lekai.py` and `web_client.py` are the demo-relevant paths.
+
+## Extracted Coding Rules
+
+**Rule: Two inference engines exist; do not conflate them.**
+- `InferenceEngineStanley` (RoFormer, `transformer_engine_stanley.py`) uses duration-based note dicts `{pitch, tick, duration}`.
+- `InferenceEngineLekai` (LLaMA, `transformer_engine_lekai.py`) uses event streams `{type: note_on|note_off, pitch, tick}`.
+- The `/inject_notes` endpoint converts between formats based on engine type. Do not bypass this.
+
+**Rule: Server engine is selected at startup via `ENGINE_TYPE` env var.**
+- Valid values: `stanley`, `lekai`. Default: `stanley`.
+- Do not hardcode engine class names in new endpoints.
+
+**Rule: Note quantization constants are model-coupled. Do not change them.**
+- `ticks_per_beat=4`, `beat_div=4`, `DURATION_TEMPLATES` in `preprocess/preprocess_midi2pt_dataset.py` are baked into trained model weights. Changing these breaks inference.
+
+**Rule: Use Pydantic models for all server request/response schemas.**
+- All FastAPI routes must use Pydantic input/output models defined in `app/server.py`.
+- Do not return raw dicts from routes.
+
+**Rule: History state is not thread-safe.**
+- Inference engines hold mutable `melody_history[]` / `accompaniment_history[]` in instance variables.
+- Do not add concurrent request paths without adding locks.
+
+**Rule: `/inject_notes` is the canonical injection endpoint; `/inject_music` is deprecated.**
+- `/inject_music` (file-based, server-side) remains for backward compat but should not be extended.
+- New injection flows use `/inject_notes` (client-side, note list).
+
+**Rule: Debug print statements are the existing logging mechanism.**
+- There is no `logging` module integration. Print statements use tags like `[ENGINE DEBUG]`, `[DEBUG MIDI]`.
+- Do not silently remove print statements — they are the only observability.
+
+**Rule: The `transformers/` directory is a vendored, modified Hugging Face library.**
+- It contains custom RoFormer positional encoding.
+- Do not update it from upstream without verifying the custom patches survive.
+
+## Session Protocol
+
+At the start of every session, read `progress.txt` and `lessons.md`.
+At the end of every session (or after completing a significant task), update both files.

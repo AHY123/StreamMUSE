@@ -28,6 +28,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 import uvicorn
 import json
+import math
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -41,6 +42,7 @@ from input_handlers.input_handler import (
     read_keyboard_input,
     read_midi_file_input,
 )
+from lekai_input_debug import log_client_timing
 
 try:
     from key_detection import detect_key_lightweight, detect_key_music21
@@ -74,6 +76,18 @@ def notes_to_events(notes: list) -> list:
     # Sort by tick, note_off before note_on if same tick
     events.sort(key=lambda e: (e["tick"], 0 if e["type"] == "note_off" else 1))
     return events
+
+
+def compute_live_tick(timing_context: dict | None):
+    perf_time = time.perf_counter()
+    if not timing_context:
+        return None, perf_time
+    session_perf_start = timing_context.get("session_perf_start")
+    seconds_per_tick = timing_context.get("seconds_per_tick")
+    if session_perf_start is None or not seconds_per_tick:
+        return None, perf_time
+    raw_tick = (perf_time - float(session_perf_start)) / float(seconds_per_tick)
+    return max(0, int(math.floor(raw_tick + 1e-9))), perf_time
 
 
 class ClientConfig(BaseModel):
@@ -406,6 +420,7 @@ class ClientManager:
         self.config = ClientConfig()
         self.is_running = False
         self.stop_event = threading.Event()
+        self.midi_input_stop_event: Optional[threading.Event] = None
 
         self.event_queue: Optional[Queue] = None
         self.inference_request_queue: Optional[Queue] = None
@@ -421,6 +436,7 @@ class ClientManager:
         self.all_timing_data = []
         self.tick_history = []
         self.session_log_dir: Optional[str] = None
+        self.input_timing_context: Optional[dict] = None
     
     def start(self, config: Optional[ClientConfig] = None):
         """Start the client with given config."""
@@ -436,6 +452,7 @@ class ClientManager:
         clear_history_on_server(self.config.server_url)
 
         self.stop_event.clear()
+        self.midi_input_stop_event = None
         self.event_queue = Queue()
         self.inference_request_queue = Queue()
         self.inference_response_queue = Queue()
@@ -471,7 +488,12 @@ class ClientManager:
         os.makedirs(self.session_log_dir, exist_ok=True)
         print(f"[INIT] Session logs will be saved to: {self.session_log_dir}")
         
-        current_tick_ref = {"current_tick": 0}
+        current_tick_ref = {
+            "current_tick": 0,
+            "session_perf_start": time.perf_counter(),
+            "seconds_per_tick": (60.0 / self.config.tempo) / self.config.ticks_per_beat,
+        }
+        self.input_timing_context = current_tick_ref
         
         if self.config.input_mode == "file" and self.config.midi_file_path:
             print(f"[DEBUG] Starting MIDI file input: {self.config.midi_file_path}")
@@ -492,16 +514,29 @@ class ClientManager:
             )
         elif self.config.input_mode == "midi":
             print(f"[DEBUG] Starting MIDI device input: device_name='{self.config.midi_input_name}'")
+            self.midi_input_stop_event = threading.Event()
             self.input_thread = threading.Thread(
                 target=read_midi_input,
-                args=(self.event_queue, self.config.midi_input_name, self.audio_output_handler, self.config.melody_channel),
+                args=(
+                    self.event_queue,
+                    self.config.midi_input_name,
+                    self.audio_output_handler,
+                    self.config.melody_channel,
+                    current_tick_ref,
+                    self.midi_input_stop_event,
+                ),
                 daemon=True,
             )
         else:
             print(f"[DEBUG] Starting keyboard input")
             self.input_thread = threading.Thread(
                 target=read_keyboard_input,
-                args=(self.event_queue, self.audio_output_handler, self.config.melody_channel),
+                args=(
+                    self.event_queue,
+                    self.audio_output_handler,
+                    self.config.melody_channel,
+                    current_tick_ref,
+                ),
                 daemon=True,
             )
         
@@ -534,9 +569,10 @@ class ClientManager:
         print("[DEBUG] Stopping client...")
         self.stop_event.set()
         
-        # Send stop signal to all queues
-        if self.event_queue:
-            self.event_queue.put(None)
+        if self.midi_input_stop_event is not None:
+            self.midi_input_stop_event.set()
+
+        # Send stop signal to queues that use sentinels
         if self.inference_request_queue:
             self.inference_request_queue.put(None)
         
@@ -609,6 +645,7 @@ class ClientManager:
         self.input_thread = None
         self.inference_thread = None
         self.tick_thread = None
+        self.midi_input_stop_event = None
         
         self.is_running = False
         self.ws_handler.send_status("stopped", "Client stopped")
@@ -736,6 +773,13 @@ class ClientManager:
                     "generation_length_frames": self.config.generation_length_per_request,
                 }
                 print(f"[DEBUG] Tick {tick_count}: Sending INITIAL inference request, gen_start={generation_start_tick}")
+                log_client_timing(
+                    "web_client",
+                    "request_send_initial",
+                    tick_count=tick_count,
+                    generation_start_tick=generation_start_tick,
+                    notes=request_data["melody_notes"],
+                )
                 self.inference_request_queue.put((request_data, request_data.copy()))
                 notes_for_next_request = []
                 is_trigger_tick = True
@@ -758,6 +802,14 @@ class ClientManager:
                 # --- Note Quantization & Audio Playback ---
                 # Use the event's tick if available (from MIDI file input), otherwise use current tick_count
                 event_tick = event.get("tick", tick_count)
+                log_client_timing(
+                    "web_client",
+                    "dequeue_assign",
+                    tick_count=tick_count,
+                    queue_size=self.event_queue.qsize(),
+                    event=event,
+                    extra={"assigned_tick": event_tick},
+                )
 
                 if event["type"] == "note_on":
                     # 1. Quantize the note for the inference engine request.
@@ -1127,6 +1179,13 @@ class ClientManager:
                 print(f"[DEBUG] Tick {tick_count}: Sending inference request, gen_start={generation_start_tick}, melody_notes_count={len(notes_for_next_request)}")
                 if notes_for_next_request:
                     print(f"[DEBUG]   Melody notes: {notes_for_next_request}")
+                log_client_timing(
+                    "web_client",
+                    "request_send_periodic",
+                    tick_count=tick_count,
+                    generation_start_tick=generation_start_tick,
+                    notes=request_data["melody_notes"],
+                )
                 self.inference_request_queue.put((request_data, request_data.copy()))
                 notes_for_next_request = []
                 is_trigger_tick = True
@@ -1188,18 +1247,58 @@ async def websocket_endpoint(websocket: WebSocket):
                     pitch = msg["pitch"]
                     velocity = msg.get("velocity", 100)
                     if msg.get("event") == "note_on":
-                        client_manager.event_queue.put({
+                        computed_tick, perf_time = compute_live_tick(client_manager.input_timing_context)
+                        event = {
                             "type": "note_on",
                             "pitch": pitch,
-                            "velocity": velocity
-                        })
+                            "velocity": velocity,
+                            "time": time.time(),
+                            "perf_time": perf_time,
+                        }
+                        if computed_tick is not None:
+                            event["tick"] = computed_tick
+                        client_manager.event_queue.put(event)
+                        log_client_timing(
+                            "web_client.websocket",
+                            "enqueue",
+                            queue_size=client_manager.event_queue.qsize(),
+                            event=event,
+                            extra={
+                                "computed_tick": computed_tick,
+                                "current_tick_snapshot": (
+                                    client_manager.input_timing_context.get("current_tick")
+                                    if client_manager.input_timing_context
+                                    else None
+                                ),
+                            },
+                        )
                         if client_manager.audio_output_handler:
                             client_manager.audio_output_handler.on(pitch, velocity, channel=client_manager.config.melody_channel)
                     elif msg.get("event") == "note_off":
-                        client_manager.event_queue.put({
+                        computed_tick, perf_time = compute_live_tick(client_manager.input_timing_context)
+                        event = {
                             "type": "note_off",
-                            "pitch": pitch
-                        })
+                            "pitch": pitch,
+                            "time": time.time(),
+                            "perf_time": perf_time,
+                        }
+                        if computed_tick is not None:
+                            event["tick"] = computed_tick
+                        client_manager.event_queue.put(event)
+                        log_client_timing(
+                            "web_client.websocket",
+                            "enqueue",
+                            queue_size=client_manager.event_queue.qsize(),
+                            event=event,
+                            extra={
+                                "computed_tick": computed_tick,
+                                "current_tick_snapshot": (
+                                    client_manager.input_timing_context.get("current_tick")
+                                    if client_manager.input_timing_context
+                                    else None
+                                ),
+                            },
+                        )
                         if client_manager.audio_output_handler:
                             client_manager.audio_output_handler.off(pitch, channel=client_manager.config.melody_channel)
             except json.JSONDecodeError:

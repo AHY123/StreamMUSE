@@ -13,6 +13,7 @@ from lekai_model.my_tokenizer import PianoRollTokenizer
 from lekai_model.PianoDataset import encode_bpm
 from lekai_model.generation_utils import sample_token
 from lekai_model.MidiConverter import MidiConverter
+from app.lekai_input_debug import log_engine_context
 
 
 def midi_to_note(midi_path, beat_div=4):
@@ -126,6 +127,7 @@ class InferenceEngineLekai:
           (events_to_pianoroll doesn't return active set, so we update it here).
         """
 
+        active_before = set(self._active_melody_pitches)
         pr = self.midi_converter.events_to_pianoroll(
             self.melody_event_history,
             start_tick=beat_start_tick,
@@ -156,7 +158,63 @@ class InferenceEngineLekai:
             elif et == "note_off":
                 self._active_melody_pitches.discard(p)
 
+        log_engine_context(
+            "melody_beat",
+            beat_start_tick=beat_start_tick,
+            beat_end_tick=beat_end_tick,
+            active_pitches=self._active_melody_pitches,
+            extra={
+                "active_before": sorted(int(p) for p in active_before),
+                "beat_events": beat_events,
+                "pianoroll_onsets": int(np.sum(pr[1] > 0)),
+                "pianoroll_sustain": int(np.sum(pr[0] > 0)),
+            },
+        )
+
         return pr
+
+    def _compute_active_melody_pitches_at_tick(self, start_tick: int) -> set[int]:
+        """Recompute active melody carry-in strictly before `start_tick`.
+
+        This is used by sliding-window rebuilds so the first rebuilt beat starts
+        from the history-correct active set at the window boundary rather than
+        from whatever state happened to remain from the previous call.
+        """
+        start_tick = int(start_tick)
+        prior_events = []
+        for event in self.melody_event_history:
+            if not isinstance(event, dict):
+                continue
+            if event.get("type") not in {"note_on", "note_off"}:
+                continue
+            if "pitch" not in event or "tick" not in event:
+                continue
+            if int(event["tick"]) >= start_tick:
+                continue
+            prior_events.append(
+                {
+                    "type": event["type"],
+                    "pitch": int(event["pitch"]),
+                    "tick": int(event["tick"]),
+                }
+            )
+
+        prior_events.sort(
+            key=lambda event: (
+                event["tick"],
+                0 if event["type"] == "note_off" else 1,
+            )
+        )
+
+        active_pitches = set()
+        for event in prior_events:
+            pitch = event["pitch"]
+            if event["type"] == "note_on":
+                active_pitches.add(pitch)
+            else:
+                active_pitches.discard(pitch)
+
+        return active_pitches
 
     def _normalize_melody_input(self, melody_notes: list, generation_start_tick: int):
         """Normalize client melody payload (event stream) into absolute-tick events.
@@ -386,6 +444,13 @@ class InferenceEngineLekai:
         # 1. Update History (event stream only)
         abs_events = self._normalize_melody_input(melody_notes, generation_start_tick)
         self.melody_event_history.extend(abs_events)
+        log_engine_context(
+            "normalize_input",
+            generation_start_tick=generation_start_tick,
+            melody_notes=melody_notes,
+            abs_events=abs_events,
+            extra={"history_size_after": len(self.melody_event_history)},
+        )
 
         print(f"  Normalized {len(abs_events)} events")
         print(f"  melody_event_history size after: {len(self.melody_event_history)}")
@@ -436,6 +501,22 @@ class InferenceEngineLekai:
 
             context_beats = 32  # Lookback
             start_beat = max(0, current_beat - context_beats)
+            rebuild_start_tick = start_beat * self.ticks_per_beat
+            self._active_melody_pitches = self._compute_active_melody_pitches_at_tick(
+                rebuild_start_tick
+            )
+            log_engine_context(
+                "context_rebuild_start",
+                generation_start_tick=generation_start_tick,
+                current_beat=current_beat,
+                start_beat=start_beat,
+                need_reset=need_reset,
+                active_pitches=self._active_melody_pitches,
+                extra={
+                    "history_size": len(self.melody_event_history),
+                    "rebuild_start_tick": rebuild_start_tick,
+                },
+            )
 
             # Construct Prompt Sequence
             bpm_val = bpm
@@ -468,6 +549,15 @@ class InferenceEngineLekai:
 
                 beat_start_tick = b * self.ticks_per_beat
                 beat_end_tick = (b + 1) * self.ticks_per_beat
+                log_engine_context(
+                    "context_rebuild_beat_before",
+                    current_beat=current_beat,
+                    start_beat=start_beat,
+                    beat_start_tick=beat_start_tick,
+                    beat_end_tick=beat_end_tick,
+                    need_reset=need_reset,
+                    active_pitches=self._active_melody_pitches,
+                )
 
                 # FIXED ORDER: Acc tokens FIRST, then Mel tokens
                 # Get Acc tokens for beat b
@@ -491,6 +581,15 @@ class InferenceEngineLekai:
                     end_marker_id=self.tokenizer.end_marker_part0,
                 )
                 seq.append(mel_tokens)
+                log_engine_context(
+                    "context_rebuild_beat_after",
+                    current_beat=current_beat,
+                    start_beat=start_beat,
+                    beat_start_tick=beat_start_tick,
+                    beat_end_tick=beat_end_tick,
+                    need_reset=need_reset,
+                    active_pitches=self._active_melody_pitches,
+                )
 
             # Now we are at current_beat.
             # Training data order: [..., acc[b-1], mel[b-1], acc[b], mel[b], ...]
@@ -539,6 +638,15 @@ class InferenceEngineLekai:
             if prev_beat >= 0:
                 prev_start_tick = prev_beat * self.ticks_per_beat
                 prev_end_tick = prev_beat * self.ticks_per_beat + self.ticks_per_beat
+                log_engine_context(
+                    "stateful_prev_beat_before",
+                    generation_start_tick=generation_start_tick,
+                    current_beat=current_beat,
+                    beat_start_tick=prev_start_tick,
+                    beat_end_tick=prev_end_tick,
+                    need_reset=need_reset,
+                    active_pitches=self._active_melody_pitches,
+                )
                 mel_pr_prev = self._get_mel_pianoroll_for_beat(
                     beat_start_tick=prev_start_tick,
                     beat_end_tick=prev_end_tick,
@@ -548,6 +656,15 @@ class InferenceEngineLekai:
                     end_marker_id=self.tokenizer.end_marker_part0,
                 )
                 seq.append(mel_tokens_prev)
+                log_engine_context(
+                    "stateful_prev_beat_after",
+                    generation_start_tick=generation_start_tick,
+                    current_beat=current_beat,
+                    beat_start_tick=prev_start_tick,
+                    beat_end_tick=prev_end_tick,
+                    need_reset=need_reset,
+                    active_pitches=self._active_melody_pitches,
+                )
 
             # 2. Bar tokens if new measure
             if current_beat % 4 == 0:

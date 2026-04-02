@@ -1,0 +1,164 @@
+{
+  "case_name": "sanity_case",
+  "source_midi": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/debug/live_replay_output/sanity_case.mid",
+  "session_dir": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/logs/session_20260401-130002",
+  "recorded_midi": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/logs/session_20260401-130002/performance.mid",
+  "recorded_midi_exists": false,
+  "source_notes": [
+    {
+      "pitch": 60,
+      "tick": 0,
+      "duration": 2
+    },
+    {
+      "pitch": 62,
+      "tick": 2,
+      "duration": 2
+    },
+    {
+      "pitch": 64,
+      "tick": 4,
+      "duration": 4
+    },
+    {
+      "pitch": 65,
+      "tick": 8,
+      "duration": 2
+    },
+    {
+      "pitch": 67,
+      "tick": 10,
+      "duration": 2
+    },
+    {
+      "pitch": 69,
+      "tick": 12,
+      "duration": 4
+    }
+  ],
+  "request_events": [],
+  "request_notes": [],
+  "recorded_notes": [],
+  "request_vs_source": {
+    "source_count": 6,
+    "observed_count": 0,
+    "mismatch_count": 6,
+    "mismatches": [
+      {
+        "index": 0,
+        "source": {
+          "pitch": 60,
+          "tick": 0,
+          "duration": 2
+        },
+        "observed": null
+      },
+      {
+        "index": 1,
+        "source": {
+          "pitch": 62,
+          "tick": 2,
+          "duration": 2
+        },
+        "observed": null
+      },
+      {
+        "index": 2,
+        "source": {
+          "pitch": 64,
+          "tick": 4,
+          "duration": 4
+        },
+        "observed": null
+      },
+      {
+        "index": 3,
+        "source": {
+          "pitch": 65,
+          "tick": 8,
+          "duration": 2
+        },
+        "observed": null
+      },
+      {
+        "index": 4,
+        "source": {
+          "pitch": 67,
+          "tick": 10,
+          "duration": 2
+        },
+        "observed": null
+      },
+      {
+        "index": 5,
+        "source": {
+          "pitch": 69,
+          "tick": 12,
+          "duration": 4
+        },
+        "observed": null
+      }
+    ]
+  },
+  "recorded_vs_source": {
+    "source_count": 6,
+    "observed_count": 0,
+    "mismatch_count": 6,
+    "mismatches": [
+      {
+        "index": 0,
+        "source": {
+          "pitch": 60,
+          "tick": 0,
+          "duration": 2
+        },
+        "observed": null
+      },
+      {
+        "index": 1,
+        "source": {
+          "pitch": 62,
+          "tick": 2,
+          "duration": 2
+        },
+        "observed": null
+      },
+      {
+        "index": 2,
+        "source": {
+          "pitch": 64,
+          "tick": 4,
+          "duration": 4
+        },
+        "observed": null
+      },
+      {
+        "index": 3,
+        "source": {
+          "pitch": 65,
+          "tick": 8,
+          "duration": 2
+        },
+        "observed": null
+      },
+      {
+        "index": 4,
+        "source": {
+          "pitch": 67,
+          "tick": 10,
+          "duration": 2
+        },
+        "observed": null
+      },
+      {
+        "index": 5,
+        "source": {
+          "pitch": 69,
+          "tick": 12,
+          "duration": 4
+        },
+        "observed": null
+      }
+    ]
+  }
+}
