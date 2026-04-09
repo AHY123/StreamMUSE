@@ -120,6 +120,9 @@ class ClientConfig(BaseModel):
     key_detection_method: str = "lightweight"
     prompt_dir: Optional[str] = None
 
+    # Tick quantization
+    snap_forward_fraction: float = 0.1
+
     # Recording options
     record_session: bool = True
     save_json_log: bool = True
@@ -492,6 +495,7 @@ class ClientManager:
             "current_tick": 0,
             "session_perf_start": time.perf_counter(),
             "seconds_per_tick": (60.0 / self.config.tempo) / self.config.ticks_per_beat,
+            "snap_forward_fraction": self.config.snap_forward_fraction,
         }
         self.input_timing_context = current_tick_ref
         
@@ -1492,6 +1496,8 @@ if __name__ == "__main__":
     parser.add_argument("--key_detection_method", type=str, default="lightweight",
                         choices=["lightweight", "music21"],
                         help="Method for key detection")
+    parser.add_argument("--snap-forward-fraction", type=float, default=0.1,
+                        help="Fraction of tick at the end to snap forward to next tick (0.0-0.5, default 0.1)")
     parser.add_argument("--port", type=int, default=8080, help="Port for web UI server")
 
     args = parser.parse_args()
@@ -1507,6 +1513,7 @@ if __name__ == "__main__":
         listening_duration_ticks=args.listening_duration_ticks,
         prompt_dir=args.prompt_dir,
         key_detection_method=args.key_detection_method,
+        snap_forward_fraction=args.snap_forward_fraction,
     )
 
     print("Starting StreamMUSE Web Client Server...")

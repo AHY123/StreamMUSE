@@ -41,7 +41,8 @@ def _compute_live_event_tick(timing_context: dict | None):
         return None, perf_time
 
     raw_tick = (perf_time - float(session_perf_start)) / float(seconds_per_tick)
-    computed_tick = max(0, int(math.floor(raw_tick + 1e-9)))
+    snap_fraction = float(timing_context.get("snap_forward_fraction", 0.1))
+    computed_tick = max(0, int(math.floor(raw_tick + snap_fraction)))
     return computed_tick, perf_time
 
 # --- MIDI Input Handler ---

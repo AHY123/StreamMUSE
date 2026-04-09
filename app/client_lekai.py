@@ -661,13 +661,17 @@ def tick_loop(
 
         # --- 5. Metronome ---
         if metronome_enabled:
-            is_beat_tick = (tick_count % ticks_per_beat) == 0
-            if is_beat_tick:
-                beat_in_bar = (tick_count % ticks_per_bar) // ticks_per_beat
-                if beat_in_bar == 0:
-                    audio_output_handler.metro_first()
-                else:
-                    audio_output_handler.metro_other()
+            # is_beat_tick = (tick_count % ticks_per_beat) == 0
+            # if is_beat_tick:
+            #     beat_in_bar = (tick_count % ticks_per_bar) // ticks_per_beat
+            #     if beat_in_bar == 0:
+            #         audio_output_handler.metro_first()
+            #     else:
+            #         audio_output_handler.metro_other()
+            if tick_count % ticks_per_beat == 0:
+                audio_output_handler.metro_first()
+            else:
+                audio_output_handler.metro_other()
 
         # --- 6. Update Display ---
         bar_count = tick_count // ticks_per_bar
@@ -769,6 +773,12 @@ def main():
         type=int,
         default=config.DEFAULT_BEATS_PER_BAR,
         help="Number of beats per bar",
+    )
+    parser.add_argument(
+        "--snap-forward-fraction",
+        type=float,
+        default=0.1,
+        help="Fraction of tick at the end to snap forward to next tick (0.0-0.5, default 0.1)",
     )
     parser.add_argument(
         "--generation_interval_ticks",
@@ -926,6 +936,7 @@ def main():
         "current_tick": 0,
         "session_perf_start": time.perf_counter(),
         "seconds_per_tick": (60.0 / args.tempo) / args.ticks_per_beat,
+        "snap_forward_fraction": args.snap_forward_fraction,
     }
 
     midi_input_stop_event = None
