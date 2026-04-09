@@ -707,6 +707,12 @@ class ClientManager:
     def _tick_loop(self, current_tick_ref: dict):
         """Main tick loop."""
         seconds_per_tick = (60.0 / self.config.tempo) / self.config.ticks_per_beat
+        # Anchor session_perf_start to the wall time of tick_count == 0 so that
+        # `_compute_live_event_tick` (wall-clock based) and `tick_count`
+        # (logical) share the same origin. The value written during __init__
+        # is stale (startup delay) and must be overwritten here.
+        session_perf_start = time.perf_counter()
+        current_tick_ref["session_perf_start"] = session_perf_start
         tick_count = -1
         playback_schedule = {}
         number_of_hit = 0
@@ -784,7 +790,13 @@ class ClientManager:
                 notes_for_next_request = []
                 is_trigger_tick = True
 
-            time.sleep(seconds_per_tick * 0.1)
+            # Absolute-clock sleep until the 10% mark of this tick, so the
+            # event-processing window is anchored to real time instead of
+            # accumulating sleep drift.
+            pre_work_target = session_perf_start + (tick_count + 0.1) * seconds_per_tick
+            pre_work_wait = pre_work_target - time.perf_counter()
+            if pre_work_wait > 0:
+                time.sleep(pre_work_wait)
 
             # --- 1. Process User Input ---
             user_notes_this_tick = []
@@ -1050,7 +1062,12 @@ class ClientManager:
                             else:
                                 self.audio_output_handler.metro_other()
 
-                    time.sleep(seconds_per_tick)
+                    # Absolute-clock sleep to keep listening-mode ticks
+                    # locked to real time (matches the main-loop scheduler).
+                    next_tick_target = session_perf_start + (tick_count + 1) * seconds_per_tick
+                    wait = next_tick_target - time.perf_counter()
+                    if wait > 0:
+                        time.sleep(wait)
                     continue
 
             # --- 3. (Moved to end of loop for tick=3,7,11,...) ---
@@ -1097,10 +1114,8 @@ class ClientManager:
                     self.audio_output_handler.off(event["pitch"])
                 # Record model note_off events to MIDI file
                 if event.get("source") == "model" and self.midi_file_handler:
-                    # Ensure tick is set to current tick_count for accurate recording
-                    # Preserve all event fields (type, pitch, velocity, etc.)
+                    # Preserve server-assigned tick (do NOT overwrite with tick_count).
                     event_for_midi = dict(event)
-                    event_for_midi["tick"] = tick_count
                     # Ensure type is set (should already be "note_off")
                     if "type" not in event_for_midi:
                         event_for_midi["type"] = "note_off"
@@ -1116,11 +1131,9 @@ class ClientManager:
                     continue
                 if self.audio_output_handler:
                     self.audio_output_handler.on(event["pitch"], self.config.accompaniment_velocity)
-                # Record to MIDI with current tick for accurate timing
+                # Record to MIDI; preserve server-assigned tick (do NOT overwrite).
                 if self.midi_file_handler:
-                    # Preserve all event fzields (type, pitch, velocity, backup_level, etc.)
                     event_for_midi = dict(event)
-                    event_for_midi["tick"] = tick_count
                     # Ensure type is set (should already be "note_on")
                     if "type" not in event_for_midi:
                         event_for_midi["type"] = "note_on"
@@ -1190,8 +1203,14 @@ class ClientManager:
                 notes_for_next_request = []
                 is_trigger_tick = True
 
-            time.sleep(seconds_per_tick * 0.9)
-        
+            # Absolute-clock sleep until the start of the next tick. This
+            # removes all accumulated drift from relative sleeps + variable
+            # work time; the loop stays locked to real time.
+            next_tick_target = session_perf_start + (tick_count + 1) * seconds_per_tick
+            wait = next_tick_target - time.perf_counter()
+            if wait > 0:
+                time.sleep(wait)
+
         self.ws_handler.send_status("stopped", "Tick loop ended")
 
 

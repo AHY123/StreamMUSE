@@ -241,6 +241,24 @@ class InferenceEngineLekai:
             abs_e["tick"] = int(e["tick"]) + self.injection_offset_ticks
             abs_e["pitch"] = int(e["pitch"])
             abs_events.append(abs_e)
+
+        # Same-tick note_on/note_off bump: if a fresh note (one that was not
+        # already sounding before this batch) is opened and closed on the same
+        # tick, bump the note_off to tick+1. Otherwise the pianoroll builder
+        # (off-before-on sort) silently drops the note_off and the pitch
+        # phantom-sustains into subsequent beats. Retriggers (note_off first
+        # for a pitch that was already sounding) are untouched.
+        opened_this_batch: dict[int, int] = {}
+        for ev in abs_events:
+            pitch = ev["pitch"]
+            tick = int(ev["tick"])
+            if ev["type"] == "note_on":
+                opened_this_batch[pitch] = tick
+            else:  # note_off
+                if opened_this_batch.get(pitch) == tick:
+                    ev["tick"] = tick + 1
+                opened_this_batch.pop(pitch, None)
+
         return abs_events
 
     def set_injection_offset(self, offset_ticks: int):

@@ -20,8 +20,8 @@ if str(APP_DIR) not in sys.path:
 from lekai_input_debug import CLIENT_TIMING_DEBUG_PATH
 
 
-SERVER_URL = "http://127.0.0.1:8010/generate_accompaniment"
-CLEAR_URL = "http://127.0.0.1:8010/clear_history"
+DEFAULT_SERVER_URL = "http://127.0.0.1:8010/generate_accompaniment"
+DEFAULT_CLEAR_URL = "http://127.0.0.1:8010/clear_history"
 TEST_SERVER_PATH = ROOT / "app" / "debug" / "lekai_live_test_server.py"
 MELODIES_PATH = ROOT / "app" / "debug" / "lekai_live_test_melodies.json"
 OUTPUT_DIR = ROOT / "app" / "debug" / "virtual_midi_replay_output"
@@ -111,7 +111,7 @@ def stop_process(proc: subprocess.Popen | None):
         proc.wait(timeout=5)
 
 
-def start_client():
+def start_client(server_url: str):
     client_log = open(OUTPUT_DIR / "client_lekai.log", "w", encoding="utf-8")
     env = os.environ.copy()
     env["STREAMMUSE_DEBUG_CLIENT_TIMING"] = "1"
@@ -120,7 +120,7 @@ def start_client():
             sys.executable,
             "app/client_lekai.py",
             "--server_url",
-            SERVER_URL,
+            server_url,
             "--tempo",
             "120",
             "--ticks_per_beat",
@@ -233,15 +233,24 @@ def normalize_notes_by_offset(source_notes: list[dict], observed_notes: list[dic
     return offset, normalized
 
 
-def run_case(case_name: str, notes: list[dict], tempo: float, ticks_per_beat: int, output_port):
+def run_case(
+    case_name: str,
+    notes: list[dict],
+    tempo: float,
+    ticks_per_beat: int,
+    output_port,
+    server_url: str,
+    clear_url: str,
+):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     midi_path = OUTPUT_DIR / f"{case_name}.mid"
     write_midi(notes, tempo, ticks_per_beat, midi_path)
 
     remove_stale_logs()
-    requests.post(CLEAR_URL, timeout=2)
+    clear_response = requests.post(clear_url, timeout=2)
+    clear_response.raise_for_status()
 
-    client_proc, client_log = start_client()
+    client_proc, client_log = start_client(server_url)
     try:
         time.sleep(2.0)
         replay_midi(notes, tempo, ticks_per_beat, output_port, start_delay=1.0)
@@ -298,6 +307,21 @@ def main():
         default="all",
         help="Which test melody to run",
     )
+    parser.add_argument(
+        "--server-url",
+        default=DEFAULT_SERVER_URL,
+        help="Full /generate_accompaniment URL for the target server",
+    )
+    parser.add_argument(
+        "--clear-url",
+        default=DEFAULT_CLEAR_URL,
+        help="Full /clear_history URL for the target server",
+    )
+    parser.add_argument(
+        "--use-existing-server",
+        action="store_true",
+        help="Use an already running server instead of starting the local mock server",
+    )
     args = parser.parse_args()
 
     data = load_melodies()
@@ -309,7 +333,8 @@ def main():
     server_log = None
     output_port = None
     try:
-        server_proc, server_log = start_test_server()
+        if not args.use_existing_server:
+            server_proc, server_log = start_test_server()
         output_port = mido.open_output(VIRTUAL_PORT_NAME, virtual=True)
         case_names = ["sanity_case", "stress_case"] if args.case == "all" else [args.case]
         summary = {}
@@ -320,6 +345,8 @@ def main():
                 tempo,
                 ticks_per_beat,
                 output_port,
+                args.server_url,
+                args.clear_url,
             )
 
         summary_path = OUTPUT_DIR / "summary.json"

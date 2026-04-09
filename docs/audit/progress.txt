@@ -73,6 +73,47 @@ KNOWN BUGS / TECH DEBT:
         clean/stale runs match on the first rebuilt beat
       → True cross-window sustain is preserved in the first rebuilt beat after
         recomputation
+[DOC] Added `docs/audit/LEKAI_THREE_ISSUES_SUMMARY.md`
+      → Consolidates the three confirmed Lekai-path issues, their evidence,
+        impact, and implemented fixes into one handoff note
+[DOC] Clarified `performance.mid` interpretation in
+      `docs/audit/LEKAI_THREE_ISSUES_SUMMARY.md`
+      → Same-tick `note_on` / `note_off` pairs can collapse into zero-length
+        notes and disappear from saved MIDI even when the event log itself is correct
+[TEST] Updated `app/debug/run_lekai_virtual_midi_replay_test.py` to support
+       running against an already-live Lekai server via `--use-existing-server`
+      → Mock-server smoke test in `muse_client` still passes:
+        normalized request notes and normalized recorded MIDI both match source
+      → Attempted live-server validation at `http://127.0.0.1:8000`, but this
+        shell received `Connection refused` on `/clear_history`, so the real
+        end-to-end run is still pending a reachable server
+[TEST] Live-server virtual MIDI replay validation completed against the
+       Lekai server reached via `http://127.0.0.1:8000`
+      → `sanity_case`: normalized request notes match source exactly and
+        normalized recorded MIDI also matches source exactly
+      → `stress_case`: normalized request notes match source exactly and
+        normalized recorded MIDI also matches source exactly
+      → Both request stream and saved `performance.mid` share the same constant
+        startup offset (+21 ticks in this run), confirming the saved MIDI is
+        consistent with the actual quantized input stream for these tested cases
+[REVIEW] Full client/server/logging data-flow recheck after the live replay pass
+      → Confirmed again: input → request stream → `performance.mid` is consistent
+        for the tested live MIDI cases after offset normalization
+      → Found a functional bug: `generation_interval_ticks` is exposed as a client
+        setting but periodic inference triggering still keys off `ticks_per_beat`
+        in both `client_lekai.py` and `web_client.py`, so non-default intervals
+        are not actually honored
+      → Found logging semantics issues:
+        `inferences.json` stores mutable request/response objects and is therefore
+        not a pure raw server log; client-added fields like `backup_level` can
+        appear in the saved response
+      → Found observability gap:
+        failed requests are printed but not persisted into `inferences.json`,
+        leaving missing spans in the saved inference history
+      → Found interpretation issue:
+        `tick_history.json` records dequeue-loop counts (`num_user_notes`) rather
+        than grouping by the stamped musical event ticks, so it can disagree with
+        request-side event timing even when the musical data is correct
 [TEST] Lekai live replay via real keyboard path was exercised with self-authored
        sanity and stress melodies using `app/debug/run_lekai_live_replay_test.py`
        against `app/debug/lekai_live_test_server.py`

@@ -1,8 +1,8 @@
 {
   "case_name": "sanity_case",
   "source_midi": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/debug/virtual_midi_replay_output/sanity_case.mid",
-  "session_dir": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/logs/session_20260402-103014",
-  "recorded_midi": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/logs/session_20260402-103014/performance.mid",
+  "session_dir": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/logs/session_20260408-224328",
+  "recorded_midi": "/Users/andrewyang/Library/CloudStorage/OneDrive-UCSanDiego Real/Stuff/UGRIP/standard_pre_refactor/app/logs/session_20260408-224328/performance.mid",
   "recorded_midi_exists": true,
   "source_notes": [
     {

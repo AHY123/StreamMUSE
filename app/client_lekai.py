@@ -41,9 +41,9 @@ class StreamMUSEConfig:
     """Configuration settings for StreamMUSE client"""
 
     # Network
-    DEFAULT_SERVER_URL = "http://localhost:8988/generate_accompaniment"
-    DEFAULT_INJECTION_URL = "http://localhost:8988/inject_music"
-    DEFAULT_INJECTION_STATUS_URL = "http://localhost:8988/injection_status"
+    DEFAULT_SERVER_URL = "http://localhost:8000/generate_accompaniment"
+    DEFAULT_INJECTION_URL = "http://localhost:8000/inject_music"
+    DEFAULT_INJECTION_STATUS_URL = "http://localhost:8000/injection_status"
 
     # Musical timing
     DEFAULT_TEMPO = 120.0
@@ -60,7 +60,7 @@ class StreamMUSEConfig:
     # for legacy playback paths / placeholder padding.
     DEFAULT_NOTE_DURATION_TICKS = 2
     LATENCY_OFFSET_TICKS = 2
-    DEFAULT_ACCOMPANIMENT_VELOCITY = 50
+    DEFAULT_ACCOMPANIMENT_VELOCITY = 30
 
     # Display
     DEFAULT_LOG_LINES = 10
@@ -370,6 +370,12 @@ def tick_loop(
     Main tick loop for the client. (main thread)
     """
     seconds_per_tick = (60.0 / tempo) / ticks_per_beat
+    # Fix 1: anchor session_perf_start to the wall time of tick_count == 0
+    # so `_compute_live_event_tick` (wall-clock) and `tick_count` (logical)
+    # share the same origin. Overwrite the stale value written during setup.
+    session_perf_start = time.perf_counter()
+    if current_tick_ref is not None:
+        current_tick_ref["session_perf_start"] = session_perf_start
     tick_count = -1
     playback_schedule = {}
     number_of_hit = 0
@@ -427,7 +433,11 @@ def tick_loop(
             notes_for_next_request = []
             is_trigger_tick = True
 
-        time.sleep(seconds_per_tick * 0.1)
+        # Fix 1: absolute-clock sleep to the 10% mark of this tick.
+        pre_work_target = session_perf_start + (tick_count + 0.1) * seconds_per_tick
+        pre_work_wait = pre_work_target - time.perf_counter()
+        if pre_work_wait > 0:
+            time.sleep(pre_work_wait)
 
         # --- 1. Process User Input ---
         user_notes_this_tick = []
@@ -621,9 +631,8 @@ def tick_loop(
             audio_output_handler.off(event["pitch"])
             # Record model note_off events to MIDI file
             if event.get("source") == "model":
-                # Ensure tick is set to current tick_count for accurate recording
+                # Fix 2: preserve server-assigned tick (do NOT overwrite).
                 event_for_midi = dict(event)
-                event_for_midi["tick"] = tick_count
                 midi_file_handler.add_model_note(event_for_midi)
 
         # Process note-ons and schedule their corresponding note-offs
@@ -635,9 +644,8 @@ def tick_loop(
             audio_output_handler.on(
                 event["pitch"], audio_output_handler.accompaniment_velocity
             )
-            # Record to MIDI with current tick for accurate timing
+            # Fix 2: preserve server-assigned tick (do NOT overwrite).
             event_for_midi = dict(event)
-            event_for_midi["tick"] = tick_count
             midi_file_handler.add_model_note(event_for_midi)
 
             # Event-stream mode: note_off should arrive explicitly from server.
@@ -709,7 +717,11 @@ def tick_loop(
             notes_for_next_request = []
             is_trigger_tick = True
 
-        time.sleep(seconds_per_tick * 0.9)
+        # Fix 1: absolute-clock sleep to the start of the next tick. No drift.
+        next_tick_target = session_perf_start + (tick_count + 1) * seconds_per_tick
+        wait = next_tick_target - time.perf_counter()
+        if wait > 0:
+            time.sleep(wait)
 
 
 def main():

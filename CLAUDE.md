@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 StreamMUSE is a real-time AI music generation system that creates accompaniment for user-played melodies. The system uses a transformer-based model (RoFormer) and consists of a client-server architecture where the client handles user input and audio output, while the server performs model inference.
 
+## Conda Environments
+
+- **`muse_client`** — client-only env (no torch / safetensors / transformers). Use for running `app/web_client.py`, `app/fake_server.py`, and any debug/test scripts that don't touch the real inference engine (e.g. `app/debug/test_four_fixes.py`).
+- **`muse`** — full env with model dependencies. Use for the real server (`app/server.py` with `ENGINE_TYPE=lekai|stanley`), training, and any script that imports `app.inference_engines.transformer_engine_*`.
+
+Activate with `conda activate muse_client` or `conda activate muse` before running the commands below.
+
 ## Development Commands
 
 ### Environment Setup
