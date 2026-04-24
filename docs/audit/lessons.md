@@ -2,7 +2,7 @@
 
 > Derived from git history, commented-out code, debug logs, and code comments.
 > Format: Problem: [Observation] → Rule: [Constraint to prevent it]
-> Last updated: 2026-04-02
+> Last updated: 2026-04-17
 
 ---
 
@@ -126,6 +126,54 @@ shared event queue during live MIDI shutdown.
 MIDI input, shutdown should use a separate flag (`threading.Event` or equivalent)
 so the queue remains data-only and recorder-visible ordering stays intact.
 
+**Problem:** Late server responses had their events dropped by the client
+scheduler because `if note["tick"] >= tick_count:` filtered them out entirely.
+For `note_off` events, dropping meant the matching `note_on` stayed open in
+`midi_file_handler._open_model` until `finalize()` flushed it at session end,
+producing the symptom "accompaniment notes never end in `performance.mid`."
+**Rule:** Past-tick `note_off` events must be executed at the current tick
+(release-now), not dropped. Dropping a late `note_off` is observationally
+indistinguishable from the model failing to end the note. Past-tick `note_on`
+events can still be dropped (starting a note in the past is nonsensical), so
+the rule is `note_off`-only.
+
+**Problem:** `math.floor(raw_tick + 1e-9)` quantized live events to the previous
+tick even when they arrived 99% of the way through it. The `1e-9` epsilon only
+covered float-precision rounding, not user intent. Notes struck just before a
+beat boundary were recorded on the wrong beat.
+**Rule:** For live-input tick quantization, `floor` alone is too aggressive
+toward the past. Expose a snap-forward fraction (`snap_forward_fraction`,
+default 0.1 = last 10% of the tick snaps to the next tick) so the quantizer
+reflects musical intent, not just wall-clock truncation. `0.0` reproduces pure
+floor; `0.5` is nearest-tick rounding.
+
+**Problem:** The Lekai clients' `_tick_loop` advanced time with two *relative*
+sleeps per iteration — `time.sleep(SPT * 0.1)` pre-work, then variable work,
+then `time.sleep(SPT * 0.9)`. Each iteration took `0.1·SPT + work + 0.9·SPT >
+SPT`, so the loop drifted slower than real time. At 120 BPM the drift was worst
+on inference-trigger ticks where the full request pipeline ran between the two
+sleeps. Separately, `session_perf_start` was sampled during client `__init__`
+(before the loop started), so `_compute_live_event_tick` was offset from
+`tick_count` from the very first iteration.
+**Rule:** Use absolute-clock scheduling for periodic timing loops:
+`time.sleep(max(0, session_perf_start + (tick_count + 1) * SPT - perf_counter()))`.
+Sample `session_perf_start` on the first line of the loop function and write it
+back into the shared `current_tick_ref` so input handlers share the same origin.
+Relative sleeps are a foot-gun for any loop whose work can take a variable
+fraction of the tick.
+
+**Problem:** Model-generated note events had their `tick` overwritten with the
+drifted `tick_count` right before being handed to `MidiFileHandler`
+(`event_for_midi["tick"] = tick_count`). User notes kept their wall-clock
+stamps, so in `performance.mid` the user melody and the model accompaniment
+rendered on different tick bases and pulled apart over a session. The overwrite
+was a hack to work around loop drift — once the drift was fixed, it became
+actively wrong.
+**Rule:** Don't rewrite server-assigned ticks on the recording path. The server
+sends each generated note with a correct absolute tick; the client's job is to
+route it, not mutate it. If you're tempted to "fix" a tick locally to paper
+over another bug, fix the other bug instead.
+
 ---
 
 ## Engine Integration Lessons
@@ -182,6 +230,62 @@ but distinct. `docs/audit/LEKAI_THREE_ISSUES_SUMMARY.md` now serves as the
 canonical summary of the tick-stamping bug, the recording-order bug, and the
 server-side rebuild carry-in bug.
 
+**Problem:** `clear_history()` reset `melody_event_history`,
+`_active_melody_pitches`, `accompaniment_history`, `past_key_values`, and beat
+pointers — but not `_active_acc_pitches`. After a session reset, the first beat
+of the next session carried stale acc pitches from the previous session,
+emitting phantom `note_off` events for pitches the client had no record of.
+**Rule:** When adding new engine state fields, include them in `clear_history()`.
+Treat `_active_acc_pitches` and `_active_melody_pitches` symmetrically — both
+are window-boundary carry-over state, both must be reset together.
+
+**Problem:** Online sampling parameters were hardcoded in `_generate_tokens`
+with values that did NOT match the offline reference used to generate working
+samples (`lekai_model/inference_v2.py::batch_generate_all_samples`,
+`RT-accompanimentV2/inference_new.py`). The comment on the wrong values even
+said "Updated to match inference.py" while the values right below it differed
+(1.2 / 0.9 / 1.2 instead of 1.1 / 0.95 / 1.0). Rep penalty was also applied to
+the initial context only, never growing with tokens generated in the beat.
+**Rule:** Generation hyperparameters should live in one canonical place (engine
+constructor or config), not hardcoded in `_generate_tokens`. When a comment
+claims "matches X", verify by diffing against X. Repetition penalty must see
+the full growing sequence (context + tokens generated this beat) to match
+offline `_generate_one_beat` semantics.
+
+**Problem:** The offline pianoroll decoder treats three tokens as end-of-beat
+markers for an acc beat: `track_marker_acc / part1_end_marker (171)`,
+`empty_marker (169)`, `bar_token_id (255)`. The online `_generate_tokens` was
+stopping on only `{171, 255}`, so when the model emitted `169` to signal an
+empty beat the loop ran to `max_new_tokens=100`, producing noise tokens that
+corrupted following beats.
+**Rule:** When porting a generation loop from offline to online, match the
+end-marker set exactly. `PianoRollTokenizer.empty_marker` (169) must be a stop
+condition for acc-beat generation, not only an in-stream signal.
+
+**Problem:** Sliding-window `context_beats = 32` gave the Lekai model only
+~10–15% of its trained context length (`train_cutoff_len = 2048` ≈ 200–300
+beats at ~6–10 tokens/beat). Musical coherence suffered on longer sessions.
+**Rule:** The sliding-window lookback must cover typical real session length
+with margin. 64 beats is adequate for demo-scale sessions (~60 beats observed);
+stateful mode (`INFERENCE_MODE=stateful`) remains available for arbitrarily
+long sessions via accumulated `past_key_values`.
+
+**Problem:** `lekai_model/MidiConverter.py::events_to_pianoroll` sorts same-tick
+events with `note_off` before `note_on` so retriggers work correctly, then
+guards the note_off with `if p in active:`. For a **fresh** note where the
+pitch isn't yet active, the same-tick note_off becomes a no-op and only the
+note_on fires — so brief taps (note_on and note_off at the same integer tick)
+phantom-sustain forever in `_active_melody_pitches`, corrupting every
+subsequent beat's carry-in. The off-before-on sort is correct for retriggers,
+so flipping it is not an option — fresh blips and retriggers must be
+distinguished.
+**Rule:** Resolve same-tick `note_on`/`note_off` pairs at the single ingest
+point (`_normalize_melody_input`) by walking events in client-send order:
+track `opened_this_batch[pitch] = tick`; if a later `note_off` lands on the
+same tick and pitch, bump its tick to `tick + 1` so the note renders as a
+1-tick blip downstream. Do NOT attempt this at the pianoroll builder — it
+needs to preserve off-before-on ordering for retriggers.
+
 ---
 
 ## MIDI / Audio Lessons
@@ -202,6 +306,33 @@ Accessibility settings.
 verify Accessibility trust for the exact interpreter in use (for example the
 `muse_client` conda environment). A zero-note run may indicate OS permission
 blocking rather than a StreamMUSE timing bug.
+
+**Problem:** Accompaniment notes were observed "never ending" in
+`performance.mid`. The chain was: model emits `note_on` → `note_off` arrives
+late in a subsequent server response → client scheduler drops late events via
+`if note["tick"] >= tick_count:` → note stays open in
+`midi_file_handler._open_model` → `finalize()` at session end sets
+`off_tick = max observed tick`. Result: long dangling notes that all terminate
+at session end.
+**Rule:** When a MIDI writer has a finalize-flush fallback, it will mask
+upstream event-loss bugs as "extra-long notes." If many notes in
+`performance.mid` end at or near the final tick, suspect dropped `note_off`
+events upstream — not model failure to release. The fix is in the scheduler:
+release past-tick `note_off` events at `tick_count` rather than dropping them.
+
+**Problem:** `MidiFileHandler` was built on `pretty_midi`, which is
+seconds-based: every note stored as float `start`/`end = tick * seconds_per_tick`,
+then converted back to MIDI ticks via a tempo meta at save time. Any float
+rounding, any mismatch between the app's `seconds_per_tick` and the written
+tempo meta, or DAW re-interpretation of the tempo map could misalign the grid.
+It also forced a "min-1-tick floor" hack computed in seconds
+(`prev_start + seconds_per_tick`) that only covered the file writer, not the
+model's view of the same events.
+**Rule:** Write MIDI tick-native. `mido.MidiFile(ticks_per_beat=N)` stores
+absolute ticks as integers and converts to delta-ticks at write time with no
+float arithmetic. Enforce invariants (e.g., min-1-tick duration) at ingest,
+not at serialization, so the recorder, the model, and the writer all see the
+same integer tick stream.
 
 ---
 

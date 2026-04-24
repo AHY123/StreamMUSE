@@ -1,6 +1,6 @@
 STREAMMUSE — SESSION BRIDGE
-Branch: demo_lekai
-Last Updated: 2026-04-01
+Branch: demo_lekai_fixed
+Last Updated: 2026-04-17
 ===========================================
 
 COMPLETED:
@@ -164,6 +164,50 @@ KNOWN BUGS / TECH DEBT:
       → `stress_case`: normalized request notes match source exactly; normalized
         recorded user MIDI now also matches source exactly
       → The previous pitch-65 stretched-note recording mismatch is resolved
+[FIX] Snap-forward tick quantization (2026-04-17)
+      → `app/input_handlers/input_handler.py` replaces the 1e-9 float epsilon
+        with `snap_forward_fraction` from `timing_context` (default 0.1 = last
+        10% of each tick snaps to the next tick)
+      → Exposed as `--snap-forward-fraction` CLI arg in both `web_client.py`
+        (wired through `ClientConfig`) and `client_lekai.py` (wired directly
+        into `current_tick_ref`)
+      → Addresses "notes played just before a tick boundary get floored to the
+        previous tick" — the system no longer feels perpetually late
+[FIX] Lekai `_generate_tokens` now matches offline reference (2026-04-17)
+      → Sampling params corrected to `temperature=1.1, top_k=10, top_p=0.95,
+        repetition_penalty=1.0` (was `1.2 / 10 / 0.9 / 1.2`; comment claimed
+        parity with `inference.py` but the code disagreed)
+      → Added `tokenizer.empty_marker (169)` as an acc-beat stop token; the
+        offline `_generate_one_beat` / `inference_v2` stops on
+        `{171, 169, 255}` but online was stopping on `{171, 255}` only, so
+        empty-beat signals ran to `max_new_tokens=100` and emitted noise
+      → Repetition penalty now sees the full growing sequence (context +
+        tokens generated this beat), matching offline `_generate_one_beat`
+      → Bumped `context_beats` from 32 to 64 for sliding-window rebuild
+        (typical sessions reach ~60 beats; stateful mode remains available)
+      → Offline reference code cloned at `/tmp/rt-offline/RT-accompanimentV2`
+        (offline-minimal branch)
+[FIX] Late note_off release-now instead of drop (2026-04-17)
+      → `app/web_client.py` scheduler added an `elif note["type"] == "note_off"`
+        branch that reschedules past-tick note_off events at `tick_count`
+      → Previously: `if note["tick"] >= tick_count:` dropped ALL past-tick
+        events. For note_off this left the matching note_on open in
+        `midi_file_handler._open_model` until `finalize()` set off_tick to
+        session end — producing "accompaniment notes that never end" in
+        `performance.mid`
+      → Past-tick note_on events are still dropped (starting a note in the
+        past is nonsensical); rule is note_off-only
+[FIX] `clear_history` now also resets `_active_acc_pitches` (2026-04-17)
+      → `transformer_engine_lekai.py` `clear_history()` previously reset
+        melody-side state but left `_active_acc_pitches` populated, causing
+        phantom `note_off` events on the first beat of the next session
+      → Symmetric with the existing `_active_melody_pitches` reset
+[DOC] Added `docs/audit/MODEL_PATH_AUDIT_FIXES.md`
+      → Consolidated summary of all 7 fixes applied in the 2026-04-17 session:
+        snap-forward, sampling params, empty_marker end, rep-penalty scope,
+        context window 32→64, late note_off release-now, clear_history
+        resets _active_acc_pitches
+      → Offline reference: `/tmp/rt-offline/RT-accompanimentV2` (offline-minimal)
 [BUG] Lekai KV cache (past_key_values) unbounded growth in stateful mode
       → Mitigation: call /clear_history between sessions
 [DEBT] No test suite — no unit/integration tests in main source directories

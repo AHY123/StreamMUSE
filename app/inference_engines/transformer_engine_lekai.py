@@ -269,6 +269,7 @@ class InferenceEngineLekai:
         self.melody_event_history = []
         self._active_melody_pitches = set()
         self.accompaniment_history = []
+        self._active_acc_pitches = set()
         self.past_key_values = None
         self.last_generated_beat = -1
         self.last_generated_acc_tokens = None
@@ -342,16 +343,17 @@ class InferenceEngineLekai:
         return torch.tensor(tokens, dtype=torch.long)
 
     def _generate_tokens(self, input_ids, past_key_values=None):
-        """Core generation loop"""
+        """Core generation loop. Matches offline `_generate_one_beat` semantics:
+        repetition penalty sees the full growing sequence (context + tokens
+        generated in this beat), and generation stops on any of the three
+        training-time end markers for an acc beat."""
         device = "cuda" if torch.cuda.is_available() else "cpu"
         generated_tokens = []
 
-        # REMOVED: Unconditional bar token addition
-        # bar_token = torch.tensor([[self.config.bar_token_id]], device=device)
-        # input_ids = torch.cat([input_ids, bar_token], dim=1)
-
         current_input = input_ids
         current_past = past_key_values
+        # Grow with each sampled token so repetition penalty sees them.
+        full_sequence = input_ids
 
         with torch.no_grad():
             max_new_tokens = 100
@@ -367,27 +369,14 @@ class InferenceEngineLekai:
 
                 next_token = sample_token(
                     next_token_logits,
-                    generated_tokens=input_ids,  # Note: this is just for context, might be inaccurate if we only pass partial input
-                    # temperature=1.1,  # Updated to match inference.py
-                    # top_k=10,  # Updated to match inference.py
-                    # top_p=0.95,
-                    temperature=1.2,  # Set to 1.0 for deterministic with top_k=1
-                    top_k=10,  # Greedy decoding: always pick the highest probability token
-                    top_p=0.9,
-                    repetition_penalty=1.2,
+                    generated_tokens=full_sequence,
+                    temperature=1.1,
+                    top_k=10,
+                    top_p=0.95,
+                    repetition_penalty=1.0,
                 )
 
-                # Forcefully prevent PAD token generation
-                if next_token.item() == self.config.pad_token_id:
-                    # If we sampled PAD, try to sample again or just pick the next best?
-                    # Simple hack: just continue loop (effectively skipping this step? No, that breaks state)
-                    # Better: mask PAD logit before sampling. But sample_token is a black box here.
-                    # Let's just ignore it and not append it?
-                    # But we need to feed something to the model.
-                    # Let's assume it's a glitch and break? No.
-                    pass
-
-                # For next iteration
+                full_sequence = torch.cat([full_sequence, next_token], dim=1)
                 current_input = next_token
 
                 token_val = next_token.item()
@@ -395,9 +384,9 @@ class InferenceEngineLekai:
 
                 if token_val in [
                     self.config.end_marker_part1,
+                    self.tokenizer.empty_marker,
                     self.config.bar_token_id,
                 ]:
-                    # Keep the end marker in the generated tokens for decoding
                     break
 
         return generated_tokens, current_past
@@ -517,7 +506,7 @@ class InferenceEngineLekai:
             #
             # Pattern: [BOS, TimeSig, BPM, PAD] -> [AccBar, MelBar] -> (Acc0, Mel0) -> (Acc1, Mel1) ...
 
-            context_beats = 32  # Lookback
+            context_beats = 64  # Lookback
             start_beat = max(0, current_beat - context_beats)
             rebuild_start_tick = start_beat * self.ticks_per_beat
             self._active_melody_pitches = self._compute_active_melody_pitches_at_tick(

@@ -661,17 +661,17 @@ def tick_loop(
 
         # --- 5. Metronome ---
         if metronome_enabled:
-            # is_beat_tick = (tick_count % ticks_per_beat) == 0
-            # if is_beat_tick:
-            #     beat_in_bar = (tick_count % ticks_per_bar) // ticks_per_beat
-            #     if beat_in_bar == 0:
-            #         audio_output_handler.metro_first()
-            #     else:
-            #         audio_output_handler.metro_other()
-            if tick_count % ticks_per_beat == 0:
-                audio_output_handler.metro_first()
-            else:
-                audio_output_handler.metro_other()
+            is_beat_tick = (tick_count % ticks_per_beat) == 0
+            if is_beat_tick:
+                beat_in_bar = (tick_count % ticks_per_bar) // ticks_per_beat
+                if beat_in_bar == 0:
+                    audio_output_handler.metro_first()
+                else:
+                    audio_output_handler.metro_other()
+            # if tick_count % ticks_per_beat == 0:
+            #     audio_output_handler.metro_first()
+            # else:
+            #     audio_output_handler.metro_other()
 
         # --- 6. Update Display ---
         bar_count = tick_count // ticks_per_bar

@@ -975,6 +975,17 @@ class ClientManager:
                                     source="model",
                                     backup_level=note.get("backup_level", 0)
                                 )
+                        elif note.get("type") == "note_off":
+                            # Past-tick note_off: release now so the note actually closes.
+                            # Dropping it would leave the matching note_on open until
+                            # midi_file_handler.finalize() at session end, which renders
+                            # as "note extends to end of session" in performance.mid.
+                            late_note = dict(note)
+                            late_note["tick"] = tick_count
+                            late_note["type"] = "note_off"
+                            playback_schedule.setdefault(tick_count, []).append(
+                                {**late_note, "source": "model"}
+                            )
 
                     # Store timings for display, making them persistent
                     last_inference_timings = timings
